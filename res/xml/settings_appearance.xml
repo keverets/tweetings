@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="category_appearance"
+	android:title="@string/look_and_feel">
+
+    <PreferenceCategory
+		android:key="category_general"
+		android:title="@string/general">
+	 <org.mariotaku.preference.TextSizePreference
+		maxValue="24.0"
+		minValue="12.0"
+		android:defaultValue="14.0"
+		android:key="text_size"
+		android:summary="@string/text_size_summary"
+		android:title="@string/text_size"/> 
+		
+	 <CheckBoxPreference
+			android:defaultValue="false"
+			android:key="display_name"
+			android:summaryOff="@string/display_name_summaryoff"
+			android:summaryOn="@string/display_name_summaryon"
+			android:title="@string/display_name"/>
+	 
+	<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="display_name_both"
+			android:summary="@string/display_name_both_summary"
+			android:title="@string/display_name_both"/>
+	</PreferenceCategory>
+	
+	<PreferenceCategory
+		android:key="category_timelines"
+		android:title="@string/timelines">
+	
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:key="click_to_open_menu"
+		android:summary="@string/click_to_open_menu_summary"
+		android:title="@string/click_to_open_menu"/>
+	
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:key="volume_navigation"
+		android:summary="@string/volume_navigation_summary"
+		android:title="@string/volume_navigation"/>
+	
+	
+	<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="show_absolute_time"
+			android:summary="@string/show_absolute_time_summary"
+			android:title="@string/show_absolute_time"/>
+		
+		<!--  <CheckBoxPreference
+		android:defaultValue="false"
+		android:key="show_links"
+		android:summary="@string/show_links_summary"
+		android:title="@string/show_links"/>-->
+		
+	<CheckBoxPreference
+		    android:defaultValue="false"
+		    android:key="fast_list_processing"
+		    android:summary="@string/fast_list_processing_summary"
+		    android:title="@string/fast_list_processing"/>
+	
+	<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="fast_scroll"
+			android:summary="@string/fast_scroll_summary"
+			android:title="@string/fast_scroll"/>
+	</PreferenceCategory>
+	
+	<PreferenceCategory
+		android:key="category_navigation"
+		android:title="@string/navigation">
+	
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:key="hide_tab_label"
+		android:summary="@string/tab_hide_label_summary"
+		android:title="@string/tab_hide_label"/>
+		
+	  <CheckBoxPreference
+		android:defaultValue="false"
+		android:key="display_tab_label"
+		android:summary="@string/tab_display_label_summary"
+		android:title="@string/tab_display_label"/>
+	  </PreferenceCategory>
+	
+	<PreferenceCategory
+ 		android:key="cat_dual_pane_layout"
+ 		android:title="@string/dual_pane_layout">
+ 	 	<CheckBoxPreference
+	 	 	android:defaultValue="false"
+ 	 		android:key="dual_pane_in_portrait"
+ 	 		android:title="@string/portrait"/>
+ 	 	<CheckBoxPreference
+ 	 		android:defaultValue="false"
+ 	 		android:key="dual_pane_in_landscape"
+ 	 		android:title="@string/landscape"/>
+ 	 </PreferenceCategory>
+
+</PreferenceScreen>

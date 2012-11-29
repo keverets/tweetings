@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<!-- <item
+		android:id="@id/edit_api"
+		android:icon="@drawable/ic_menu_server"
+		android:showAsAction="always"
+		android:title="@string/edit_api"/> -->
+	<item
+		android:id="@id/settings"
+		android:icon="@drawable/ic_menu_preferences"
+		android:showAsAction="ifRoom"
+		android:title="@string/settings"/>
+
+</menu>

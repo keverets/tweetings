@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent">
+
+	<RelativeLayout
+		android:id="@+id/conversation_container"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent">
+
+		<ListView
+			android:id="@android:id/list"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:layout_above="@+id/divider_horizontal"/>
+
+		<View
+			android:id="@+id/divider_horizontal"
+			android:layout_width="match_parent"
+			android:layout_height="0.2dp"
+			android:layout_above="@+id/input_send_container"
+			android:background="#40808080"/>
+
+		<LinearLayout
+			android:id="@+id/input_send_container"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true"
+			android:orientation="horizontal">
+
+			<com.dwdesign.tweetings.view.StatusComposeEditText
+				android:id="@+id/edit_text"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:completionThreshold="1"
+				android:gravity="left|bottom"
+				android:hint="@string/type_to_compose"
+				android:imeOptions="actionDone"
+				android:inputType="textMultiLine"
+				android:minHeight="64dp"
+				android:singleLine="false"/>
+			
+			<TextView
+				android:id="@+id/text_count"
+				android:layout_width="wrap_content"
+				android:layout_height="56dp"
+				android:layout_gravity="bottom"
+				android:layout_weight="0"
+				android:gravity="bottom|center"
+				android:paddingLeft="2dp"
+				android:paddingBottom="6dp"
+				android:text="140"
+				android:paddingRight="2dp"
+				android:singleLine="true"
+				android:textAppearance="?android:attr/textAppearanceMedium"
+				android:textColor="#80808080"/>
+
+			<ImageButton
+				android:id="@+id/send"
+				android:layout_width="56dp"
+				android:layout_height="56dp"
+				android:layout_gravity="bottom"
+				android:layout_weight="0"
+				android:background="@drawable/item_background_holo_light"
+				android:src="@drawable/ic_menu_send"/>
+			
+			
+		
+		</LinearLayout>
+	</RelativeLayout>
+
+	<RelativeLayout
+		android:id="@+id/screen_name_container"
+		android:layout_width="300dp"
+		android:layout_height="match_parent"
+		android:layout_gravity="center"
+		android:gravity="center"
+		android:orientation="horizontal"
+		android:padding="16dp"
+		android:visibility="gone">
+
+		<AutoCompleteTextView
+			android:id="@+id/screen_name"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_below="@+id/account_selector"
+			android:layout_toLeftOf="@+id/screen_name_confirm"
+			android:ems="10"
+			android:hint="@string/screen_name"
+			android:singleLine="true"/>
+
+		<Button
+			android:id="@+id/screen_name_confirm"
+			style="android:attr/buttonStyleLarge"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignBottom="@+id/screen_name"
+			android:layout_alignParentRight="true"
+			android:minHeight="42dp"
+			android:minWidth="72dp"
+			android:text="@android:string/ok"
+			android:textSize="16sp"/>
+
+		<Spinner
+			android:id="@+id/account_selector"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentLeft="true"
+			android:layout_alignParentRight="true"
+			android:minHeight="42dp"/>
+	</RelativeLayout>
+
+</FrameLayout>

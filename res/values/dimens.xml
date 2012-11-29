@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<dimen name="profile_image_size">56dp</dimen>
+	<dimen name="preview_image_size">120dp</dimen>
+	<dimen name="status_image_size">250dp</dimen>
+	<dimen name="set_color_height">240dp</dimen>
+	
+	<dimen name="activity_profile_image_size">32dp</dimen>
+	
+</resources>

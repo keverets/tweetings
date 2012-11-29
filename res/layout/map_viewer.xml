@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<FrameLayout
+		android:id="@+id/map_frame"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="match_parent">
+
+		<ImageButton
+			android:id="@+id/close"
+			android:layout_width="64dp"
+			android:layout_height="48dp"
+			android:layout_alignParentLeft="true"
+			android:layout_alignParentTop="true"
+			android:background="@drawable/btn_viewer_topleft"
+			android:contentDescription="@android:string/cancel"
+			android:onClick="onClick"
+			android:src="@drawable/ic_menu_close_clear_cancel"/>
+
+		<ImageButton
+			android:id="@+id/center"
+			android:layout_width="64dp"
+			android:layout_height="48dp"
+			android:layout_alignParentRight="true"
+			android:layout_alignParentTop="true"
+			android:background="@drawable/btn_viewer_topright"
+			android:onClick="onClick"
+			android:src="@drawable/ic_menu_mylocation"/>
+	</RelativeLayout>
+
+</merge>

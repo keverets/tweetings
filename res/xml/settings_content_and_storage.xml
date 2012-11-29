@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_content_and_storage"
+	android:title="@string/content_and_storage">
+
+	<PreferenceCategory
+		android:key="category_multimedia_contents"
+		android:title="@string/multimedia_contents">
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="display_profile_image"
+			android:summary="@string/image_load_summary"
+			android:title="@string/display_profile_image"/>
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="inline_image_preview"
+			android:summary="@string/image_load_summary"
+			android:title="@string/inline_image_preview"/>
+	</PreferenceCategory>
+	
+	<PreferenceCategory
+		android:key="category_content"
+		android:title="@string/content">
+		
+		
+		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="load_more_automatically"
+			android:summary="@string/load_more_automatically_summary"
+			android:title="@string/load_more_automatically"/>
+
+		<org.mariotaku.preference.SeekBarPreference
+			maxValue="200"
+			minValue="10"
+			android:defaultValue="50"
+			android:key="load_item_limit"
+			android:summary="@string/load_item_limit_summary"
+			android:title="@string/load_item_limit"/>
+
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="remember_position"
+			android:summary="@string/remember_position_summary"
+			android:title="@string/remember_position"/>
+
+		<CheckBoxPreference
+		    android:defaultValue="false"
+		    android:key="sort_timeline_by_time"
+		    android:summary="@string/sort_timeline_by_time_summary"
+		    android:title="@string/sort_timeline_by_time"/>
+		<com.dwdesign.tweetings.preference.TrendsLocationPreference
+			android:key="trends_location"
+			android:summary="@string/trends_location_summary"
+			android:title="@string/trends_location"/>
+	</PreferenceCategory>
+	<PreferenceCategory
+		android:key="category_sync"
+		android:title="@string/timeline_sync">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="sync_enabled"
+			android:summary="@string/timeline_sync_enable_summary"
+			android:title="@string/timeline_sync_enable"/>
+		<com.dwdesign.tweetings.preference.SyncTypePreference
+			android:key="sync_type"
+			android:summary="@string/timeline_sync_type_summary"
+			android:title="@string/timeline_sync_type"/>
+	</PreferenceCategory>
+	<PreferenceCategory
+		android:key="category_storage"
+		android:title="@string/storage">
+		<org.mariotaku.preference.SeekBarPreference
+			maxValue="1500"
+			minValue="50"
+			android:defaultValue="800"
+			android:key="database_item_limit"
+			android:summary="@string/database_item_limit_summary"
+			android:title="@string/database_item_limit"/>
+
+		<com.dwdesign.tweetings.preference.ClearCachePreference
+			android:key="clear_cache"
+			android:summary="@string/clear_cache_summary"
+			android:title="@string/clear_cache"/>
+
+		<com.dwdesign.tweetings.preference.ClearDatabasesPreference
+			android:key="clear_databases"
+			android:summary="@string/clear_databases_summary"
+			android:title="@string/clear_databases"/>
+	</PreferenceCategory>
+
+</PreferenceScreen>

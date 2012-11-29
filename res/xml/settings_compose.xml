@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_compose"
+	android:title="@string/settings_compose">
+	
+    <com.dwdesign.tweetings.preference.ImageUploaderPickerPreference
+			android:key="image_uploader"
+			android:title="@string/image_uploader"/>
+		
+     <CheckBoxPreference
+		android:defaultValue="false"
+		android:key="automatic_retry"
+		android:summary="@string/automatic_retry_summary"
+		android:title="@string/automatic_retry"/>
+	
+     
+    <CheckBoxPreference
+		android:defaultValue="false"
+		android:key="bottom_compose_button"
+		android:summary="@string/bottom_compose_button_summary"
+		android:title="@string/bottom_compose_button"/>
+    
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:dependency="bottom_compose_button"
+		android:key="leftside_compose_button"
+		android:summary="@string/leftside_compose_button_summary"
+		android:title="@string/leftside_compose_button"/>
+
+	
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:key="quick_send"
+		android:summary="@string/quick_send_summary"
+		android:title="@string/quick_send"/>
+
+    
+		
+		<PreferenceCategory
+		android:key="category_external_services"
+		android:title="@string/external_services">
+		<Preference
+			android:title="@string/buffer"
+			android:summary="@string/buffer_summary">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="https://bufferapp.com/oauth2/authorize?client_id=50622ce249bbd8716000001b&amp;redirect_uri=tweetings%3A%2F%2Fbufferapp&amp;response_type=code"/>
+		</Preference>
+		</PreferenceCategory>
+		
+		<PreferenceCategory
+		android:key="category_content"
+		android:title="@string/content">
+		<EditTextPreference
+			android:defaultValue="RT @[NAME]: [TEXT]"
+			android:dialogTitle="@string/quote_format"
+			android:key="quote_format"
+			android:singleLine="true"
+			android:summary="@string/quote_format_summary"
+			android:title="@string/quote_format"/>
+		<EditTextPreference
+			android:defaultValue="[TITLE] - [TEXT]"
+			android:dialogTitle="@string/share_format"
+			android:key="share_format"
+			android:singleLine="true"
+			android:summary="@string/share_format_summary"
+			android:title="@string/share_format"/>
+		</PreferenceCategory>
+    
+
+</PreferenceScreen>

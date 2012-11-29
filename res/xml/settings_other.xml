@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_other"
+	android:title="@string/other_settings">
+
+    
+    
+    <CheckBoxPreference
+        android:defaultValue="false"
+        android:key="keep_in_background"
+        android:summary="@string/keep_in_background_summary"
+        android:title="@string/keep_in_background"/>
+    
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="api_v1"
+        android:summary="@string/api_v1_summary"
+        android:title="@string/api_v1"/>
+    
+    <Preference
+			android:summary="Read more about the difference between API 1.0 and 1.1 rate limits"
+			android:title="About rate limits">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://www.tweetings.net/site/2012/10/rate-limits-and-the-new-twitter-api/"/>
+		</Preference>
+	<!-- 
+	<CheckBoxPreference
+		android:defaultValue="false"
+		android:disableDependentsState="true"
+		android:key="stop_service_after_closed"
+		android:summary="@string/stop_service_after_closed_summary"
+		android:title="@string/stop_service_after_closed"/> -->
+
+</PreferenceScreen>

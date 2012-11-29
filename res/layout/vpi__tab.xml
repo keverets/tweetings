@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<view xmlns:android="http://schemas.android.com/apk/res/android"
+	style="?attr/tabStyle"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	class="com.dwdesign.tweetings.view.TabPageIndicator$TabView">
+
+	<ImageView
+		android:id="@android:id/icon"
+		android:layout_width="wrap_content"
+		android:layout_height="match_parent"
+		android:layout_gravity="center"
+		android:gravity="center"
+		android:scaleType="fitCenter"/>
+
+	<TextView android:layerType="software"
+		android:id="@android:id/text1"
+		style="?attr/tabTextStyle"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:ellipsize="marquee"
+		android:gravity="center"/>
+
+</view>

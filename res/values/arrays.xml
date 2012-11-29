@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<string-array name="entries_refresh_interval">
+		<item>@string/item_1_minute</item>
+		<item>@string/item_3_minutes</item>
+		<item>@string/item_5_minutes</item>
+		<item>@string/item_10_minutes</item>
+		<item>@string/item_15_minutes</item>
+		<item>@string/item_30_minutes</item>
+		<item>@string/item_1_hour</item>
+		<item>@string/item_2_hours</item>
+		<item>@string/item_4_hours</item>
+	</string-array>
+	<string-array name="values_refresh_interval">
+		<item>1</item>
+		<item>3</item>
+		<item>5</item>
+		<item>10</item>
+		<item>15</item>
+		<item>30</item>
+		<item>60</item>
+		<item>120</item>
+		<item>240</item>
+	</string-array>
+	<string-array name="entries_refresh_notification_content">
+		<item>@string/home_notifications</item>
+		<item>@string/mentions</item>
+		<item>@string/inbox</item>
+	</string-array>
+	<string-array name="entries_notification_content">
+		<item>@string/home_notifications</item>
+		<item>@string/mentions</item>
+		<item>@string/inbox</item>
+		<item>@string/lists_notifications</item>
+		<item>@string/follow_notifications</item>
+		<item>@string/fav_notifications</item>
+		<item>@string/rt_notifications</item>
+	</string-array>
+	<string-array name="entries_home_refresh_content">
+		<item>@string/mentions</item>
+		<item>@string/inbox</item>
+	</string-array>
+	<string-array name="entries_notification_type">
+		<item>@string/sound</item>
+		<item>@string/vibration</item>
+		<item>@string/lights</item>
+	</string-array>
+	
+	<string-array name="ticker_types">
+		<item>@string/home_timeline</item>
+		<item>@string/mentions</item>
+	</string-array>
+
+</resources>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:title="@string/about">
+
+	<PreferenceCategory android:title="ABOUT TWEETINGS">
+		<Preference
+			android:summary="@string/app_version"
+			android:title="@string/app_name"/>
+		<Preference
+			android:summary="RBD Solutions Limited"
+			android:title="Copyright (c) 2011-2012">
+		</Preference>
+		<Preference
+			android:summary="http://www.tweetings.net"
+			android:title="Website">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://www.tweetings.net"/>
+		</Preference>
+		<Preference
+			android:key="license"
+			android:summary="@string/license_summary"
+			android:title="@string/license">
+			<intent
+				android:action="com.dwdesign.tweetings.VIEW_WEBPAGE"
+				android:data="file:///android_asset/gpl-3.0-standalone.html"
+				android:targetPackage="com.dwdesign.tweetings"/>
+		</Preference>
+		<Preference
+			android:key="licenseinfo"
+			android:summary="@string/license_info_summary"
+			android:title="@string/license_info">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://www.tweetings.net/android/source/"/>
+		</Preference>
+	</PreferenceCategory>
+	<PreferenceCategory android:title="LICENSES">
+		<Preference
+			android:summary="Based on the Twidere app under the GPL v3.0 license"
+			android:title="Twidere">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="https://github.com/mariotaku/twidere"/>
+		</Preference>
+		<Preference
+			android:summary="Copyright 2007 Yusuke Yamamoto. Apache License 2.0."
+			android:title="Twitter4J">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://twitter4j.org/en/index.html"/>
+		</Preference>
+		<Preference
+			android:summary="Copyright 2011, 2012 Chris Banes. Apache License 2.0."
+			android:title="Pull to Refresh">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="https://github.com/chrisbanes/Android-PullToRefresh"/>
+		</Preference>
+		<Preference
+			android:summary="Copyright Apache Foundation. Apache License 2.0."
+			android:title="Apache HttpComponents">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="https://github.com/koush/UrlImageViewHelper"/>
+		</Preference>
+		<Preference
+			android:summary="Copyright 2012 Koushik Dutta. Apache License 2.0."
+			android:title="UrlImageViewHelper">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://hc.apache.org/downloads.cgi"/>
+		</Preference>
+		<Preference
+			android:summary="Copyright Apache Foundation. Apache License 2.0."
+			android:title="Apache Commons Codec">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://commons.apache.org/codec/download_codec.cgi"/>
+		</Preference>
+	</PreferenceCategory>
+	
+</PreferenceScreen>

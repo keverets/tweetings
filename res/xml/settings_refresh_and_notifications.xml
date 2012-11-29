@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_refresh_and_notifications"
+	android:title="@string/refresh_and_notifications">
+
+	<PreferenceCategory
+		android:key="category_refresh"
+		android:title="@string/refresh">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="auto_refresh"
+			android:title="@string/auto_refresh"/>
+
+		<ListPreference
+			android:dependency="auto_refresh"
+			android:entries="@array/entries_refresh_interval"
+			android:entryValues="@array/values_refresh_interval"
+			android:key="refresh_interval"
+			android:summary="@string/refresh_interval_summary"
+			android:title="@string/refresh_interval"/>
+
+		<com.dwdesign.tweetings.preference.AutoRefreshContentPreference
+			android:dependency="auto_refresh"
+			android:key="refresh_content"
+			android:title="@string/content_to_refresh"/>
+		
+		<CheckBoxPreference
+ 	 		android:defaultValue="true"
+ 	 		android:dependency="auto_refresh"
+ 	 		android:key="stop_auto_refresh_when_battery_low"
+ 	 		android:title="@string/stop_auto_refresh_when_battery_low"/>
+
+		<com.dwdesign.tweetings.preference.HomeRefreshContentPreference
+			android:key="home_refresh"
+			android:title="@string/home_refresh"/>
+
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="refresh_on_start"
+			android:summary="@string/refresh_on_start_summary"
+			android:title="@string/refresh_on_start"/>
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="refresh_after_tweet"
+			android:summary="@string/refresh_after_tweet_summary"
+			android:title="@string/refresh_after_tweet"/>
+		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="gap_position"
+			android:title="@string/gap_position"
+			android:summary="@string/gap_position_summary"/>
+	</PreferenceCategory>
+	<PreferenceCategory
+		android:key="category_sounds"
+		android:title="@string/sounds">
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="sound_on_send"
+			android:summary="@string/sound_on_send_summary"
+			android:title="@string/sound_on_send"/>
+		
+	</PreferenceCategory>
+	<PreferenceCategory
+		android:key="category_notifications"
+		android:title="@string/notifications">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="push_notifications"
+			android:summary="@string/push_notifications_summary"
+			android:title="@string/push_notifications"/>
+		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="local_notifications"
+			android:summary="@string/local_notifications_summary"
+			android:title="@string/local_notifications"/>
+	    
+		<com.dwdesign.tweetings.preference.NotificationContentPreference
+			android:key="notification_content"
+			android:summary="@string/content_to_nofity_summary"
+			android:title="@string/content_to_nofity"/>
+
+		<com.dwdesign.tweetings.preference.NotificationTypePreference
+			android:key="notifications_type"
+			android:summary="@string/notifications_type_summary"
+			android:title="@string/notifications_type"/>
+
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="group_notifications"
+			android:summary="@string/group_notifications_summary"
+			android:title="@string/group_notifications"/>
+		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="notification_push_sound"
+			android:summary="@string/push_sound_summary"
+			android:title="@string/push_sound"/>
+		
+		<RingtonePreference
+			android:key="notification_ringtone"
+			android:ringtoneType="notification"
+			android:showDefault="true"
+			android:summary="@string/notification_ringtone_summary"
+			android:title="@string/notification_ringtone"/>
+
+		<com.dwdesign.tweetings.preference.ColorPickerPreference
+			android:defaultValue="@color/holo_blue_dark"
+			android:key="notification_light_color"
+			android:title="@string/notification_light_color"/>
+	</PreferenceCategory>
+
+</PreferenceScreen>

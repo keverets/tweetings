@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <style name="Theme.Blank" parent="android:Theme.NoTitleBar"/>
+
+    <style name="Theme.Twidere.Holo.Dialog" parent="Theme.Holo.Dialog">
+        
+    </style>
+    
+	<style name="Theme.Twidere" parent="Theme.Holo">
+		<item name="tabStyle">@style/Widget.TabPageIndicator</item>
+		<item name="tabTextStyle">@style/Widget.TabPageIndicator.TextView</item>
+		<item name="tabBackground">@null</item>
+		<item name="switchStyle">@style/Widget.Holo.CompoundButton.Switch</item>
+		<item name="editTextStyle">@style/Widget.Holo.EditText</item>
+		<item name="android:windowBackground">@drawable/background_holo_dark</item>
+		<item name="android:galleryItemBackground">@drawable/gallery_item_background</item>
+
+		<!-- Button styles -->
+		<item name="android:buttonStyle">@style/Widget.Twidere.Button</item>
+		<item name="android:buttonStyleSmall">@style/Widget.Twidere.Button.Small</item>
+		<item name="android:buttonStyleInset">@style/Widget.Twidere.Button.Inset</item>
+		<item name="android:imageButtonStyle">@style/Widget.Twidere.ImageButton</item>
+	</style>
+
+	<style name="Theme.Twidere.Light" parent="Theme.Holo.Light.DarkActionBar">
+		<item name="tabStyle">@style/Widget.TabPageIndicator</item>
+		<item name="tabTextStyle">@style/Widget.TabPageIndicator.TextView</item>
+		<item name="tabBackground">@drawable/tab_background_dark</item>
+		<item name="switchStyle">@style/Widget.Holo.Light.CompoundButton.Switch</item>
+		<item name="editTextStyle">@style/Widget.Holo.Light.EditText</item>
+		<item name="android:windowBackground">@drawable/background_holo_light</item>
+		<item name="actionBarBackground">@drawable/bg_actionbar_light_theme</item>
+		<item name="android:galleryItemBackground">@drawable/gallery_item_background</item>
+
+		<!-- Button styles -->
+		<item name="android:buttonStyle">@style/Widget.Twidere.Light.Button</item>
+		<item name="android:buttonStyleSmall">@style/Widget.Twidere.Light.Button.Small</item>
+		<item name="android:buttonStyleInset">@style/Widget.Twidere.Light.Button.Inset</item>
+		<item name="android:imageButtonStyle">@style/Widget.Twidere.Light.ImageButton</item>
+	</style>
+
+	<style name="Theme.Twidere.Viewer" parent="android:Theme.Translucent.NoTitleBar">
+		<item name="android:windowBackground">@drawable/image_viewer_background</item>
+		<item name="android:windowAnimationStyle">@style/Animation.ImageViewer</item>
+		<item name="android:galleryItemBackground">@drawable/gallery_item_background</item>
+	</style>
+
+	<style name="Theme.Twidere.Dialog" parent="Theme.Holo.Dialog">
+		<item name="tabStyle">@style/Widget.TabPageIndicator</item>
+		<item name="tabTextStyle">@style/Widget.TabPageIndicator.TextView</item>
+		<item name="tabBackground">@null</item>
+		<item name="switchStyle">@style/Widget.Holo.CompoundButton.Switch</item>
+		<item name="android:galleryItemBackground">@drawable/gallery_item_background</item>
+
+		<!-- Button styles -->
+		<item name="android:buttonStyle">@style/Widget.Twidere.Button</item>
+		<item name="android:buttonStyleSmall">@style/Widget.Twidere.Button.Small</item>
+		<item name="android:buttonStyleInset">@style/Widget.Twidere.Button.Inset</item>
+		<item name="android:imageButtonStyle">@style/Widget.Twidere.ImageButton</item>
+	</style>
+
+	<style name="Theme.Twidere.Light.Dialog" parent="Theme.Holo.Light.Dialog">
+		<item name="tabStyle">@style/Widget.TabPageIndicator</item>
+		<item name="tabTextStyle">@style/Widget.TabPageIndicator.TextView</item>
+		<item name="tabBackground">@drawable/tab_background_dark</item>
+		<item name="switchStyle">@style/Widget.Holo.Light.CompoundButton.Switch</item>
+		<item name="android:galleryItemBackground">@drawable/gallery_item_background</item>
+
+		<!-- Button styles -->
+		<item name="android:buttonStyle">@style/Widget.Twidere.Light.Button</item>
+		<item name="android:buttonStyleSmall">@style/Widget.Twidere.Light.Button.Small</item>
+		<item name="android:buttonStyleInset">@style/Widget.Twidere.Light.Button.Inset</item>
+		<item name="android:imageButtonStyle">@style/Widget.Twidere.Light.ImageButton</item>
+	</style>
+	
+	<style name="FeatherDefaultTheme.Custom" parent="FeatherDefaultTheme" />
+	
+</resources>

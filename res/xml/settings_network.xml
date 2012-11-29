@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_network"
+	android:title="@string/network">
+
+    <PreferenceCategory
+		android:key="category_streaming"
+		android:title="@string/streaming">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="stream_enabled"
+			android:summary="@string/stream_enabled_summary"
+			android:title="@string/stream_enabled"/>
+	</PreferenceCategory>
+	<PreferenceCategory
+		android:key="category_api"
+		android:title="@string/api">
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="gzip_compressing"
+			android:summary="@string/gzip_compressing_summary"
+			android:title="@string/gzip_compressing"/>
+
+		<EditTextPreference
+			android:dialogTitle="@string/consumer_key"
+			android:inputType="textVisiblePassword"
+			android:key="consumer_key"
+			android:singleLine="true"
+			android:summary="@string/consumer_key_summary"
+			android:title="@string/consumer_key"/>
+		<EditTextPreference
+			android:dialogTitle="@string/consumer_secret"
+			android:inputType="textVisiblePassword"
+			android:key="consumer_secret"
+			android:singleLine="true"
+			android:summary="@string/consumer_secret_summary"
+			android:title="@string/consumer_secret"/>
+		
+	</PreferenceCategory>
+
+	<PreferenceCategory
+		android:key="category_proxy"
+		android:title="@string/proxy">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:disableDependentsState="false"
+			android:key="enable_proxy"
+			android:summary="@string/http_proxy_summary"
+			android:title="@string/http_proxy"/>
+
+		<EditTextPreference
+			android:dependency="enable_proxy"
+			android:key="proxy_host"
+			android:singleLine="true"
+			android:title="@string/proxy_host"/>
+		<EditTextPreference
+			android:dependency="enable_proxy"
+			android:inputType="number"
+			android:key="proxy_port"
+			android:singleLine="true"
+			android:title="@string/proxy_port"/>
+	</PreferenceCategory>
+
+</PreferenceScreen>

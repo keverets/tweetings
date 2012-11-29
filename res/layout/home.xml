@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<com.dwdesign.tweetings.view.ExtendedViewPager
+		android:id="@+id/pager"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+
+	<ImageButton
+		android:id="@+id/button_compose"
+		android:layout_width="56dp"
+		android:layout_height="56dp"
+		android:layout_gravity="bottom|right"
+		android:contentDescription="@string/compose"
+		android:onClick="onClick"
+		android:src="@drawable/ic_menu_tweet"/>
+</merge>
+

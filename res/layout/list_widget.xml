@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@drawable/stack_item_background"
+	android:orientation="vertical">
+
+	<RelativeLayout
+		android:id="@+id/top_bar"
+		android:layout_width="match_parent"
+		android:layout_height="52dp"
+		android:background="@drawable/actionbar_bg_dark_holo">
+
+		<ImageView
+			android:id="@+id/logo"
+			android:layout_width="52dp"
+			android:layout_height="match_parent"
+			android:layout_alignParentLeft="true"
+			android:layout_centerVertical="true"
+			android:padding="8dp"
+			android:src="@drawable/ic_launcher"/>
+
+		<TextView
+			android:id="@+id/title"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_centerVertical="true"
+			android:layout_toRightOf="@+id/logo"
+			android:textAppearance="?android:attr/textAppearanceMedium"/>
+
+		<ImageButton
+			android:id="@+id/compose"
+			android:layout_width="52dp"
+			android:layout_height="match_parent"
+			android:layout_alignParentRight="true"
+			android:background="@drawable/item_background_holo_dark"
+			android:src="@drawable/ic_menu_tweet"/>
+
+		<FrameLayout
+			android:layout_width="52dp"
+			android:layout_height="match_parent"
+			android:layout_toLeftOf="@+id/compose">
+
+			<ProgressBar
+				android:id="@+id/refresh_progress"
+				style="?android:attr/progressBarStyleSmall"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:visibility="gone"/>
+
+			<ImageButton
+				android:id="@+id/refresh"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:background="@drawable/item_background_holo_dark"
+				android:src="@drawable/ic_menu_refresh"/>
+		</FrameLayout>
+	</RelativeLayout>
+
+	<ListView
+		android:id="@+id/list_view"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+
+</LinearLayout>

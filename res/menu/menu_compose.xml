@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<item
+		android:id="@id/add_location"
+		android:icon="@drawable/ic_menu_mylocation"
+		android:title="@string/add_location"/>
+	<item
+		android:id="@id/media_library_submenu"
+		android:icon="@drawable/ic_menu_gallery"
+		android:title="@string/add_image">
+		<menu>
+			<item
+				android:id="@id/take_photo"
+				android:icon="@drawable/ic_menu_camera"
+				android:title="@string/take_photo"/>
+			
+			<item
+				android:id="@id/add_image"
+				android:icon="@drawable/ic_menu_gallery"
+				android:title="@string/add_image"/>
+		</menu>
+	</item>
+	<item
+		android:id="@id/shorten_links"
+		android:icon="@drawable/ic_menu_links"
+		android:title="@string/shorten_links"/>
+	<item
+		android:id="@+id/more_submenu"
+		android:icon="@drawable/ic_menu_more"
+		android:title="@string/more">
+		<menu>
+		    
+			<item
+				android:id="@id/drafts"
+				android:icon="@drawable/ic_menu_save"
+				android:title="@string/drafts"/>
+		 	<item
+				android:id="@id/schedule_tweet"
+				android:icon="@drawable/ic_menu_schedule"
+				android:title="@string/schedule_tweet"/>
+		 	<item
+				android:id="@id/add_to_buffer"
+				android:icon="@drawable/ic_menu_buffer"
+				android:title="@string/add_to_buffer"/>
+		</menu>
+	</item>
+
+</menu>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+		android:id="@+id/avatar_submenu"
+		android:icon="@drawable/ic_menu_profile"
+		android:title="@string/change_avatar">
+		<menu>
+			<item
+		android:id="@id/take_photo"
+		android:icon="@drawable/ic_menu_camera"
+		android:title="@string/take_photo"/>
+			<item
+				android:id="@id/add_image"
+				android:icon="@drawable/ic_menu_gallery"
+				android:title="@string/pick_from_gallery"/>
+		</menu>
+	</item>
+	
+	<item
+		android:id="@+id/banner_submenu"
+		android:icon="@drawable/ic_menu_gallery"
+		android:title="@string/change_banner">
+		<menu>
+			<item
+		android:id="@id/banner_take_photo"
+		android:icon="@drawable/ic_menu_camera"
+		android:title="@string/take_photo"/>
+			<item
+				android:id="@id/banner_add_image"
+				android:icon="@drawable/ic_menu_gallery"
+				android:title="@string/pick_from_gallery"/>
+		</menu>
+	</item>
+    
+    
+	
+
+</menu>

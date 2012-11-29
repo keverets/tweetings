@@ -1,0 +1,9 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+	android:configure="com.dwdesign.tweetings.appwidget.activity.WidgetTypeConfigActivity"
+	android:initialLayout="@layout/list_widget"
+	android:minHeight="140dp"
+	android:minWidth="270dp"
+	android:previewImage="@drawable/list_widget_preview"
+	android:resizeMode="vertical|horizontal"
+	android:widgetCategory="home_screen|keyguard"
+	android:updatePeriodMillis="0"/>

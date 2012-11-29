@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<style name="Widget.Twidere.ActionBar" parent="android:Widget.Holo.ActionBar">
+		<item name="android:background">?actionBarBackground</item>
+		<item name="android:indeterminateProgressStyle">?actionBarIndeterminateProgressStyle</item>
+	</style>
+
+	<style name="Widget.Twidere.Light.ActionBar" parent="android:Widget.Holo.Light.ActionBar.Solid.Inverse">
+		<item name="android:background">?actionBarBackground</item>
+		<item name="android:indeterminateProgressStyle">?actionBarIndeterminateProgressStyle</item>
+	</style>
+
+	<style name="Widget.Twidere.Button" parent="android:Widget.Button">
+		<item name="android:background">@drawable/btn_default_holo</item>
+		<item name="android:textColor">#ffffff</item>
+	</style>
+
+	<style name="Widget.Twidere.Button.Small" parent="android:Widget.Button.Small">
+		<item name="android:background">@drawable/btn_default_holo</item>
+		<item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+		<item name="android:textColor">@color/primary_text_holo_dark</item>
+		<item name="android:minHeight">48dp</item>
+		<item name="android:minWidth">48dp</item>
+	</style>
+
+	<style name="Widget.Twidere.Button.Inset" parent="android:Widget.Button.Inset"/>
+
+	<style name="Widget.Twidere.ImageButton" parent="android:Widget.ImageButton">
+		<item name="android:background">@drawable/btn_default_holo</item>
+	</style>
+
+	<style name="Widget.Twidere.Light.Button" parent="android:Widget.Button">
+		<item name="android:background">@drawable/btn_default_holo</item>
+		<item name="android:textColor">#000000</item>
+	</style>
+
+	<style name="Widget.Twidere.Light.Button.Small">
+		<item name="android:background">@drawable/btn_default_holo</item>
+		<item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+		<item name="android:textColor">@color/primary_text_holo_light</item>
+		<item name="android:minHeight">48dp</item>
+		<item name="android:minWidth">48dp</item>
+	</style>
+
+	<style name="Widget.Twidere.Light.Button.Inset"></style>
+
+	<style name="Widget.Twidere.Light.ImageButton" parent="android:Widget.ImageButton">
+		<item name="android:background">@drawable/btn_default_holo</item>
+	</style>
+
+	<style name="Animation.ImageViewer" parent="android:Animation">
+		<item name="android:windowEnterAnimation">@android:anim/fade_in</item>
+		<item name="android:windowExitAnimation">@android:anim/fade_out</item>
+	</style>
+
+	<style name="Widget.Holo.CompoundButton.Switch" parent="android:Widget.CompoundButton">
+		<item name="track">@drawable/switch_track_holo_dark</item>
+		<item name="thumb">@drawable/switch_inner_holo</item>
+		<item name="switchTextAppearance">@style/TextAppearance.Holo.Widget.Switch</item>
+		<item name="textOn">@string/capital_on</item>
+		<item name="textOff">@string/capital_off</item>
+		<item name="thumbTextPadding">12dp</item>
+		<item name="switchMinWidth">96dp</item>
+		<item name="switchPadding">16dp</item>
+	</style>
+
+	<style name="Widget.Holo.Light.CompoundButton.Switch" parent="Widget.Holo.CompoundButton.Switch">
+		<item name="track">@drawable/switch_track_holo_light</item>
+		<item name="thumb">@drawable/switch_inner_holo</item>
+	</style>
+
+	<style name="Widget.TabPageIndicator" parent="@android:style/Widget">
+		<item name="android:gravity">center_horizontal</item>
+		<item name="android:background">@drawable/vpi__tab_indicator</item>
+		<item name="android:paddingLeft">8dp</item>
+		<item name="android:paddingRight">8dp</item>
+		<item name="android:paddingTop">6dp</item>
+		<item name="android:paddingBottom">6dp</item>
+		<item name="android:orientation">horizontal</item>
+	</style>
+
+	<style name="Widget.TabPageIndicator.TextView" parent="@android:style/Widget.TextView">
+		<item name="android:textAppearance">@style/TextAppearance.TabPageIndicator</item>
+		<item name="android:textColor">@color/vpi__dark_theme</item>
+		<item name="android:textStyle">bold</item>
+		<item name="android:layout_gravity">center</item>
+		<item name="android:gravity">center</item>
+		<item name="android:paddingTop">4dp</item>
+		<item name="android:paddingBottom">4dp</item>
+		<item name="android:maxLines">1</item>
+	</style>
+
+	<style name="TextAppearance.Holo.Widget.Switch" parent="android:TextAppearance.Small">
+		<item name="textColor">?android:attr/textColorSecondary</item>
+		<item name="textSize">14sp</item>
+	</style>
+
+	<style name="Widget.TabPageIndicator.TextView.Light">
+		<item name="android:textColor">@color/vpi__light_theme</item>
+	</style>
+
+	<style name="TextAppearance.TabPageIndicator" parent="@android:style/TextAppearance.Small"></style>
+
+</resources>

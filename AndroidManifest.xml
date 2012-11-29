@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+	package="com.dwdesign.tweetings"
+	android:installLocation="auto"
+	android:versionCode="87"
+	android:versionName="@string/app_version">
+
+	<uses-sdk
+		android:minSdkVersion="9"
+		android:targetSdkVersion="17"/>
+	
+	<permission
+        android:name="com.dwdesign.tweetings.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.dwdesign.tweetings.permission.C2D_MESSAGE" />
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+
+	<uses-feature
+		android:name="android.hardware.location"
+		android:required="false"/>
+	<uses-feature
+		android:name="android.hardware.location.gps"
+		android:required="false"/>
+	<uses-feature
+		android:name="android.hardware.location.network"
+		android:required="false"/>
+	<uses-feature
+		android:name="android.hardware.touchscreen"
+		android:required="false"/>
+
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+	<uses-permission android:name="android.permission.INTERNET"/>
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+	<uses-permission android:name="android.permission.VIBRATE"/>
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+	<uses-permission android:name="com.dwdesign.tweetings.READ_DATABASES"/>
+	<uses-permission android:name="com.dwdesign.tweetings.WRITE_DATABASES"/>
+	<uses-permission android:name="com.dwdesign.tweetings.ACCESS_SERVICE"/>
+
+	<application
+		android:name=".app.TweetingsApplication"
+		android:backupAgent=".util.PreferencesBackupAgentHelper"
+		android:allowBackup="true"
+		android:hardwareAccelerated="false"
+		android:icon="@drawable/ic_launcher"
+		android:label="@string/app_name"
+		android:theme="@style/Theme.Blank">
+		
+	    <meta-data android:name="com.google.android.backup.api_key"
+    		android:value="AEdPqrEAAAAIzJPvnH_pq2QAloV4c7QwaiFwIMKD3rsvnzzMsA" />
+	    
+		<uses-library
+			android:name="com.google.android.maps"
+			android:required="false"/>
+
+		<receiver
+            android:name=".C2DMRegistrationReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND" >
+            <intent-filter >
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" >
+                </action>
+
+                <category android:name="com.dwdesign.tweetings" />
+            </intent-filter>
+            <intent-filter>
+				<action android:name="com.google.android.c2dm.intent.RECEIVE"></action>
+				<category android:name="com.dwdesign.tweetings" />
+			</intent-filter>
+        </receiver>
+        
+		<receiver android:name=".util.ConnectivityReceiver">
+		    <intent-filter>
+		        <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+		    </intent-filter>
+		</receiver>
+		
+		<activity
+			android:name=".activity.HomeActivity"
+			android:label="@string/app_name"
+			android:launchMode="singleTask"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+
+				<category android:name="android.intent.category.LAUNCHER"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.HOME"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+				
+			</intent-filter>
+	
+			<meta-data
+				android:name="android.app.default_searchable"
+				android:value=".activity.SearchActivity"/>
+		</activity>
+		
+		<activity
+		    android:name="com.aviary.android.feather.FeatherActivity"
+		    android:configChanges="orientation|keyboardHidden"
+		    android:screenOrientation="unspecified"
+		    android:hardwareAccelerated="true"
+		    android:largeHeap="true"
+		    android:theme="@style/FeatherDefaultTheme.Custom" />
+		
+		<receiver
+		    android:name="com.aviary.android.feather.receivers.FeatherSystemReceiver"
+		    android:exported="true"
+		    android:process=":feather_system_receiver" >
+		        <intent-filter>
+		            <action android:name="android.intent.action.PACKAGE_ADDED" />
+		            <action android:name="android.intent.action.PACKAGE_REMOVED" />
+		            <action android:name="android.intent.action.PACKAGE_REPLACED" />
+		            <data android:scheme="package" />
+		        </intent-filter>
+		</receiver>
+		
+		<activity
+			android:name=".activity.ComposeActivity"
+			android:label="@string/compose"
+			android:launchMode="singleTop"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter android:label="@string/compose">
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.COMPOSE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+			<intent-filter android:label="@string/share_via_twidere">
+				<action android:name="android.intent.action.SEND"/>
+				<action android:name="android.intent.action.SEND_MULTIPLE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data android:mimeType="image/*"/>
+				<data android:mimeType="text/plain"/>
+			</intent-filter>
+			
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".activity.HomeActivity"/>
+		</activity>
+		<activity
+			android:name=".activity.TwitterLoginActivity"
+			android:label="@string/login_to_twitter"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.TWITTER_LOGIN"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.SettingsActivity"
+			android:label="@string/settings"
+			android:launchMode="singleTask">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="android.intent.action.MANAGE_NETWORK_USAGE"/>
+				<action android:name="com.dwdesign.tweetings.SETTINGS"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+			
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".activity.HomeActivity"/>
+		</activity>
+		<activity
+			android:name=".activity.AuthorizationActivity"
+			android:label="@string/login_to_twitter">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.EditAPIActivity"
+			android:label="@string/edit_api"
+			android:theme="@style/Theme.Twidere.Light.Dialog">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.EDIT_API"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.SelectAccountActivity"
+			android:label="@string/select_account"
+			android:theme="@style/Theme.Twidere.Light.Dialog">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.SELECT_ACCOUNT"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.BrowserActivity"
+			android:label="@string/browser">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.VIEW_WEBPAGE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data android:scheme="file"/>
+				<data android:scheme="http"/>
+				<data android:scheme="https"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.AboutActivity"
+			android:label="@string/about">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.ABOUT"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.FiltersActivity"
+			android:label="@string/filter"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.FILTERS"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.SetColorActivity"
+			android:label="@string/set_color"
+			android:theme="@style/Theme.Twidere.Light.Dialog">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.SET_COLOR"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.LinkHandlerActivity"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+
+				<category android:name="android.intent.category.BROWSABLE"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data
+					android:host="home"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user_timeline"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user_favorites"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user_followers"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user_friends"
+					android:scheme="tweetings"/>
+				<data
+					android:host="user_blocks"
+					android:scheme="tweetings"/>
+				<data
+					android:host="status"
+					android:scheme="tweetings"/>
+				<data
+					android:host="conversation"
+					android:scheme="tweetings"/>
+				<data
+					android:host="direct_messages_conversation"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_details"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_types"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_timeline"
+					android:scheme="tweetings"/>
+				<data
+					android:host="mentions"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_members"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_subscribers"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_created"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_subscriptions"
+					android:scheme="tweetings"/>
+				<data
+					android:host="list_memberships"
+					android:scheme="tweetings"/>
+				<data
+					android:host="users_retweeted_status"
+					android:scheme="tweetings"/>
+				<data
+					android:host="saved_searches"
+					android:scheme="tweetings"/>
+				<data
+					android:host="retweeted_to_me"
+					android:scheme="tweetings"/>
+				<data
+ 	  				android:host="user_mentions"
+ 	 				android:scheme="tweetings"/>
+				<data
+ 	 				android:host="incoming_friendships"
+ 	 				android:scheme="tweetings"/>
+				<data
+ 	 				android:host="bufferapp"
+ 	 				android:scheme="tweetings"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.SearchActivity"
+			android:windowSoftInputMode="adjustResize">
+			<meta-data
+				android:name="android.app.searchable"
+				android:resource="@xml/searchable"/>
+
+			<intent-filter>
+				<action android:name="android.intent.action.SEARCH"/>
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+
+				<category android:name="android.intent.category.BROWSABLE"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data
+					android:host="search"
+					android:scheme="tweetings"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.DraftsActivity"
+			android:label="@string/drafts">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.DRAFTS"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+			
+			<meta-data
+				android:name="android.support.PARENT_ACTIVITY"
+				android:value=".activity.HomeActivity"/>
+		</activity>
+		<activity
+			android:name=".activity.GalleryActivity"
+			android:label="@string/recent_photos">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.GALLERY"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.ScheduleActivity"
+			android:label="@string/schedule_tweet">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+				<action android:name="com.dwdesign.tweetings.SCHEDULE_TWEET"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.ImageViewerActivity"
+			android:label="@string/view_image"
+			android:launchMode="singleTop"
+			android:theme="@style/Theme.Twidere.Viewer">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.VIEW_IMAGE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data android:scheme="file"/>
+				<data android:scheme="http"/>
+				<data android:scheme="https"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.MapViewerActivity"
+			android:label="@string/view_map"
+			android:theme="@style/Theme.Twidere.Viewer">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+
+				<category android:name="android.intent.category.BROWSABLE"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data
+					android:host="map"
+					android:scheme="tweetings"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.NativeMapActivity"
+			android:label="@string/view_map"/>
+		<activity
+			android:name=".activity.NearbyMapViewerActivity"
+			android:label="@string/nearby_tweets"
+			android:theme="@style/Theme.Twidere.Viewer">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW"/>
+
+				<category android:name="android.intent.category.BROWSABLE"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+
+				<data
+					android:host="nearby"
+					android:scheme="tweetings"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.NativeNearbyMapActivity"
+			android:label="@string/nearby_tweets"/>
+		<activity
+			android:name=".activity.SettingsDetailsActivity"
+			android:label="@string/settings"/>
+		<activity
+			android:name=".activity.InternalSettingsActivity"
+			android:label="@string/settings"/>
+		<activity
+			android:name=".activity.InternalSettingsDetailsActivity"
+			android:label="@string/settings"/>
+		<activity
+			android:name=".activity.FileSaveAsActivity"
+			android:label="@string/save_as">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.SAVE_FILE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.FilePickerActivity"
+			android:label="@string/pick_file">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.PICK_FILE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.ExtensionsListActivity"
+			android:label="@string/extensions">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.EXTENSIONS"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.CustomTabsActivity"
+			android:label="@string/custom_tabs">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.CUSTOM_TABS"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".activity.EditCustomTabActivity"
+			android:label="@string/add_tab">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.NEW_CUSTOM_TAB"/>
+				<action android:name="com.dwdesign.tweetings.EDIT_CUSTOM_TAB"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+		
+		<activity
+			android:name=".activity.CreateComposeShortcutActivity"
+			android:label="@string/compose">
+			<intent-filter>
+				<action android:name="android.intent.action.CREATE_SHORTCUT"/>
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</activity>
+
+		<service
+			android:name=".service.TweetingsService"
+			android:label="@string/label_backend_service"
+			>
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.SERVICE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+			</intent-filter>
+		</service>
+
+		<provider
+			android:name=".provider.TweetStoreProvider"
+			android:authorities="com.dwdesign.tweetings.provider.TweetStore"
+			android:exported="true"
+			android:label="@string/label_tweetstore_provider"
+			/>
+		<provider
+			android:name=".provider.RecentSearchProvider"
+			android:exported="true"
+			android:authorities="com.dwdesign.tweetings.provider.SearchRecentSuggestions"/>
+
+		<receiver
+			android:name=".receiver.BootCompletedReceiver"
+			android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+			<intent-filter>
+				<action android:name="android.intent.action.BOOT_COMPLETED"/>
+			</intent-filter>
+		</receiver>
+		
+		<receiver
+			android:name=".appwidget.provider.ListWidgetProvider"
+			android:label="@string/list_widget_name"
+			android:enabled="@bool/honeycombOrAbove">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.HOME_TIMELINE_DATABASE_UPDATED"/>
+				<action android:name="com.dwdesign.tweetings.MENTIONS_DATABASE_UPDATED"/>
+				<action android:name="com.dwdesign.tweetings.ACCOUNT_LIST_DATABASE_UPDATED"/>
+				<action android:name="com.dwdesign.tweetings.REFRESHSTATE_CHANGED"/>
+				<action android:name="com.dwdesign.tweetings.appwidget.REFRESH_ALL"/>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/list_widget"/>
+		</receiver>
+
+		<service
+			android:name=".appwidget.service.ListWidgetHomeTimelineService"
+			android:permission="android.permission.BIND_REMOTEVIEWS"/>
+		<service
+			android:name=".appwidget.service.ListWidgetMentionsService"
+			android:permission="android.permission.BIND_REMOTEVIEWS"/>
+
+		<activity
+			android:name=".appwidget.activity.WidgetTypeConfigActivity"
+			android:label="@string/widget_type"
+			android:theme="@style/Theme.Twidere.Holo.Dialog">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+			</intent-filter>
+		</activity>
+	</application>
+
+</manifest>

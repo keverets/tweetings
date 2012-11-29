@@ -1,0 +1,363 @@
+Version 2.9.0
+
+[+] New Feature: Hashtag autocomplete on compose. Autocomplete from any hashtag currently saved on the cache from any of your timelines
+[-] Feature Change: Redesigned filter view in settings
+
+Version 2.8.8
+
+[+] New Feature: Enable to fast scroll bar on timelines to allow easy jumping to specific places in the timeline
+[+] New Feature: Backup and restore settings automatically to Google Cloud
+
+Version 2.8.7
+
+[+] New Feature: Timeline sync will scroll to the nearest tweet to the marker position if the status hasn't yet been downloaded
+[-] Bug Fix: Timeline sync didn't always scroll to location when the tweet with the marker downloaded after checking marker position
+
+Version 2.8.6
+
+[-] Bug Fix: When connected to streams over WiFi and a user deletes a tweet, the tweet wasn't removed from your timeline as per Twitter's streaming guidelines
+[-] Bug Fix: When Direct Messages were refreshed the DM tabs didn't refresh correctly
+
+Version 2.8.5
+
+[+] New Feature: Navigate your timeline up and down using the volume buttons. Enable from settings
+[+] New Feature: Disable group notifications in settings to show every push notification in notification center rather than new ones replacing previous ones
+
+Version 2.8.4
+
+[+] New Feature: Update your profile banner in app. Tap and hold your profile image on your profile screen
+
+Version 2.8.3
+
+[+] New Feature: Built against Android 4.2
+[+] New Feature: Widget can be installed to the home screen
+
+Version 2.8.2
+
+[-] Bug Fix: Tapping on a tweet from the widget under Jelly Bean did not open the app due to changes in the API
+[-] Bug Fix: Fix conversations on tweet view
+
+Version 2.8.1
+
+[-] Bug Fix: Accidentally prevented widget from being installable
+
+Version 2.8.0
+
+[+] New Feature: Accounts tab now manages all accounts both in active and active and allows you to choose from that screen which accounts to activate
+
+Version 2.7.9
+
+[-] Feature Change: Increased resolution of user profile banner
+
+Version 2.7.8
+
+[-] Feature Change: Increased the maximum database cache amount
+[-] Bug Fixes: Changed some internal http request code
+
+Version 2.7.7
+
+[-] Feature Change: If a screen name is omitted from custom favorites tab, the current account screen name will be assumed
+[-] Bug Fix: Push notification registration could sometimes fail
+
+Version 2.7.6
+
+[-] Bug Fix: Favorites timeline added as a tab failed to refresh timeline
+
+Version 2.7.5.1
+
+[-] Bug Fix: Push notifications and scheduling should have been disabled if using own Consumer tokens
+
+Version 2.7.5
+
+[+] New Feature: Ability to add your own OAuth consumer tokens. If you do, please help us out by releasing a Tweetings authentication token back to the pool (https://twitter.com/settings/applications)
+[-] Bug Fix: Internal twitter4j HTTP bug fixes
+[-] Bug Fix: Mention coloring was case sensitive previously
+
+Version 2.7.4
+
+[+] New Feature: You can now always force tab labels to be shown from settings. Tab labels are by default always shown on larger screen devices and in landscape orientation
+[+] New Feature: You can now always force tab labels to be hidden from settings. 
+[+] New Feature: Added Retweet icon to custom tabs
+[-] Feature Change: Replaced color selector icon
+
+Version 2.7.3
+
+[+] New Feature: Added custom tab and own user profile the 'My Tweets, Retweeted' function as Twitter have restored this functionality to API 1.1
+
+Version 2.7.2
+
+[-] Bug Fix: URLs redirected to expanded url instead of the t.co version, to comply with Twitter Display Guidelines
+
+Version 2.7.1
+
+[-] Bug Fix: Fixed a crash in certain languages
+
+Version 2.7.0
+
+[+] New Feature: You can now hide the default tabs from settings
+
+Version 2.6.6
+
+[+] New Feature: From tweet view, action menu, you can now copy the tweet text to clipboard
+[-] Feature Change: Character count on compose now counts down from 140 rather than up to it
+[-] Feature Change: Switched push notification architecture from using the deprecated C2DM (Android Cloud to Device Messaging) to GCM (Google Cloud Messaging)
+
+Version 2.6.4
+
+[+] New Feature: Push notifications on Jelly Bean will now show the user's avatar if it's previously been downloaded
+
+Version 2.6.3
+
+[-] Feature Change: Larger image previews in tweet view
+[-] Feature Change: Made gap larger between timeline avatar and tweet text
+
+Version 2.6.2
+
+[-] Bug Fix: When enabling push notifications, the change will now take effect immediately rather than waiting for an app restart
+[-] Bug Fix: Hitting Enter to send didn't work on JellyBean devices
+[-] Bug Fix: Hitting Enter to send tried to send the tweet twice
+
+Version 2.6.1
+
+[+] New Feature: If a timeline gap is not automatically detected you can tap and hold the tweet immediately above where there should be a gap and 'Make gap'
+
+Version 2.6.0
+
+[+] New Feature: Track individual users and receive push notifications whenever they tweet, whether or not it's a mention or DM directly to you or not
+
+Version 2.5.4
+
+[+] New Feature: Additional actions from push notifications on Jelly Bean
+
+Version 2.5.3
+
+[+] New Feature: On JellyBean devices, reply directly to a mention from a push notification
+
+Version 2.5.2
+
+[-] Bug Fix: More reliable gap detection
+[-] Bug Fix: Report spam API 1.1 endpoint was broken
+[-] Bug Fix: New follower push notifications didn't have any text in notification center on Jelly Bean devices
+
+Version 2.5.1
+
+[-] Feature Change: Switched the setting for API 1.0 main timeline refreshes to on by default. See http://bit.ly/PthNgJ for more information about Rate Limits
+
+Version 2.5.0
+
+[+] New Feature: New setting to automatically retry to send a tweet when a connection is resumed
+[+] New Feature: Remove Retweet menu option on timeline for statuses from retweeted accounts
+[+] New Feature: Timeline menu now has option to delete a retweet of your own
+
+Version 2.4.5
+
+[+] New Feature: Better rate limit errors
+[-] Feature Change: Added more api endpoints to the API v1 setting
+
+Version 2.4.4
+
+[+] New Feature: Setting to toggle Twitter API v1 for Home, Mentions and DM timelines. API v1 will cease to function in March 2013
+
+Version 2.4.3
+
+[-] Bug Fix: DM refresh issue
+
+Version 2.4.2
+
+[-] Feature Change: When rate limited on a user profile, rate limit error will be shown
+[-] Feature Change: When rate limited on a timeline, the rate limit error will be shown
+
+Version 2.4.1
+
+[+] New Feature: Preference to disable autorefresh when battery is low
+[+] New Feature: Tapping and holding a tab will refresh that tab
+[-] Bug Fix: DM tab is now sorted correctly
+[-] Bug Fix: When multiple accounts are active, replying to a mention will only reply from the account the reply was sent to
+
+Version 2.4.0
+
+[+] New Feature: View conversation automatically on the tweet view
+
+Version 2.3.3
+
+[-] Feature Change: Merged camera and library menu items together on compose and moved shrink links to main menu bar
+[-] Bug Fix: More reliable gap detection
+[-] Bug Fix: After attaching a photo, tapping on the add photo button again asked to select a new image, rather than removing the existing attached photo
+
+Version 2.3.2
+
+[+] New Feature: You can now switch between gaps filling above or below the gap
+[-] Bug Fix: Faster pull to refresh on home timeline
+
+Version 2.3.1
+
+[+] New Feature: Opening a mention or DM push notification will open the app on the correct tab
+
+Version 2.3.0
+
+[+] New Feature: Faster timeline refreshes optimising since_id parameter better
+[+] New Feature: You can now enable/disable local refresh notifications, so if you prefer push notifications only you can turn off in app mention/dm notifications
+
+Version 2.2.11
+
+[+] New Feature: Image viewer can now be zoomed in more
+
+Version 2.2.10
+
+[-] Bug Fix: Twitter randomly decided to rename the mentions endpoint in v1.1 of the API
+
+Version 2.2.9
+
+[-] Bug Fix: Fixed crashes on user profiles where no banner is set on a user profile
+
+Version 2.2.8
+
+[+] New Feature: Account colors shown on compose screen
+[-] Feature Change: New search results screen
+[-] Feature Change: Tapping on a retweet in the Find Retweets timeline will take you to the user profile instead of the original tweet
+
+Version 2.2.7
+
+[+] New Feature: Added a 'Find retweets' option from tweet view to see who has retweeted a tweet even if you don't access it from a retweet
+[-] Feature Change: Retweets of tweets link from tweet view is back showing a list of tweets that were retweeted rather than the list of users that retweeted due to API changes
+
+Version 2.2.6
+
+[-] Bug Fix: Favorites broke under 1.1 migration
+
+Version 2.2.5
+
+[+] New Feature: Option to keep app running in background even if back button pressed at top level
+[+] New Feature: Nearby tweets can be added as a tab
+[-] Feature Change: Reorganized some of the settings
+[-] Bug Fix: List of users a user has blocked broke under the API 1.1 changes
+
+Version 2.2.4
+
+[-] Feature Change: Switched to Twitter API 1.1 for all but user media timeline
+[-] Feature Change: Removed Retweeted To Me custom tab as it's no longer part of the Twitter API
+[-] Feature Change: Removed Daily and Weekly Trends as they are no longer part of the Twitter API
+[-] Bug Fix: Sync returning an invalid id could sometimes cause a crash
+
+Version 2.2.3
+
+[+] New Feature: Post or share conversation threads using Storify
+[-] Bug Fix: Sent sound played regardless of setting
+
+Version 2.2.2
+
+[+] New Feature: Add tweets to Buffer (see http://bufferapp.com for more information)
+[+] New Feature: Moved account selection on compose to top navigation bar
+[+] New Feature: New Follower push notifications will now take you directly to that user's profile
+[+] New Feature: Experimental support for Jelly Bean expandable notifications
+
+Version 2.2.1
+
+[+] New Feature: From the details page of a user's lists you can now add that list timeline as a custom tab directly
+[-] Bug Fix: Accessing lists a user follows actually showed lists they created by mistake
+[-] Bug Fix: Trapped a crash on nearby map view if the current location couldn't be found
+
+Version 2.2.0
+
+[+] New Feature: Resizable timeline widgets (requires Android 3.0+)
+
+Version 2.1.8
+
+[+] New Feature: From your user profile you can now see nearby tweets on a map, if you have Google Maps installed
+[+] New Feature: If you have a protected account, you can now see a list of follower requests from your profile. Unfortunately there is no way to approve them through Twitter's API so they will redirect to the Twitter Website
+
+Version 2.1.7
+
+[+] New Feature: New User profile look and feel
+
+Version 2.1.6
+
+[+] New Feature: The most recent 20 user photo timeline photos are now displayed on a user's profile page
+[-] Feature Change: If a tweet fails to send, notify the user that it has been saved to Drafts
+
+Version 2.1.5
+
+[+] New Feature: Schedule tweets: write a tweet, set a time and a date and then just wait. Your device doesn't even need to be turned on!
+
+Version 2.1.4
+
+[-] Bug Fix: Sent tweet notification sound didn't respect if the device was muted
+[-] Bug Fix: Loading larger versions of some photos from user's photo timeline sometimes failed
+
+Version 2.1.3
+
+[+] New Feature: User photo timeline from their profile
+[+] New Feature: Block, report spam or mute a user from the timeline tap and hold menu
+[+] New Feature: Open a user's recent tweets directly from the more option on a tweet view
+[+] New Feature: When blocking users remove them from the autocomplete list
+[-] Feature Change: Swapped retweet and mention timeline colors
+[-] Feature Change: Removed timeline background color for retweets
+[-] Bug Fix: Removed https from upload image providers as it was causing some loading issues
+[-] Bug Fix: Gap indicator appearing in search results where there wasn't a gap
+
+Version 2.1.2
+
+[+] New Feature: Added an OK button to account selection rather than relying on back button to save
+[+] New Feature: Direct message conversation screen now auto links
+[+] New Feature: Split long tweets into multiple parts in addition to posting to TwitLonger
+[-] Feature Change: Removed hi-res profile loading option and auto detected it based on screen size
+[-] Feature Change: Timeline name display will now show name and @screenName by default to comply with Twitter's display guidelines. You can change this in the settings
+[-] Bug Fix: Improved scrolling performance on ICS
+[-] Bug Fix: Image previews on tweet view not automatically loading even when enabled in settings
+[-] Bug Fix: If uploading an attached image to a service other than Twitter pushed the tweet over 140 characters after uploading you were not presented with the option to post to Twitlonger
+[-] Bug Fix: If loading the app with a push notification in notification center but not loading it from the notification, the notification didn't clear
+
+Version 2.1.0
+
+[+] New Feature: You can now stream tweets over WiFi from Settings->Network. Enable and let the tweets flow... no need to refresh your main timelines again!
+
+Version 2.0.8
+
+[+] New Feature: From user profile you can now opt to disable (or enable) seeing retweets from that user in your timeline. If you disable this on a user's profile then you'll no longer see tweets that user has retweeted to you
+
+Version 2.0.7
+
+[+] New Feature: When viewing an image attached to a tweet you can now swipe down to close it
+[+] New Feature: From push notification settings you can now opt to receive push for new followers, when someone retweets you, favorites one of your tweets or adds you to a list 
+
+Version 2.0.6
+
+[+] New Feature: Added refresh of DM Inbox to refresh on start/resume
+[+] New Feature: Added a compose shortcut to launcher
+[-] Feature Change: Made a few tweaks to tweet view and user profiles to comply with Twitter's design guidelines
+[-] Feature Change: Tapping the time stamp in tweet view takes you to the Twitter.com permalink as per Twitter's design guidelines
+[-] Feature Change: Visit a user's profile on Twitter.com from their profile screen in app as per Twitter's design guidelines
+[-] Bug Fix: When logging into a second account, the Twitter.com authentication screen was still logged into the last account added
+
+Version 2.0.5
+
+[+] New Feature: From tweet view, tapping on a TwitLonger link will expand in app
+[-] Bug Fix: Push notifications didn't always register with the server
+
+Version 2.0.4
+
+[+] New Feature: Added character counter to direct message composer
+
+Version 2.0.3
+
+[-] Bug Fix: Tweaked mention colors
+[-] Bug Fix: Tweaked main icon
+[-] Bug Fix: Twitter changed the internal url structure for some pic.twitter images causing them to fail to load
+
+Version 2.0.2
+
+[-] Bug Fix: Backing out of photo editor crashed
+[-] Bug Fix: Editing a photo overwrote the original instead of saving a new copy
+
+Version 2.0.1
+
+[+] New Feature: Disable/Enable sent sound notification in settings
+[-] Bug Fix: Changes to hardware acceleration detection
+[-] Bug Fix: Improvements in pic.twitter inline image previews
+
+Version 2.0.0
+
+[+] New Feature: When attaching an image to a tweet, tap the thumbnail in the compose view and edit allows you to crop, adjust and apply effects
+[+] New Feature: Added timeline colors for own tweets 
+[+] New Feature: Option to enable/disable hardware acceleration
+[-] Feature Change: Swapped mention and retweet timeline colors

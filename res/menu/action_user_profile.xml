@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<item
+		android:id="@id/mention"
+		android:icon="@drawable/ic_menu_mention"
+		android:title="@string/mention_this_user"/>
+	<item
+		android:id="@id/send_direct_message"
+		android:icon="@drawable/ic_menu_compose"
+		android:title="@string/send_direct_message"
+		android:visible="false"/>
+	<item
+		android:id="@+id/set_color_submenu"
+		android:icon="@drawable/ic_menu_color_palette"
+		android:title="@string/set_color">
+		<menu>
+			<item
+				android:id="@id/set_color"
+				android:icon="@drawable/ic_menu_color_palette"
+				android:title="@string/set_color"/>
+			<item
+				android:id="@id/clear_color"
+				android:icon="@drawable/ic_menu_close_clear_cancel"
+				android:title="@string/clear"/>
+		</menu>
+	</item>
+	<item
+		android:id="@id/mute_user"
+		android:icon="@drawable/ic_menu_mute"
+		android:title="@string/mute_user"/>
+	<item
+		android:id="@id/set_retweets"
+		android:icon="@drawable/ic_menu_retweet"
+		android:title="@string/disable_retweet"/>
+	<item
+		android:id="@+id/block_submenu"
+		android:icon="@drawable/ic_menu_block"
+		android:title="@string/block">
+		<menu>
+			<item
+				android:id="@id/block"
+				android:icon="@drawable/ic_menu_block"
+				android:title="@string/block"/>
+			<item
+				android:icon="@drawable/ic_menu_close_clear_cancel"
+				android:title="@android:string/cancel"/>
+			
+		</menu>
+	</item>
+	<item
+		android:id="@id/track_user"
+		android:icon="@drawable/ic_menu_mark"
+		android:title="@string/track_user"/>
+	<item
+		android:id="@+id/report_spam_submenu"
+		android:icon="@drawable/ic_menu_report_user"
+		android:title="@string/report_for_spam">
+		<menu>
+			<item
+				android:id="@id/report_spam"
+				android:icon="@drawable/ic_menu_report_user"
+				android:title="@string/report_for_spam"/>
+			<item
+				android:icon="@drawable/ic_menu_close_clear_cancel"
+				android:title="@android:string/cancel"/>
+			
+		</menu>
+	</item>
+	<item
+		android:id="@id/view_on_twitter"
+		android:icon="@drawable/ic_menu_browser"
+		android:title="@string/view_on_twitter"/>
+	<!-- <item
+		android:id="@id/extensions"
+		android:icon="@drawable/ic_menu_extension"
+		android:title="@string/extensions"/> -->
+
+</menu>
