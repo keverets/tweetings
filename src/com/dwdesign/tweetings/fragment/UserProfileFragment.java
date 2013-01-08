@@ -38,6 +38,7 @@ import static com.dwdesign.tweetings.util.Utils.isMyActivatedAccount;
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.openIncomingFriendships;
 import static com.dwdesign.tweetings.util.Utils.makeCachedUserContentValues;
+import static com.dwdesign.tweetings.util.Utils.openImage;
 import static com.dwdesign.tweetings.util.Utils.openSavedSearches;
 import static com.dwdesign.tweetings.util.Utils.openTweetSearch;
 import static com.dwdesign.tweetings.util.Utils.openUserBlocks;
@@ -53,6 +54,7 @@ import static com.dwdesign.tweetings.util.Utils.parseString;
 import static com.dwdesign.tweetings.util.Utils.parseURL;
 import static com.dwdesign.tweetings.util.Utils.setUserColor;
 import static com.dwdesign.tweetings.util.Utils.getAccountScreenName;
+import static com.dwdesign.tweetings.util.Utils.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -150,7 +152,7 @@ import android.widget.Toast;
 public class UserProfileFragment extends BaseListFragment implements OnClickListener, OnLongClickListener,
 		OnItemClickListener, OnItemLongClickListener, OnMenuItemClickListener, OnLinkClickListener, Panes.Right {
 
-	private LazyImageLoader mProfileImageLoader;
+	private LazyImageLoader mProfileImageLoader, mImageLoader;
 
 	private ImageView mProfileImageView, mProfileBackgroundView;
 	private GetFriendshipTask mGetFriendshipTask;
@@ -163,6 +165,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 	private ProgressBar mFollowProgress, mMoreOptionsProgress;
 	private Button mFollowButton, mMoreOptionsButton, mRetryButton;
 	private ListActionAdapter mAdapter;
+	private boolean mDisplaySensitiveContents;
 
 	private ListView mListView;
 	private UserInfoTask mUserInfoTask;
@@ -295,13 +298,14 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 		
 		String profile_banner_url_string = parseString(user.getProfileBannerImageUrl());
 		if (profile_banner_url_string != null) {
-			profile_banner_url_string = profile_banner_url_string + "/ipad";
+			final int def_width = getResources().getDisplayMetrics().widthPixels;
+			profile_banner_url_string = profile_banner_url_string + "/" + getBestBannerType(def_width);
 		}
 		final String banner_url = profile_banner_url_string;
 		if (mProfileBackgroundView != null) {
 			mProfileBackgroundView.setScaleType(ImageView.ScaleType.CENTER_CROP);
 			if (banner_url != null) {
-				mProfileImageLoader.displayImage(
+				mImageLoader.displayImage(
 						parseURL(banner_url), mProfileBackgroundView);
 			}
 			else {
@@ -356,9 +360,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 					ParcelableStatus pStatus = mMediaStatuses.get(position);
 	            	final ImageSpec spec = getAllAvailableImage(pStatus.image_orig_url_string);
 	            	if (spec != null) {
-						final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(spec.image_link));
-						intent.setPackage(getActivity().getPackageName());
-						startActivity(intent);
+	            		openImage(UserProfileFragment.this.getActivity(), Uri.parse(spec.full_image_link), pStatus.is_possibly_sensitive);
 					}
 				}
 
@@ -372,6 +374,21 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 		
 		getFriendship();
 		checkPushTracked();
+	}
+	
+	private static String getBestBannerType(final int width) {
+		if (width <= 320)
+			return "mobile";
+	 	else if (width <= 520)
+	 		return "web";
+	 	else if (width <= 626)
+	 		return "ipad";
+	 	else if (width <= 640)
+	 		return "mobile_retina";
+	 	else if (width <= 1040)
+	 		return "web_retina";
+	 	else
+	 		return "ipad_retina";
 	}
 	
 	public static Bitmap createAlphaGradientBitmap(Bitmap orig) {
@@ -436,7 +453,11 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
             if (mMediaStatuses != null && mMediaStatuses.size() >= 1) {
             	ParcelableStatus pStatus = mMediaStatuses.get(position);
             	if (pStatus.image_preview_url_string != null) {
-            		UrlImageViewHelper.setUrlDrawable(i, pStatus.image_preview_url_string);
+            		if (pStatus.is_possibly_sensitive && !mDisplaySensitiveContents) {
+            			i.setImageResource(R.drawable.image_preview_nsfw);
+    				} else {
+    					UrlImageViewHelper.setUrlDrawable(i, pStatus.image_preview_url_string);
+    				}
             	}
             	//i.setImageURI(Uri.parse(pStatus.image_preview_url_string));
             }
@@ -477,6 +498,8 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 	public void onActivityCreated(final Bundle savedInstanceState) {
 		mService = getApplication().getServiceInterface();
 		mPreferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		mDisplaySensitiveContents = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS, false);
+		
 		super.onActivityCreated(savedInstanceState);
 		final Bundle args = getArguments();
 		long account_id = -1, user_id = -1;
@@ -487,6 +510,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 			screen_name = args.getString(INTENT_KEY_SCREEN_NAME);
 		}
 		mProfileImageLoader = getApplication().getProfileImageLoader();
+		mImageLoader = getApplication().getPreviewImageLoader();
 		mAdapter = new ListActionAdapter(getActivity());
 		mProfileImageContainer.setOnClickListener(this);
 		mProfileImageContainer.setOnLongClickListener(this);
@@ -591,13 +615,10 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 				break;
 			}
 			case R.id.profile_image_container: {
-				final Twitter twitter = getTwitterInstance(getActivity(), mAccountId, false);
-				if (twitter != null) {
-					final Uri uri = Uri.parse(getOriginalTwitterProfileImage(parseString(mUser.getProfileImageURL())));
-					final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, uri);
-					intent.setPackage(getActivity().getPackageName());
-					startActivity(intent);
-				}
+				final String profile_image_url_string = getOriginalTwitterProfileImage(parseString(mUser.getProfileImageURL()));
+				if (profile_image_url_string == null) return;
+				final Uri uri = Uri.parse(profile_image_url_string);
+				openImage(getActivity(), uri, false);
 				break;
 			}
 			case R.id.tweets_container: {
@@ -758,9 +779,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 				break;
 			}
 			case TwidereLinkify.LINK_TYPE_LINK_WITH_IMAGE_EXTENSION: {
-				final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(link));
-				intent.setPackage(getActivity().getPackageName());
-				startActivity(intent);
+				openImage(getActivity(), Uri.parse(link), false);
 				break;
 			}
 			case TwidereLinkify.LINK_TYPE_LINK: {
@@ -1099,13 +1118,15 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 	}
 
 	private void pickImage() {
-		final Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-		startActivityForResult(i, REQUEST_PICK_IMAGE);
+		final Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+		intent.setType("image/*");
+		startActivityForResult(intent, REQUEST_PICK_IMAGE);
 	}
 	
 	private void pickBannerImage() {
-		final Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-		startActivityForResult(i, REQUEST_BANNER_PICK_IMAGE);
+		final Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+		intent.setType("image/*");
+		startActivityForResult(intent, REQUEST_BANNER_PICK_IMAGE);
 	}
 
 	private void reloadUserInfo() {
@@ -1113,14 +1134,13 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 	}
 
 	private void takePhoto() {
-		final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 		if (getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
 			final File cache_dir = Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ? GetExternalCacheDirAccessor
 					.getExternalCacheDir(getActivity()) : new File(getExternalStorageDirectory().getPath()
 					+ "/Android/data/" + getActivity().getPackageName() + "/cache/");
 			final File file = new File(cache_dir, "tmp_photo_" + System.currentTimeMillis() + ".jpg");
 			mImageUri = Uri.fromFile(file);
-			intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, mImageUri);
+			final Intent intent = createTakePhotoIntent(mImageUri);
 			startActivityForResult(intent, REQUEST_TAKE_PHOTO);
 		}
 	}

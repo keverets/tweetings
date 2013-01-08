@@ -27,7 +27,6 @@ import static com.dwdesign.tweetings.util.Utils.getActivatedAccountIds;
 import static com.dwdesign.tweetings.util.Utils.getTabs;
 import static com.dwdesign.tweetings.util.Utils.openDirectMessagesConversation;
 import static com.dwdesign.tweetings.util.Utils.haveNetworkConnection;
-import static com.dwdesign.tweetings.service.TweetingsService.ListResponse;
 
 import twitter4j.*;
 
@@ -42,7 +41,9 @@ import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.fragment.AccountsFragment;
 import com.dwdesign.tweetings.fragment.DirectMessagesFragment;
 import com.dwdesign.tweetings.fragment.HomeTimelineFragment;
+import com.dwdesign.tweetings.fragment.ListsFragment;
 import com.dwdesign.tweetings.fragment.MentionsFragment;
+import com.dwdesign.tweetings.fragment.SearchFragment;
 import com.dwdesign.tweetings.model.DraftItem;
 import com.dwdesign.tweetings.model.TabSpec;
 import com.dwdesign.tweetings.provider.TweetStore;
@@ -52,11 +53,7 @@ import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
 import com.dwdesign.tweetings.provider.TweetStore.Drafts;
 import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
-import com.dwdesign.tweetings.service.TweetingsService;
-import com.dwdesign.tweetings.service.TweetingsService.StoreHomeTimelineTask;
 import com.dwdesign.tweetings.util.ArrayUtils;
-import com.dwdesign.tweetings.util.AsyncTaskManager;
-import com.dwdesign.tweetings.util.ConnectivityReceiver;
 import com.dwdesign.tweetings.util.ServiceInterface;
 import com.dwdesign.tweetings.util.SetHomeButtonEnabledAccessor;
 import com.dwdesign.tweetings.view.ExtendedViewPager;
@@ -64,12 +61,8 @@ import com.dwdesign.tweetings.view.TabPageIndicator;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Notification.Builder;
 import android.app.backup.BackupManager;
-import android.app.backup.RestoreObserver;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -80,20 +73,17 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentManagerTrojan;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -120,8 +110,6 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	private TabPageIndicator mIndicator;
 	private ProgressBar mProgress;
 	
-	private Cursor mCursor;
-	
 	private boolean mProgressBarIndeterminateVisible = false;
 	
 	private boolean mIsNavigateToDefaultAccount = false;
@@ -132,6 +120,8 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	
 	public static final int TAB_POSITION_MENTIONS = 1;
 	public static final int TAB_POSITION_MESSAGES = 2;
+	public static final int TAB_POSITION_SEARCH = 3;
+	public static final int TAB_POSITION_LISTS = 4;
 	private final ArrayList<TabSpec> mCustomTabs = new ArrayList<TabSpec>();
 	
 	protected boolean refresh_on_start;
@@ -144,7 +134,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	protected TwitterStream twitterStream;
 	protected static long[] friendsList;
 	
-	private boolean mShowHomeTab, mShowMentionsTab, mShowMessagesTab, mShowAccountsTab;
+	private boolean mShowHomeTab, mShowMentionsTab, mShowMessagesTab, mShowSearchTab, mShowAccountsTab, mShowListsTab;
 
 	public static String BROADCAST_STATUS_RECEIVED = "com.dwdesign.tweetings.broadcast.STATUS_RECEIVED";
 
@@ -169,6 +159,62 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 				if (haveNetworkConnection(HomeActivity.this)) {
 					checkAndSendFailedTweets();
 				}
+			} else if (BROADCAST_ACCOUNT_LIST_DATABASE_UPDATED.equals(action)) {
+				restart();
+				
+			} else if (BROADCAST_TABS_NEW_TWEETS.equals(action)) {
+				int tab = intent.getIntExtra(INTENT_KEY_UPDATE_TAB, -1);
+				final int activated_color = getResources().getColor(R.color.holo_blue_light);
+				Drawable icon = null;
+				int tabPosition = -1;
+				switch (tab) {
+					case TAB_HOME: {
+						tabPosition = TAB_POSITION_HOME;
+						break;
+					}
+					case TAB_MENTIONS: {
+						tabPosition = TAB_POSITION_MENTIONS;	
+						break;
+					}
+					case TAB_DIRECT_MESSAGES: {
+						tabPosition = TAB_POSITION_MENTIONS;
+						break;
+					}
+					default:
+						break;
+				}
+				if (tabPosition >= 0) {
+					icon = mAdapter.getIcon(tabPosition).mutate();
+					icon.setColorFilter(activated_color, Mode.MULTIPLY);
+					mAdapter.setIcon(tabPosition, icon);
+				}
+				mAdapter.notifyDataSetChanged();
+			} else if (BROADCAST_TABS_READ_TWEETS.equals(action)) {
+				int tab = intent.getIntExtra(INTENT_KEY_UPDATE_TAB, -1);
+				Drawable icon = null;
+				int tabPosition = -1;
+				switch (tab) {
+					case TAB_HOME: {
+						tabPosition = TAB_POSITION_HOME;
+						break;
+					}
+					case TAB_MENTIONS: {
+						tabPosition = TAB_POSITION_MENTIONS;	
+						break;
+					}
+					case TAB_DIRECT_MESSAGES: {
+						tabPosition = TAB_POSITION_MENTIONS;
+						break;
+					}
+					default:
+						break;
+				}
+				if (tabPosition >= 0) {
+					icon = mAdapter.getIcon(tabPosition).mutate();
+					icon.clearColorFilter();
+					mAdapter.setIcon(tabPosition, icon);
+				}
+				mAdapter.notifyDataSetChanged();
 			}
 		}
 
@@ -181,14 +227,18 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		if (default_account_id == -1 || !ArrayUtils.contains(activated_ids, default_account_id)) {
 			if (activated_ids.length == 1) {
 				mPreferences.edit().putLong(PREFERENCE_KEY_DEFAULT_ACCOUNT_ID, activated_ids[0]).commit();
-				mIndicator.setPagingEnabled(true);
+				if (mIndicator != null) {
+					mIndicator.setPagingEnabled(true);
+				}
 				mIsNavigateToDefaultAccount = false;
 			} else if (activated_ids.length > 1) {
 				final int count = mAdapter.getCount();
 				if (count > 0) {
 					mViewPager.setCurrentItem(count - 1, false);
 				}
-				mIndicator.setPagingEnabled(false);
+				if (mIndicator != null) {
+					mIndicator.setPagingEnabled(false);
+				}
 				if (!mIsNavigateToDefaultAccount) {
 					Toast.makeText(this, R.string.set_default_account_hint, Toast.LENGTH_LONG).show();
 				}
@@ -226,6 +276,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		if (count == 0) {
 			bringLeftPaneToFront();
 		}
+		invalidateSupportOptionsMenu();
 	}
 
 	@Override
@@ -235,15 +286,22 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 			case R.id.button_compose:
 				if (mViewPager == null) return;
 				final int position = mViewPager.getCurrentItem();
-				if (position == mAdapter.getCount() - 1) {
+				
+				if (position == mAdapter.getCount() - 1 && mShowAccountsTab) {
 					startActivity(new Intent(INTENT_ACTION_TWITTER_LOGIN));
 				} else {
-					switch (position) {
-						case TAB_POSITION_MESSAGES:
-							openDirectMessagesConversation(this, -1, -1);
-							break;
-						default:
-							startActivity(new Intent(INTENT_ACTION_COMPOSE));
+					int messagesPosition = TAB_POSITION_MESSAGES;
+					if (mShowHomeTab == false) {
+						messagesPosition--;
+					}
+					if (mShowMentionsTab == false) {
+						messagesPosition--;
+					}
+					if (mShowMessagesTab && position == messagesPosition) {
+						openDirectMessagesConversation(this, -1, -1);
+					}
+					else {
+						startActivity(new Intent(INTENT_ACTION_COMPOSE));
 					}
 				}
 				break;
@@ -305,6 +363,8 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		mShowHomeTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_HOME_TAB, true);
 	 	mShowMentionsTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_MENTIONS_TAB, true);
 	 	mShowMessagesTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_MESSAGES_TAB, true);
+	 	mShowSearchTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_SEARCH_TAB, true);
+	 	mShowListsTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_LISTS_TAB, true);
 	 	mShowAccountsTab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_ACCOUNTS_TAB, true);
 		initTabs(getTabs(this));
 		mViewPager.setAdapter(mAdapter);
@@ -368,6 +428,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 
 	@Override
 	public boolean onCreateOptionsMenu(final Menu menu) {
+		menu.clear();
 		getMenuInflater().inflate(R.menu.menu_home, menu);
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -444,34 +505,42 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		int icon = R.drawable.ic_menu_tweet, title = R.string.compose;
 		if (mViewPager != null && mAdapter != null) {
 			final int position = mViewPager.getCurrentItem();
-
-			if (position == mAdapter.getCount() - 1) {
+			int messagesPosition = TAB_POSITION_MESSAGES;
+			if (mShowHomeTab == false) {
+				messagesPosition--;
+			}
+			if (mShowMentionsTab == false) {
+				messagesPosition--;
+			}
+			if (position == mAdapter.getCount() - 1 && mShowAccountsTab) {
 				icon = R.drawable.ic_menu_add;
 				title = R.string.add_account;
 			} else {
 				title = R.string.compose;
-				switch (position) {
-					case TAB_POSITION_MESSAGES:
-						icon = R.drawable.ic_menu_compose;
-						break;
-					default:
-						icon = R.drawable.ic_menu_tweet;
+				if (mShowMessagesTab && position == messagesPosition) {
+					icon = R.drawable.ic_menu_compose;
+				}
+				else {
+					icon = R.drawable.ic_menu_tweet;
 				}
 			}
-		}
-		final MenuItem composeItem = menu.findItem(MENU_COMPOSE);
-		if (composeItem != null) {
-			composeItem.setIcon(icon);
-			composeItem.setTitle(title);
-			composeItem.setVisible(!bottom_actions);
-		}
-		if (mComposeButton != null) {
-			mComposeButton.setImageResource(icon);
-			mComposeButton.setVisibility(bottom_actions ? View.VISIBLE : View.GONE);
-			if (bottom_actions) {
-				final FrameLayout.LayoutParams compose_lp = (FrameLayout.LayoutParams) mComposeButton.getLayoutParams();
-				compose_lp.gravity = Gravity.BOTTOM | (leftside_compose_button ? Gravity.LEFT : Gravity.RIGHT);
-				mComposeButton.setLayoutParams(compose_lp);
+			final MenuItem composeItem = menu.findItem(MENU_COMPOSE);
+			if (composeItem != null) {
+				composeItem.setIcon(icon);
+				composeItem.setTitle(title);
+				composeItem.setVisible(!bottom_actions && mViewPager.getVisibility() == View.VISIBLE);
+			}
+			if (mComposeButton != null) {
+				mComposeButton.setImageResource(icon);
+				mComposeButton
+				.setVisibility(bottom_actions && mViewPager.getVisibility() == View.VISIBLE ? View.VISIBLE
+						: View.GONE);
+				if (bottom_actions) {
+					final FrameLayout.LayoutParams compose_lp = (FrameLayout.LayoutParams) mComposeButton
+							.getLayoutParams();
+					 compose_lp.gravity = Gravity.BOTTOM | (leftside_compose_button ? Gravity.LEFT : Gravity.RIGHT);
+					 mComposeButton.setLayoutParams(compose_lp);
+				}
 			}
 		}
 		return super.onPrepareOptionsMenu(menu);
@@ -513,7 +582,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 						final Uri image_uri = draft.media_uri == null ? null : Uri.parse(draft.media_uri);
 						
 						mService.updateStatus(draft.account_ids, draft.text, null, image_uri,
-								draft.in_reply_to_status_id, draft.is_photo_attached && !draft.is_image_attached);
+								draft.in_reply_to_status_id, draft.is_possibly_sensitive, draft.is_photo_attached && !draft.is_image_attached);
 						
 						mResolver.delete(Drafts.CONTENT_URI, Drafts._ID + " = " + draft._id, null);
 					}
@@ -560,6 +629,15 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	public void onPause() {
 		super.onPause();
 		closeStream();
+	}
+	
+	public boolean isStreamActive() {
+		if (mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_ENABLED, false) == true) {
+			if (mService != null && twitterStream != null) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
@@ -670,15 +748,21 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		final IntentFilter filter = new IntentFilter(BROADCAST_REFRESHSTATE_CHANGED);
 		filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
 		filter.addAction(BROADCAST_NETWORK_STATE_CHANGED);
+		filter.addAction(BROADCAST_TABS_NEW_TWEETS);
+		filter.addAction(BROADCAST_TABS_READ_TWEETS);
+		filter.addAction(BROADCAST_ACCOUNT_LIST_DATABASE_UPDATED);
 		registerReceiver(mStateReceiver, filter);
 		final boolean show_home_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_HOME_TAB, true);
 	 	final boolean show_mentions_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_MENTIONS_TAB, true);
 	 	final boolean show_messages_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_MESSAGES_TAB, true);
 	 	final boolean show_accounts_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_ACCOUNTS_TAB, true);
+	 	final boolean show_search_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_SEARCH_TAB, true);
+	 	final boolean show_lists_tab = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_LISTS_TAB, true);
 
 		final List<TabSpec> tabs = getTabs(this);
 		if (isTabsChanged(tabs) || show_home_tab != mShowHomeTab || show_mentions_tab != mShowMentionsTab
-			 || show_messages_tab != mShowMessagesTab || show_accounts_tab != mShowAccountsTab) {
+			 || show_messages_tab != mShowMessagesTab || show_accounts_tab != mShowAccountsTab || show_search_tab != mShowSearchTab
+			 || show_lists_tab != mShowListsTab) {
 			restart();
 		}
 		if (mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_ENABLED, false) == true) {
@@ -727,6 +811,14 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 		if (mShowMessagesTab) {
 			mAdapter.addTab(DirectMessagesFragment.class, null, getString(R.string.direct_messages),
 				R.drawable.ic_tab_message, TAB_POSITION_MESSAGES);
+		}
+		if (mShowSearchTab) {
+			mAdapter.addTab(SearchFragment.class, null, getString(R.string.search),
+				R.drawable.ic_tab_search, TAB_POSITION_SEARCH);
+		}
+		if (mShowListsTab) {
+			mAdapter.addTab(ListsFragment.class, null, getString(R.string.lists),
+				R.drawable.ic_tab_list, TAB_POSITION_LISTS);
 		}
 		mAdapter.addTabs(tabs);
 		if (mShowAccountsTab) {

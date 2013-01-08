@@ -243,6 +243,28 @@ public final class ServiceInterface implements Constants, ITweetingsService {
 		}
 		return -1;
 	}
+	
+	@Override 
+	public int destroySavedSearch(final long account_id, final int search_id) {
+		if (mService == null) return -1;
+		try {
+			return mService.destroySavedSearch(account_id, search_id);
+		} catch (final RemoteException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
+	
+	@Override 
+	public int createSavedSearch(final long account_id, final String query) {
+		if (mService == null) return -1;
+		try {
+			return mService.createSavedSearch(account_id, query);
+		} catch (final RemoteException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
 
 	@Override
 	public int destroyUserList(final long account_id, final int list_id) {
@@ -642,10 +664,10 @@ public final class ServiceInterface implements Constants, ITweetingsService {
 
 	@Override
 	public int updateStatus(final long[] account_ids, final String content, final Location location, final Uri image_uri, final long in_reply_to,
-			final boolean delete_image) {
+			final boolean is_possibly_sensitive, final boolean delete_image) {
 		if (mService == null) return -1;
 		try {
-			return mService.updateStatus(account_ids, content, location, image_uri, in_reply_to, delete_image);
+			return mService.updateStatus(account_ids, content, location, image_uri, in_reply_to, is_possibly_sensitive, delete_image);
 		} catch (final RemoteException e) {
 			e.printStackTrace();
 		}

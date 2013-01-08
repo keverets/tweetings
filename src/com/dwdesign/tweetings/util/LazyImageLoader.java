@@ -1,386 +1,533 @@
-/*
- *				Tweetings - Twitter client for Android
- * 
- * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.dwdesign.tweetings.util;
 
-import static android.os.Environment.getExternalStorageDirectory;
-import static android.os.Environment.getExternalStorageState;
+import static android.text.TextUtils.isEmpty;
 import static com.dwdesign.tweetings.util.Utils.copyStream;
-import static com.dwdesign.tweetings.util.Utils.getProxy;
-import static com.dwdesign.tweetings.util.Utils.parseURL;
-import static com.dwdesign.tweetings.util.Utils.setIgnoreSSLError;
+import static com.dwdesign.tweetings.util.Utils.getBestCacheDir;
+import static com.dwdesign.tweetings.util.Utils.getImageLoaderHttpClient;
+import static com.dwdesign.tweetings.util.Utils.getRedirectedHttpResponse;
+import static com.dwdesign.tweetings.util.Utils.resizeBitmap;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.ref.SoftReference;
-import java.net.HttpURLConnection;
-import java.net.Proxy;
+import java.lang.ref.WeakReference;
 import java.net.URL;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.dwdesign.tweetings.Constants;
-
+import twitter4j.internal.http.HttpClientWrapper;
+import twitter4j.internal.http.HttpResponse;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Build;
-import android.os.Environment;
-import android.widget.GridView;
+import android.os.Handler;
 import android.widget.ImageView;
-import android.widget.ListView;
 
-/**
- * Lazy image loader for {@link ListView} and {@link GridView} etc.</br> </br>
- * Inspired by <a href="https://github.com/thest1/LazyList">LazyList</a>, this
- * class has extra features like image loading/caching image to
- * /mnt/sdcard/Android/data/[package name]/cache features.</br> </br> Requires
- * Android 2.2, you can modify {@link Context#getExternalCacheDir()} to other to
- * support Android 2.1 and below.
- * 
- * @author mariotaku
- * 
- */
-public class LazyImageLoader implements Constants {
+public class LazyImageLoader {
 
-	private final MemoryCache mMemoryCache;
-	private final Context mContext;
-	private final FileCache mFileCache;
-	private final Map<ImageView, URL> mImageViews = Collections.synchronizedMap(new WeakHashMap<ImageView, URL>());
-	private final ExecutorService mExecutorService;
+	private static final String TAG = LazyImageLoader.class.getSimpleName();
+
+	// Both hard and soft caches are purged after 40 seconds idling.
+	private static final int DELAY_BEFORE_PURGE = 40000;
+	private static final int MAX_CACHE_CAPACITY = 40;
+
+	// Maximum number of threads in the executor pool.
+	// TODO: Tune POOL_SIZE for maximum performance gain
+	private static final int POOL_SIZE = 5;
+
 	private final int mFallbackRes;
-	private final int mRequiredWidth, mRequiredHeight;
-	private Proxy mProxy;
 
-	public LazyImageLoader(final Context context, final String cache_dir_name, final int fallback_image_res, final int required_width,
-			final int required_height, final int mem_cache_capacity) {
+	private boolean mCancelled;
+
+	private final int mImageWidth;
+	private final int mImageHeight;
+
+	private final Runnable mPurger;
+	private final Handler mPurgeHandler;
+	private final ExecutorService mExecutor;
+
+	// Soft bitmap cache for Images removed from the hard cache.
+	// This gets cleared by the Garbage Collector everytime we get low on
+	// memory.
+	private final Map<String, SoftReference<Bitmap>> mSoftBitmapCache;
+	private final Map<ImageView, Image> mImageViews;
+	private final LinkedHashMap<String, Bitmap> mHardBitmapCache;
+	private final ArrayList<String> mBlacklist;
+
+	private final String mCacheDirName;
+
+	private final Context mContext;
+
+	private File mCacheDir;
+	private HttpClientWrapper mClient;
+
+	/**
+	 * Used for loading and decoding Images from files.
+	 * 
+	 * @author PhilipHayes
+	 * @param context Current application context.
+	 */
+	public LazyImageLoader(final Context context, final String cacheDirName, final int fallbackRes,
+			final int ImageWidth, final int ImageHeight) {
 		mContext = context;
-		mMemoryCache = new MemoryCache(mem_cache_capacity);
-		mFileCache = new FileCache(context, cache_dir_name);
-		mExecutorService = Executors.newFixedThreadPool(5);
-		mFallbackRes = fallback_image_res;
-		mRequiredWidth = required_width % 2 == 0 ? required_width : required_width + 1;
-		mRequiredHeight = required_height % 2 == 0 ? required_height : required_height + 1;
-		mProxy = getProxy(context);
+		mCacheDirName = cacheDirName;
+		mClient = getImageLoaderHttpClient(context);
+		mPurger = new MemoryPurger();
+		mPurgeHandler = new Handler();
+		mExecutor = Executors.newFixedThreadPool(POOL_SIZE);
+		mBlacklist = new ArrayList<String>();
+		mSoftBitmapCache = new HashMap<String, SoftReference<Bitmap>>(MAX_CACHE_CAPACITY / 2);
+		mImageViews = new WeakHashMap<ImageView, Image>();
+		mHardBitmapCache = new HardBitmapCache(MAX_CACHE_CAPACITY / 2);
+		mFallbackRes = fallbackRes;
+		mImageWidth = ImageWidth;
+		mImageHeight = ImageHeight;
+		initCacheDir();
+	}
+
+	/**
+	 * Cancels any downloads, shuts down the executor pool, and then purges the
+	 * caches.
+	 */
+	public void cancel() {
+		mCancelled = true;
+
+		// We could also terminate it immediately,
+		// but that may lead to synchronization issues.
+		if (!mExecutor.isShutdown()) {
+			mExecutor.shutdown();
+		}
+
+		stopPurgeTimer();
+
+		clearMemoryCache();
 	}
 
 	public void clearFileCache() {
-		mFileCache.clear();
+		if (mCacheDir == null || !mCacheDir.isDirectory()) return;
+		for (final File file : mCacheDir.listFiles()) {
+			if (file.isFile()) {
+				file.delete();
+			}
+		}
 	}
 
 	public void clearMemoryCache() {
-		mMemoryCache.clear();
+		mSoftBitmapCache.clear();
+		mHardBitmapCache.clear();
+		mBlacklist.clear();
+	}
+	
+	public void displayImage(final URL thumb, final ImageView view) {
+		displayImage(thumb.toString(), view);
 	}
 
-	public void displayImage(final String url, final ImageView imageview) {
-		displayImage(parseURL(url), imageview);
-	}
+	/**
+	 * @param holder The {@link File} container.
+	 * @param view The ImageView from the IconifiedTextView.
+	 */
+	public void displayImage(final Image thumb, final ImageView view) {
+		if (mCancelled || view == null || thumb == null) return;
+		mImageViews.put(view, thumb);
+		if (!mBlacklist.contains(thumb.getKey())) {
+			// We reset the caches after every 30 or so seconds of inactivity
+			// for memory efficiency.
+			resetPurgeTimer();
 
-	public void displayImage(final URL url, final ImageView imageview) {
-		if (imageview == null) return;
-		if (url == null) {
-			imageview.setImageResource(mFallbackRes);
-			return;
-		}
-		mImageViews.put(imageview, url);
-		final Bitmap bitmap = mMemoryCache.get(url);
-		if (bitmap != null) {
-			imageview.setImageBitmap(bitmap);
-		} else {
-			queuePhoto(url, imageview);
-			imageview.setImageResource(mFallbackRes);
-		}
-	}
+			final Bitmap bitmap = getBitmapFromMemoryCache(thumb.getKey());
+			if (bitmap != null) {
+				// We're still in the UI thread so we just update the icons from
+				// here.
+				view.setImageBitmap(bitmap);
+			} else {
+				// Give a drawable based on mimetype. Generic file drawable for
+				// undefined types.
+				if (mFallbackRes != 0) {
+					view.setImageResource(mFallbackRes);
+				} else {
+					view.setImageBitmap(null);
+				}
 
-	public String getCachedImagePath(final URL url) {
-		if (mFileCache == null) return null;
-		final File f = mFileCache.getFile(url);
-		if (f != null && f.exists())
-			return f.getPath();
-		else {
-			queuePhoto(url, null);
-		}
-		return null;
-	}
-
-	public void reloadProxySettings() {
-		mProxy = getProxy(mContext);
-	}
-
-	// decodes image and scales it to reduce memory consumption
-	private Bitmap decodeFile(final File f) {
-		try {
-			// decode image size
-			final BitmapFactory.Options options = new BitmapFactory.Options();
-			options.inJustDecodeBounds = true;
-			BitmapFactory.decodeStream(new FileInputStream(f), null, options);
-
-			// Find the correct scale value. It should be the power of 2.
-			int width_tmp = options.outWidth, height_tmp = options.outHeight;
-			int scale = 1;
-			while (width_tmp / 2 >= mRequiredWidth || height_tmp / 2 >= mRequiredHeight) {
-				width_tmp /= 2;
-				height_tmp /= 2;
-				scale *= 2;
-			}
-
-			// decode with inSampleSize
-			final BitmapFactory.Options o2 = new BitmapFactory.Options();
-			o2.inSampleSize = scale / 2;
-			final Bitmap bitmap = BitmapFactory.decodeStream(new FileInputStream(f), null, o2);
-			if (bitmap == null) {
-				// The file is corrupted, so we remove it from cache.
-				if (f.isFile()) {
-					f.delete();
+				if (!mCancelled) {
+					final WeakReference<GetImageRunnable> runner = new WeakReference<GetImageRunnable>(
+							new GetImageRunnable(view, thumb));
+					mExecutor.submit(runner.get());
 				}
 			}
-			return bitmap;
-		} catch (final FileNotFoundException e) {
-			// e.printStackTrace();
+		} else {
+			if (mFallbackRes != 0) {
+				view.setImageResource(mFallbackRes);
+			} else {
+				view.setImageBitmap(null);
+			}
+		}
+	}
+
+	public void displayImage(final String url, final ImageView view) {
+		if (view == null) return;
+		displayImage(new URLImage(url), view);
+	}
+
+	public File getCachedImageFile(final Image thumb) {
+		if (thumb == null) return null;
+		final File file = thumb.getFile();
+		if (file.exists()) return file;
+		if (!mCancelled) {
+			final WeakReference<CacheImageRunnable> runner = new WeakReference<CacheImageRunnable>(
+					new CacheImageRunnable(thumb));
+			mExecutor.submit(runner.get());
 		}
 		return null;
 	}
 
-	private void queuePhoto(final URL url, final ImageView imageview) {
-		final ImageToLoad p = new ImageToLoad(url, imageview);
-		mExecutorService.submit(new ImageLoader(p));
+	public File getCachedImageFile(final String url) {
+		return getCachedImageFile(new URLImage(url));
 	}
 
-	boolean imageViewReused(final ImageToLoad imagetoload) {
-		final Object tag = mImageViews.get(imagetoload.imageview);
-		if (tag == null || !tag.equals(imagetoload.source)) return true;
-		return false;
+	public void initCacheDir() {
+		mCacheDir = getBestCacheDir(mContext, mCacheDirName);
 	}
 
-	// Used to display bitmap in the UI thread
-	class BitmapDisplayer implements Runnable {
+	public void reloadConnectivitySettings() {
+		mClient = getImageLoaderHttpClient(mContext);
+	}
 
-		Bitmap bitmap;
-		ImageToLoad imagetoload;
+	/**
+	 * Stops the cache purger from running until it is reset again.
+	 */
+	public void stopPurgeTimer() {
+		mPurgeHandler.removeCallbacks(mPurger);
+	}
 
-		public BitmapDisplayer(final Bitmap b, final ImageToLoad p) {
-			bitmap = b;
-			imagetoload = p;
+	/**
+	 * The file to decode.
+	 * 
+	 * @return The resized and resampled bitmap, if can not be decoded it
+	 *         returns null.
+	 */
+	private Bitmap decodeFile(final File file) {
+		if (file == null) return null;
+		if (!mCancelled) {
+			final BitmapFactory.Options options = new BitmapFactory.Options();
+
+			options.inJustDecodeBounds = true;
+			options.outWidth = 0;
+			options.outHeight = 0;
+			options.inSampleSize = 1;
+
+			final String filePath = file.getAbsolutePath();
+			BitmapFactory.decodeFile(filePath, options);
+
+			if (options.outWidth > 0 && options.outHeight > 0) {
+				if (!mCancelled) {
+					// Now see how much we need to scale it down.
+					int widthFactor = (options.outWidth + mImageWidth - 1) / mImageWidth;
+					final int heightFactor = (options.outHeight + mImageHeight - 1) / mImageHeight;
+					widthFactor = Math.max(widthFactor, heightFactor);
+					widthFactor = Math.max(widthFactor, 1);
+					// Now turn it into a power of two.
+					if (widthFactor > 1) {
+						if ((widthFactor & widthFactor - 1) != 0) {
+							while ((widthFactor & widthFactor - 1) != 0) {
+								widthFactor &= widthFactor - 1;
+							}
+
+							widthFactor <<= 1;
+						}
+					}
+					options.inSampleSize = widthFactor;
+					options.inJustDecodeBounds = false;
+					final Bitmap bitmap = resizeBitmap(BitmapFactory.decodeFile(filePath, options), mImageWidth,
+							mImageHeight);
+					if (bitmap != null) return bitmap;
+				}
+			} else {
+				// Must not be a bitmap, so we add it to the blacklist.
+				if (!mBlacklist.contains(file.getName())) {
+					mBlacklist.add(filePath);
+				}
+			}
 		}
+		return null;
+	};
 
-		@Override
-		public final void run() {
-			if (imageViewReused(imagetoload)) return;
+	/**
+	 * @param key In this case the file name (used as the mapping id).
+	 * @return bitmap The cached bitmap or null if it could not be located.
+	 * 
+	 *         As the name suggests, this method attemps to obtain a bitmap
+	 *         stored in one of the caches. First it checks the hard cache for
+	 *         the key. If a key is found, it moves the cached bitmap to the
+	 *         head of the cache so it gets moved to the soft cache last.
+	 * 
+	 *         If the hard cache doesn't contain the bitmap, it checks the soft
+	 *         cache for the cached bitmap. If neither of the caches contain the
+	 *         bitmap, this returns null.
+	 */
+	private Bitmap getBitmapFromMemoryCache(final String key) {
+		synchronized (mHardBitmapCache) {
+			final Bitmap bitmap = mHardBitmapCache.get(key);
 			if (bitmap != null) {
-				imagetoload.imageview.setImageBitmap(bitmap);
-			} else {
-				imagetoload.imageview.setImageResource(mFallbackRes);
-			}
-		}
-	}
-
-	static class FileCache {
-
-		private final String mCacheDirName;
-
-		private File mCacheDir;
-		private Context mContext;
-
-		public FileCache(final Context context, final String cache_dir_name) {
-			mContext = context;
-			mCacheDirName = cache_dir_name;
-			init();
-		}
-
-		public void clear() {
-			if (mCacheDir == null) return;
-			final File[] files = mCacheDir.listFiles();
-			if (files == null) return;
-			for (final File f : files) {
-				f.delete();
-			}
-		}
-
-		public File getFile(final URL tag) {
-			if (mCacheDir == null) return null;
-			final String filename = getURLFilename(tag);
-			if (filename == null) return null;
-			final File file = new File(mCacheDir, filename);
-			return file;
-		}
-
-		public void init() {
-			/* Find the dir to save cached images. */
-			if (getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-				mCacheDir = new File(
-						Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ? GetExternalCacheDirAccessor.getExternalCacheDir(mContext)
-								: new File(getExternalStorageDirectory().getPath() + "/Android/data/"
-										+ mContext.getPackageName() + "/cache/"), mCacheDirName);
-			} else {
-				mCacheDir = new File(mContext.getCacheDir(), mCacheDirName);
-			}
-			if (mCacheDir != null && !mCacheDir.exists()) {
-				mCacheDir.mkdirs();
-			}
-		}
-
-		private String getURLFilename(final URL url) {
-			if (url == null) return null;
-			return url.toString().replaceFirst("https?:\\/\\/", "").replaceAll("[^a-zA-Z0-9]", "_");
-		}
-
-	}
-
-	class ImageLoader implements Runnable {
-		private ImageToLoad imagetoload;
-
-		public ImageLoader(final ImageToLoad imagetoload) {
-			this.imagetoload = imagetoload;
-		}
-
-		public Bitmap getBitmap(final URL url) {
-			if (url == null) return null;
-			final File f = mFileCache.getFile(url);
-
-			// from SD cache
-			final Bitmap b = decodeFile(f);
-			if (b != null) return b;
-
-			// from web
-			try {
-				Bitmap bitmap = null;
-				final HttpURLConnection conn = (HttpURLConnection) url.openConnection(mProxy);
-				setIgnoreSSLError(conn);
-				conn.setConnectTimeout(30000);
-				conn.setReadTimeout(30000);
-				conn.setInstanceFollowRedirects(true);
-				final InputStream is = conn.getInputStream();
-				final OutputStream os = new FileOutputStream(f);
-				copyStream(is, os);
-				os.close();
-				bitmap = decodeFile(f);
+				// Put bitmap on top of cache so it's purged last.
+				mHardBitmapCache.remove(key);
+				mHardBitmapCache.put(key, bitmap);
 				return bitmap;
-			} catch (final FileNotFoundException e) {
-				// Storage state may changed, so call FileCache.init() again.
-				// e.printStackTrace();
-				mFileCache.init();
-			} catch (final IOException e) {
-				// e.printStackTrace();
-			} catch (final NullPointerException e) {
-				
 			}
-			return null;
+		}
+
+		final SoftReference<Bitmap> bitmapRef = mSoftBitmapCache.get(key);
+		if (bitmapRef != null) {
+			final Bitmap bitmap = bitmapRef.get();
+			if (bitmap != null)
+				return bitmap;
+			else {
+				// Must have been collected by the Garbage Collector
+				// so we remove the bucket from the cache.
+				mSoftBitmapCache.remove(key);
+			}
+		}
+
+		// Could not locate the bitmap in any of the caches, so we return null.
+		return null;
+	}
+
+	private boolean imageViewRecycled(final ImageView view, final Image thumb) {
+		if (view == null || thumb == null) return true;
+		final Image old = mImageViews.get(view);
+		return !thumb.equals(old);
+	}
+
+	/**
+	 * Purges the cache every (DELAY_BEFORE_PURGE) milliseconds.
+	 * 
+	 * @see DELAY_BEFORE_PURGE
+	 */
+	private void resetPurgeTimer() {
+		mPurgeHandler.removeCallbacks(mPurger);
+		mPurgeHandler.postDelayed(mPurger, DELAY_BEFORE_PURGE);
+	}
+
+	public interface Image {
+		boolean get();
+
+		File getFile();
+
+		String getKey();
+	}
+
+	private class CacheImageRunnable implements Runnable {
+
+		final Image thumb;
+
+		CacheImageRunnable(final Image thumb) {
+			this.thumb = thumb;
 		}
 
 		@Override
 		public void run() {
-			if (imageViewReused(imagetoload) || imagetoload.source == null) return;
-			final Bitmap bmp = getBitmap(imagetoload.source);
-			mMemoryCache.put(imagetoload.source, bmp);
-			if (imageViewReused(imagetoload)) return;
-			final BitmapDisplayer bd = new BitmapDisplayer(bmp, imagetoload);
-			final Activity a = (Activity) imagetoload.imageview.getContext();
-			a.runOnUiThread(bd);
+			if (mCancelled || thumb == null) return;
+			thumb.get();
 		}
 	}
 
-	static class ImageToLoad {
-		public final URL source;
-		public final ImageView imageview;
+	private class DisplayFallbackImageRunnable implements Runnable {
+		private final ImageView view;
 
-		public ImageToLoad(final URL source, final ImageView imageview) {
-			this.source = source;
-			this.imageview = imageview;
+		DisplayFallbackImageRunnable(final ImageView view) {
+			this.view = view;
+		}
+
+		@Override
+		public void run() {
+			if (view == null || mCancelled) return;
+			if (mFallbackRes != 0) {
+				view.setImageResource(mFallbackRes);
+			} else {
+				view.setImageBitmap(null);
+			}
 		}
 	}
 
-	static class MemoryCache {
+	/**
+	 * When run on the UI Thread, this updates the Image in the corresponding
+	 * iconifiedtext and imageview.
+	 */
+	private class DisplayImageRunnable implements Runnable {
+		private final Bitmap bitmap;
+		private final ImageView view;
 
-		private final int mMaxCapacity;
-		private final Map<URL, SoftReference<Bitmap>> mSoftCache;
-		private final Map<URL, Bitmap> mHardCache;
+		public DisplayImageRunnable(final Bitmap bitmap, final ImageView view) {
+			this.bitmap = bitmap;
+			this.view = view;
+		}
 
-		public MemoryCache(final int max_capacity) {
-			mMaxCapacity = max_capacity;
-			mSoftCache = new ConcurrentHashMap<URL, SoftReference<Bitmap>>();
-			mHardCache = new LinkedHashMap<URL, Bitmap>(mMaxCapacity / 3, 0.75f, true) {
+		@Override
+		public void run() {
+			if (view == null || mCancelled) return;
+			view.setImageBitmap(bitmap);
+		}
+	}
 
-				private static final long serialVersionUID = 1347795807259717646L;
+	/**
+	 * Decodes the bitmap and sends a ImageUpdater on the UI Thread to update
+	 * the listitem and iconified text.
+	 * 
+	 * @see DisplayImageRunnable
+	 */
+	private class GetImageRunnable implements Runnable {
 
-				@Override
-				protected boolean removeEldestEntry(LinkedHashMap.Entry<URL, Bitmap> eldest) {
-					// Moves the last used item in the hard cache to the soft
-					// cache.
-					if (size() > mMaxCapacity) {
-						mSoftCache.put(eldest.getKey(), new SoftReference<Bitmap>(eldest.getValue()));
-						return true;
-					} else
-						return false;
+		final ImageView view;
+		final Image thumb;
+
+		GetImageRunnable(final ImageView view, final Image thumb) {
+			this.view = view;
+			this.thumb = thumb;
+		}
+
+		@Override
+		public void run() {
+			if (mCancelled || view == null) return;
+			final Context context = view.getContext();
+			if (!(context instanceof Activity)) return;
+
+			final File file = thumb.getFile();
+			if (file == null) return;
+			Bitmap bitmap = decodeFile(file);
+			if (bitmap == null && (!file.exists() || file.length() == 0)) {
+				// Image is corrupted or not exist.
+				file.delete();
+				if (thumb.get()) {
+					bitmap = decodeFile(file);
 				}
-			};
-		}
+			}
 
-		public void clear() {
-			mHardCache.clear();
-			mSoftCache.clear();
-		}
+			final Activity activity = (Activity) context;
 
-		public Bitmap get(final URL url) {
-			if (url == null) return null;
-			synchronized (mHardCache) {
-				final Bitmap bitmap = mHardCache.get(url);
+			if (mCancelled) return;
+			if (!imageViewRecycled(view, thumb)) {
 				if (bitmap != null) {
-					// Put bitmap on top of cache so it's purged last.
-					mHardCache.remove(url);
-					mHardCache.put(url, bitmap);
-					return bitmap;
+					// Bitmap was successfully decoded so we place it in the
+					// hard cache.
+					mHardBitmapCache.put(thumb.getKey(), bitmap);
+					activity.runOnUiThread(new DisplayImageRunnable(bitmap, view));
+				} else {
+					activity.runOnUiThread(new DisplayFallbackImageRunnable(view));
 				}
 			}
-
-			final SoftReference<Bitmap> bitmapRef = mSoftCache.get(url);
-			if (bitmapRef != null) {
-				final Bitmap bitmap = bitmapRef.get();
-				if (bitmap != null)
-					return bitmap;
-				else {
-					// Must have been collected by the Garbage Collector
-					// so we remove the bucket from the cache.
-					mSoftCache.remove(url);
-				}
-			}
-
-			// Could not locate the bitmap in any of the caches, so we return
-			// null.
-			return null;
-
-		}
-
-		public void put(final URL url, final Bitmap bitmap) {
-			if (url == null || bitmap == null) return;
-			mHardCache.put(url, bitmap);
+			mImageViews.remove(view);
 		}
 	}
 
+	private class HardBitmapCache extends LinkedHashMap<String, Bitmap> {
+
+		/***/
+		private static final long serialVersionUID = 1347795807259717646L;
+
+		HardBitmapCache(final int capacity) {
+			super(capacity, 0.75f, true);
+		}
+
+		@Override
+		protected boolean removeEldestEntry(final LinkedHashMap.Entry<String, Bitmap> eldest) {
+			// Moves the last used item in the hard cache to the soft cache.
+			if (size() > MAX_CACHE_CAPACITY) {
+				mSoftBitmapCache.put(eldest.getKey(), new SoftReference<Bitmap>(eldest.getValue()));
+				return true;
+			} else
+				return false;
+		}
+	}
+
+	private class MemoryPurger implements Runnable {
+		@Override
+		public void run() {
+			clearMemoryCache();
+		}
+	}
+
+	abstract class BaseImage implements Image {
+
+		@Override
+		public File getFile() {
+			final String key = getKey();
+			if (isEmpty(key)) return null;
+			return new File(mCacheDir, getFileNameForKey(key));
+		}
+
+		private String getFileNameForKey(final String key) {
+			if (isEmpty(key)) return null;
+			return key.replaceAll("[^\\w\\d_]", "_");
+		}
+
+	}
+
+	class URLImage extends BaseImage {
+
+		final String url;
+
+		URLImage(final String url) {
+			this.url = url;
+		}
+
+		@Override
+		public boolean equals(final Object obj) {
+			if (this == obj) return true;
+			if (obj == null) return false;
+			if (!(obj instanceof URLImage)) return false;
+			final URLImage other = (URLImage) obj;
+			if (!getOuterType().equals(other.getOuterType())) return false;
+			if (url == null) {
+				if (other.url != null) return false;
+			} else if (!url.equals(other.url)) return false;
+			return true;
+		}
+
+		@Override
+		public boolean get() {
+			FileOutputStream os = null;
+			try {
+				final HttpResponse response = getRedirectedHttpResponse(mClient, url);
+				os = new FileOutputStream(getFile());
+				copyStream(response.asStream(), os);
+			} catch (final Exception e) {
+				
+				return false;
+			} finally {
+				if (os != null) {
+					try {
+						os.flush();
+						os.close();
+					} catch (final Exception e) {
+						
+					}
+				}
+			}
+			return true;
+		}
+
+		@Override
+		public String getKey() {
+			return url;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + getOuterType().hashCode();
+			result = prime * result + (url == null ? 0 : url.hashCode());
+			return result;
+		}
+
+		private LazyImageLoader getOuterType() {
+			return LazyImageLoader.this;
+		}
+
+	}
 }

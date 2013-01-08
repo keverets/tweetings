@@ -28,6 +28,7 @@ import com.dwdesign.tweetings.adapter.DirectMessagesEntryAdapter;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
 import com.dwdesign.tweetings.util.ArrayUtils;
+import com.dwdesign.tweetings.util.AsyncTask;
 import com.dwdesign.tweetings.util.LazyImageLoader;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
@@ -180,11 +181,22 @@ public class DirectMessagesFragment extends PullToRefreshListFragment implements
 	@Override
 	public void onPullDownToRefresh() {
 		if (mService == null) return;
-		final long[] account_ids = getActivatedAccountIds(getActivity());
-		final long[] inbox_since_ids = getNewestMessageIdsFromDatabase(getActivity(), DirectMessages.Inbox.CONTENT_URI);
-		mService.getReceivedDirectMessagesWithSinceId(account_ids, null, inbox_since_ids);
-		//mService.getReceivedDirectMessages(account_ids, null);
-		mService.getSentDirectMessages(account_ids, null);
+		new AsyncTask<Void, Void, long[][]>() {
+		
+			@Override
+		 	protected long[][] doInBackground(final Void... params) {
+				final long[][] result = new long[2][];
+			 	result[0] = getActivatedAccountIds(getActivity());
+			 	result[1] = getNewestMessageIdsFromDatabase(getActivity(), DirectMessages.Inbox.CONTENT_URI);
+			 	return result;
+		 	}
+		 	
+			@Override
+		 	protected void onPostExecute(final long[][] result) {
+				mService.getReceivedDirectMessagesWithSinceId(result[0], null, result[1]);
+		 	    mService.getSentDirectMessages(result[0], null);
+		 	}
+		}.execute();
 	}
 
 	@Override

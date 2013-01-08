@@ -1,15 +1,33 @@
+/*
+ *				Twidere - Twitter client for Android
+ * 
+ * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.dwdesign.tweetings.view;
 
 import android.content.Context;
 import android.text.Layout;
 import android.text.Selection;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.style.ClickableSpan;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.widget.TextView;
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.widget.Toast;
 
 public class HandleSpanClickTextView extends TextView {
 
@@ -29,8 +47,7 @@ public class HandleSpanClickTextView extends TextView {
 	public boolean onTouchEvent(final MotionEvent event) {
 		final Spannable buffer = SpannableString.valueOf(getText());
 		final int action = event.getAction();
-		if (action == MotionEvent.ACTION_UP ||
-			action == MotionEvent.ACTION_DOWN) {
+		if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_DOWN) {
 			int x = (int) event.getX();
 			int y = (int) event.getY();
 
@@ -44,19 +61,20 @@ public class HandleSpanClickTextView extends TextView {
 			final int line = layout.getLineForVertical(y);
 			final int off = layout.getOffsetForHorizontal(line, x);
 
-			final ClickableSpan[] link = buffer.getSpans(off, off, ClickableSpan.class);
+			final ClickableSpan[] links = buffer.getSpans(off, off, ClickableSpan.class);
 
-			if (link.length != 0) {
+			if (links.length != 0) {
+				final ClickableSpan link = links[0];
 				if (action == MotionEvent.ACTION_UP) {
-					link[0].onClick(this);
+					link.onClick(this);
 					setClickable(false);
 					return true;
 				} else if (action == MotionEvent.ACTION_DOWN) {
-					Selection.setSelection(buffer, buffer.getSpanStart(link[0]),
-										   buffer.getSpanEnd(link[0]));
+					Selection.setSelection(buffer, buffer.getSpanStart(link), buffer.getSpanEnd(link));
 					setClickable(true);
 				}
 			} else {
+				setClickable(false);
 				Selection.removeSelection(buffer);
 			}
 		}

@@ -22,6 +22,7 @@ public abstract class BaseUserListsLoader extends AsyncTaskLoader<List<Parcelabl
 	final NoDuplicatesArrayList<ParcelableUserList> mData = new NoDuplicatesArrayList<ParcelableUserList>();
 	final Twitter mTwitter;
 	private final long mAccountId, mCursor;
+	private int mPosition = -1;
 
 	private long mNextCursor, mPrevCursor;
 
@@ -33,8 +34,24 @@ public abstract class BaseUserListsLoader extends AsyncTaskLoader<List<Parcelabl
 		mTwitter = getTwitterInstance(context, account_id, true);
 		mCursor = cursor;
 		mAccountId = account_id;
+		mPosition = -1;
+	}
+	
+	public BaseUserListsLoader(final Context context, final long account_id, final long cursor, final List<ParcelableUserList> data, final int position) {
+		super(context);
+		if (data != null) {
+			mData.addAll(data);
+		}
+		mTwitter = getTwitterInstance(context, account_id, true);
+		mCursor = cursor;
+		mAccountId = account_id;
+		mPosition = position;
 	}
 
+	public int getPosition() {
+		return mPosition;
+	}
+	
 	public long getCursor() {
 		return mCursor;
 	}

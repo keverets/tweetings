@@ -51,6 +51,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -99,6 +101,7 @@ import twitter4j.UserList;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.Authorization;
 import twitter4j.auth.OAuthAuthorization;
+import twitter4j.internal.http.HttpClientWrapper;
 import twitter4j.internal.http.HttpParameter;
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -125,6 +128,7 @@ import android.provider.Settings;
 import android.provider.Settings.Secure;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import com.twitter.Validator;
@@ -284,6 +288,16 @@ public class TweetingsService extends Service implements Constants {
 
 	public int destroyStatus(final long account_id, final long status_id) {
 		final DestroyStatusTask task = new DestroyStatusTask(account_id, status_id);
+		return mAsyncTaskManager.add(task, true);
+	}
+	
+	public int destroySavedSearch(final long account_id, final int search_id) {
+		final DestroySavedSearchTask task = new DestroySavedSearchTask(account_id, search_id);
+		return mAsyncTaskManager.add(task, true);
+	}
+	
+	public int createSavedSearch(final long account_id, final String query) {
+		final CreateSavedSearchTask task = new CreateSavedSearchTask(account_id, query);
 		return mAsyncTaskManager.add(task, true);
 	}
 
@@ -609,9 +623,9 @@ public class TweetingsService extends Service implements Constants {
 	}
 
 	public int updateStatus(final long[] account_ids, final String content, final Location location, final Uri image_uri, final long in_reply_to,
-			final boolean delete_image) {
+			final boolean is_possibly_sensitive, final boolean delete_image) {
 		final UpdateStatusTask task = new UpdateStatusTask(account_ids, content, location, image_uri, in_reply_to,
-				delete_image);
+				is_possibly_sensitive, delete_image);
 		return mAsyncTaskManager.add(task, true);
 	}
 	
@@ -1388,6 +1402,88 @@ public class TweetingsService extends Service implements Constants {
 		}
 
 	}
+	
+	class DestroySavedSearchTask extends ManagedAsyncTask<Void, Void, SingleResponse<twitter4j.SavedSearch>> {
+
+		private long account_id;
+
+		private int search_id;
+
+		public DestroySavedSearchTask(final long account_id, final int search_id) {
+			super(TweetingsService.this, mAsyncTaskManager);
+			this.account_id = account_id;
+			this.search_id = search_id;
+		}
+
+		@Override
+		protected SingleResponse<twitter4j.SavedSearch> doInBackground(final Void... params) {
+
+			final Twitter twitter = getTwitterInstance(TweetingsService.this, account_id, false);
+			if (twitter != null) {
+				try {
+					final twitter4j.SavedSearch status = twitter.destroySavedSearch(search_id);
+					return new SingleResponse<twitter4j.SavedSearch>(account_id, status, null);
+				} catch (final TwitterException e) {
+					return new SingleResponse<twitter4j.SavedSearch>(account_id, null, e);
+				}
+			}
+			return new SingleResponse<twitter4j.SavedSearch>(account_id, null, null);
+		}
+
+		@Override
+		protected void onPostExecute(final SingleResponse<twitter4j.SavedSearch> result) {
+			final Intent intent = new Intent(BROADCAST_SEARCH_CHANGED);
+			if (result != null && result.data != null && result.data.getId() > 0) {
+				Toast.makeText(TweetingsService.this, R.string.delete_search_success, Toast.LENGTH_SHORT).show();
+			} else {
+				showErrorToast(R.string.delete, result.exception, true);
+			}
+			sendBroadcast(intent);
+			super.onPostExecute(result);
+		}
+
+	}
+
+	class CreateSavedSearchTask extends ManagedAsyncTask<Void, Void, SingleResponse<twitter4j.SavedSearch>> {
+
+		private long account_id;
+
+		private String query;
+
+		public CreateSavedSearchTask(final long account_id, final String query) {
+			super(TweetingsService.this, mAsyncTaskManager);
+			this.account_id = account_id;
+			this.query = query;
+		}
+
+		@Override
+		protected SingleResponse<twitter4j.SavedSearch> doInBackground(final Void... params) {
+
+			final Twitter twitter = getTwitterInstance(TweetingsService.this, account_id, false);
+			if (twitter != null) {
+				try {
+					final twitter4j.SavedSearch status = twitter.createSavedSearch(query);
+					return new SingleResponse<twitter4j.SavedSearch>(account_id, status, null);
+				} catch (final TwitterException e) {
+					return new SingleResponse<twitter4j.SavedSearch>(account_id, null, e);
+				}
+			}
+			return new SingleResponse<twitter4j.SavedSearch>(account_id, null, null);
+		}
+
+		@Override
+		protected void onPostExecute(final SingleResponse<twitter4j.SavedSearch> result) {
+			final Intent intent = new Intent(BROADCAST_SEARCH_CHANGED);
+			if (result != null && result.data != null && result.data.getId() > 0) {
+				Toast.makeText(TweetingsService.this, R.string.create_search_success, Toast.LENGTH_SHORT).show();
+			} else {
+				showErrorToast(R.string.save, result.exception, true);
+			}
+			sendBroadcast(intent);
+			super.onPostExecute(result);
+		}
+
+	}
 
 	class DestroyUserListSubscriptionTask extends ManagedAsyncTask<Void, Void, SingleResponse<UserList>> {
 
@@ -1991,6 +2087,8 @@ public class TweetingsService extends Service implements Constants {
 		private long account_id;
 
 		private long status_id;
+		
+		private final AudioManager audioManager = (AudioManager) getSystemService(Activity.AUDIO_SERVICE);
 
 		public RetweetStatusTask(final long account_id, final long status_id) {
 			super(TweetingsService.this, mAsyncTaskManager);
@@ -2020,6 +2118,25 @@ public class TweetingsService extends Service implements Constants {
 
 			if (result.data != null && result.data.getId() > 0) {
 				Toast.makeText(TweetingsService.this, R.string.retweet_success, Toast.LENGTH_SHORT).show();
+				boolean isMuted = false;
+				switch(audioManager.getRingerMode()) {
+					case AudioManager.RINGER_MODE_NORMAL:
+				        isMuted = false;
+				        break;
+				    case AudioManager.RINGER_MODE_SILENT:
+				        isMuted = true;
+				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
+				}
+				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
+					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+					if (isMuted == true) {
+						mPlayer.setVolume(0,0);
+					}
+					mPlayer.start();
+				}
 				final Intent intent = new Intent(BROADCAST_RETWEET_CHANGED);
 				intent.putExtra(INTENT_KEY_STATUS_ID, status_id);
 				intent.putExtra(INTENT_KEY_RETWEETED, true);
@@ -2085,6 +2202,9 @@ public class TweetingsService extends Service implements Constants {
 				    case AudioManager.RINGER_MODE_SILENT:
 				        isMuted = true;
 				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
 					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
@@ -2208,6 +2328,16 @@ public class TweetingsService extends Service implements Constants {
 		@Override
 		public int destroyStatus(final long account_id, final long status_id) {
 			return mService.get().destroyStatus(account_id, status_id);
+		}
+		
+		@Override
+		public int destroySavedSearch(final long account_id, final int search_id) {
+			return mService.get().destroySavedSearch(account_id, search_id);
+		}
+		
+		@Override
+		public int createSavedSearch(final long account_id, final String query) {
+			return mService.get().createSavedSearch(account_id, query);
 		}
 
 		@Override
@@ -2377,8 +2507,8 @@ public class TweetingsService extends Service implements Constants {
 
 		@Override
 		public int updateStatus(final long[] account_ids, final String content, final Location location, final Uri image_uri, final long in_reply_to,
-				final boolean delete_image) {
-			return mService.get().updateStatus(account_ids, content, location, image_uri, in_reply_to, delete_image);
+				final boolean is_possibly_sensitive, final boolean delete_image) {
+			return mService.get().updateStatus(account_ids, content, location, image_uri, in_reply_to, is_possibly_sensitive, delete_image);
 		}
 		
 		@Override
@@ -2533,10 +2663,15 @@ public class TweetingsService extends Service implements Constants {
 						response != null && response.data != null ? response.data.getLong(INTENT_KEY_MIN_ID, -1) : -1);
 			}
 			sendBroadcast(new Intent(BROADCAST_HOME_TIMELINE_REFRESHED).putExtras(extras));
+			final int items_inserted = response.data.getInt(INTENT_KEY_ITEMS_INSERTED);
+			mNewStatusesCount += items_inserted;
+			if (items_inserted > 0) {
+				Intent intent = new Intent(BROADCAST_TABS_NEW_TWEETS);
+				intent.putExtra(INTENT_KEY_UPDATE_TAB, TAB_HOME);
+				sendBroadcast(intent);
+			}
 			if (succeed && is_auto_refresh
 					&& mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_ENABLE_HOME_TIMELINE, false)) {
-				final int items_inserted = response.data.getInt(INTENT_KEY_ITEMS_INSERTED);
-				mNewStatusesCount += items_inserted;
 				if (items_inserted > 0) {
 					final String message = getResources().getQuantityString(R.plurals.Ntweets, mNewStatusesCount,
 							mNewStatusesCount);
@@ -2593,9 +2728,15 @@ public class TweetingsService extends Service implements Constants {
 						response != null && response.data != null ? response.data.getLong(INTENT_KEY_MIN_ID, -1) : -1);
 			}
 			sendBroadcast(new Intent(BROADCAST_MENTIONS_REFRESHED).putExtras(extras));
+			final int items_inserted = response.data.getInt(INTENT_KEY_ITEMS_INSERTED); 
+			
+			if (items_inserted > 0) {
+				Intent intent = new Intent(BROADCAST_TABS_NEW_TWEETS);
+				intent.putExtra(INTENT_KEY_UPDATE_TAB, TAB_MENTIONS);
+				sendBroadcast(intent);
+			}
 			if (succeed && is_auto_refresh
 					&& mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_ENABLE_MENTIONS, false)) {
-				final int items_inserted = response.data.getInt(INTENT_KEY_ITEMS_INSERTED); 
 				mNewMentionsCount += items_inserted;
 				if (items_inserted > 0) {
 					final Intent delete_intent = new Intent(BROADCAST_NOTIFICATION_CLEARED);
@@ -3149,6 +3290,9 @@ public class TweetingsService extends Service implements Constants {
 			    case AudioManager.RINGER_MODE_SILENT:
 			        isMuted = true;
 			        break;
+			    case AudioManager.RINGER_MODE_VIBRATE:
+			    	isMuted = true;
+			    	break;
 			}
 			if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
 				MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
@@ -3290,6 +3434,9 @@ public class TweetingsService extends Service implements Constants {
 				    case AudioManager.RINGER_MODE_SILENT:
 				        isMuted = true;
 				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
 					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
@@ -3319,6 +3466,9 @@ public class TweetingsService extends Service implements Constants {
 				    case AudioManager.RINGER_MODE_SILENT:
 				        isMuted = true;
 				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
 				}
 				MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 				if (isMuted == true) {
@@ -3341,13 +3491,16 @@ public class TweetingsService extends Service implements Constants {
 		private String content;
 		private Location location;
 		private Uri image_uri;
+		private Timer uploadTimer;
 		private long in_reply_to;
-		private boolean use_uploader, use_shortener, delete_image;
+		private boolean use_uploader, use_shortener, delete_image, is_possibly_sensitive;
+		private Notification notification;
+		private NotificationManager notificationManager;
 		
 		private final AudioManager audioManager = (AudioManager) getSystemService(Activity.AUDIO_SERVICE);
 
 		public UpdateStatusTask(final long[] account_ids, final String content, final Location location, final Uri image_uri, final long in_reply_to,
-				final boolean delete_image) {
+				final boolean is_possibly_sensitive, final boolean delete_image) {
 			super(TweetingsService.this, mAsyncTaskManager);
 			final String uploader_component = mPreferences.getString(PREFERENCE_KEY_IMAGE_UPLOADER, null);
 			final String shortener_component = mPreferences.getString(PREFERENCE_KEY_TWEET_SHORTENER, null);
@@ -3362,17 +3515,18 @@ public class TweetingsService extends Service implements Constants {
 			this.image_uri = image_uri;
 			this.in_reply_to = in_reply_to;
 			this.delete_image = delete_image;
+			this.is_possibly_sensitive = is_possibly_sensitive;
 		}
 
 		@Override
 		protected List<SingleResponse<twitter4j.Status>> doInBackground(final Void... params) {
 
 			final List<SingleResponse<twitter4j.Status>> result = new ArrayList<SingleResponse<twitter4j.Status>>();
-
+			
 			if (account_ids.length == 0) return result;
 
+			
 			try {
-				//if (use_uploader && uploader == null) throw new ImageUploaderNotFoundException();
 				if (use_shortener && shortener == null) throw new TweetShortenerNotFoundException();
 
 				final String image_path = getImagePathFromUri(TweetingsService.this, image_uri);
@@ -3380,35 +3534,10 @@ public class TweetingsService extends Service implements Constants {
 				if (uploader != null) {
 					uploader.waitForService();
 				}
-				final Uri upload_result_uri = image_file != null && image_file.exists() && uploader != null ? uploader
-						.upload(Uri.fromFile(image_file), content) : null;
-				//if (use_uploader && image_file != null && image_file.exists() && upload_result_uri == null)
-				//	throw new ImageUploadException();
-
+				
 				final String unshortened_content = content;
 				final StatusUpdate status = new StatusUpdate(unshortened_content);
 						
-				//final String unshortened_content = use_uploader && upload_result_uri != null ? getImageUploadStatus(
-				//		TweetingsService.this, upload_result_uri.toString(), content) : content;
-
-				/*final boolean should_shorten = unshortened_content != null && unshortened_content.length() > 0
-						&& !validator.isValidTweet(unshortened_content);
-				final String screen_name = getAccountUsername(TweetingsService.this, account_ids[0]);
-				if (shortener != null) {
-					shortener.waitForService();
-				}
-				final String shortened_content = should_shorten && use_shortener ? shortener.shorten(
-						unshortened_content, screen_name, in_reply_to) : null;
-
-				if (should_shorten) {
-					if (!use_shortener)
-						throw new StatusTooLongException();
-					else if (unshortened_content == null) throw new TweetShortenException();
-				}
-
-				final StatusUpdate status = new StatusUpdate(should_shorten && use_shortener ? shortened_content
-						: unshortened_content);
-				status.setInReplyToStatusId(in_reply_to);*/
 				if (location != null) {
 					status.setLocation(new GeoLocation(location.getLatitude(), location.getLongitude()));
 				}
@@ -3418,9 +3547,23 @@ public class TweetingsService extends Service implements Constants {
 				if (!use_uploader && image_file != null && image_file.exists()) {
 					status.setMedia(image_file);
 				}
-
+				status.setPossiblySensitive(is_possibly_sensitive);
+				
 				for (final long account_id : account_ids) {
 					final Twitter twitter = getTwitterInstance(TweetingsService.this, account_id, false);
+					
+					if (!use_uploader && image_file != null && image_file.exists()) {
+						CreateNotification();
+						uploadTimer = new Timer();
+			    		uploadTimer.schedule(new TimerTask() {			
+			    			@Override
+			    			public void run() {
+			    				UploadProgressMethod(twitter);
+			    			}
+			    			
+			    		}, 0, 50);
+					}
+					
 					if (twitter != null) {
 						try {
 							result.add(new SingleResponse<twitter4j.Status>(account_id, twitter.updateStatus(status),
@@ -3438,10 +3581,52 @@ public class TweetingsService extends Service implements Constants {
 			}
 			return result;
 		}
+		
+		protected void CreateNotification() {
+			// configure the notification
+			Intent intent = new Intent(TweetingsService.this, HomeActivity.class);
+	        final PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+			
+			notification = new Notification(R.drawable.logo, getString(R.string.uploading_media), System
+			                .currentTimeMillis());
+			notification.flags = notification.flags | Notification.FLAG_ONGOING_EVENT;
+			notification.contentView = new RemoteViews(getApplicationContext().getPackageName(),
+			                                              R.layout.upload_progress);
+			notification.contentIntent = pendingIntent;
+			notification.contentView.setImageViewResource(R.id.status_icon, R.drawable.logo);
+			notification.contentView.setTextViewText(R.id.status_text, getString(R.string.uploading_media));
+			notification.contentView.setProgressBar(R.id.status_progress, 100, 0, false);
+			notificationManager = (NotificationManager) getApplicationContext()
+					.getSystemService(Context.NOTIFICATION_SERVICE);
+
+	        notificationManager.notify(NOTIFICATION_ID_UPLOAD_PROGRESS, notification);
+		}
+		
+		protected void UploadProgressMethod(final Twitter twitter) {
+			if (twitter.getHttpClientWrapper() != null) {
+        		HttpClientWrapper http = twitter.getHttpClientWrapper();
+        		float progress = (float)http.getRequestStatus()/(float)http.getRequestLength();
+        		float longPc = progress * 100;
+        		int percentage = Math.round(longPc);
+        		if (notification != null && notificationManager != null) {
+        			notification.contentView.setProgressBar(R.id.status_progress, 100, percentage, false);
+
+        			// inform the progress bar of updates in progress
+        			notificationManager.notify(NOTIFICATION_ID_UPLOAD_PROGRESS, notification);
+        		}
+			};
+		}
 
 		@Override
 		protected void onPostExecute(final List<SingleResponse<twitter4j.Status>> result) {
 
+			if (uploadTimer != null) {
+				uploadTimer.cancel();
+			}
+			NotificationManager notificationManager = (NotificationManager) getApplicationContext()
+					.getSystemService(Context.NOTIFICATION_SERVICE);
+			notificationManager.cancelAll();
+			
 			boolean succeed = true;
 			Exception exception = null;
 			final List<Long> failed_account_ids = new ArrayList<Long>();
@@ -3464,6 +3649,9 @@ public class TweetingsService extends Service implements Constants {
 				    case AudioManager.RINGER_MODE_SILENT:
 				        isMuted = true;
 				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
 					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);

@@ -117,7 +117,7 @@
 				<FrameLayout
 					android:id="@+id/images_preview"
 					android:layout_width="match_parent"
-					android:layout_height="260dp"/>
+					android:layout_height="360dp"/>
 
 				<TextView android:layerType="software"
 					android:id="@+id/retweet_view"
@@ -154,6 +154,65 @@
 					android:padding="8dp"
 					android:textAppearance="?android:attr/textAppearanceSmall"/>
 				
+				<RelativeLayout android:id="@+id/market"
+                  android:layout_width="fill_parent"
+                  android:layout_height="300dp"
+                  android:paddingTop="4dp"
+                  android:visibility="gone">
+						
+					    <com.dwdesign.tweetings.view.RoundCorneredImageView
+							android:id="@+id/play_icon"
+							android:layout_width="@dimen/profile_image_size"
+							android:layout_height="@dimen/profile_image_size"
+							android:scaleType="fitCenter"/>
+					    
+					    <TextView android:layerType="software"
+							android:id="@+id/play_title"
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:singleLine="true"
+							android:layout_alignBottom="@+id/play_icon"
+							android:layout_alignTop="@+id/play_icon"
+							android:layout_toRightOf="@+id/play_icon"
+							android:gravity="center_vertical"
+							android:orientation="vertical"
+							android:paddingLeft="8dp"
+							android:paddingRight="4dp"
+							android:textAppearance="?android:attr/textAppearanceMedium"/>
+					    
+					    <RelativeLayout
+					        android:layout_below="@+id/play_icon"
+					        android:layout_width="fill_parent"
+							android:layout_height="wrap_content"
+					        android:paddingTop="4dp">
+						    <ImageView
+								android:id="@+id/play_screenshot"
+								android:layout_width="fill_parent"
+								android:layout_height="wrap_content"
+								android:scaleType="centerCrop"/>
+						    
+						    <ImageView
+						        android:layout_alignBottom="@+id/play_screenshot"
+						        android:paddingBottom="20dp"
+								android:id="@+id/play_button"
+								android:layout_width="fill_parent"
+								android:layout_height="65dp"
+								android:src="@drawable/google_play"
+								android:scaleType="fitCenter"/>
+						    
+						    <TextView android:layerType="software"
+								android:id="@+id/play_attribution"
+								android:layout_width="fill_parent"
+								android:layout_height="wrap_content"
+								android:singleLine="true"
+								android:layout_alignBottom="@+id/play_screenshot"
+								android:gravity="center"
+								android:text="Powered by AppAware"
+								android:orientation="vertical"
+								android:textAppearance="?android:attr/textAppearanceSmall"/>
+					    </RelativeLayout>
+					</RelativeLayout>
+				
 				</LinearLayout>
 			
 			
@@ -164,8 +223,8 @@
                   android:layout_height="300dp"
                   android:visibility="gone"
                   android:layout_above="@+id/menu_bar"/>
-			
-
+		
+		
 		<com.dwdesign.menubar.MenuBar
 			android:id="@+id/menu_bar"
 			android:layout_width="match_parent"
@@ -174,7 +233,7 @@
 			android:background="?menuBarBackground"/>
 	</RelativeLayout>
 
-	<ProgressBar
+	<com.dwdesign.tweetings.view.HoloProgressBar
 		android:id="@+id/status_load_progress"
 		style="?android:attr/progressBarStyleLarge"
 		android:layout_width="wrap_content"

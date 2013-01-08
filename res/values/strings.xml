@@ -8,7 +8,7 @@
 	<string name="settings">Settings</string>
 	<string name="send">Send</string>
 	<string name="add_location">Add location</string>
-	<string name="add_image">Add image</string>
+	<string name="add_image">Pick from gallery</string>
 	<string name="take_photo">Take photo</string>
 	<string name="remove_location">Remove location</string>
 	<string name="remove_image">Remove image</string>
@@ -137,13 +137,16 @@
 	<string name="load_item_limit_summary">Set items limit per load.</string>
 	<string name="load_more_automatically">Load attached content automatically</string>
 	<string name="load_more_automatically_summary">Load attached content (e.g. photos, maps, statuses) automatically</string>
-	<string name="quote">Quote</string>
+	<string name="quote">Quote (RT)</string>
+	<string name="quote_reply">Quote &amp; reply</string>
 	<string name="add_rule">Add rule</string>
 	<string name="longclick_to_delete">Long-click to delete.</string>
 	<string name="retweet_success">Retweeted</string>
 	<string name="who_retweeted">Retweets</string>
 	<string name="cancel_retweet_success">Retweet cancelled</string>
 	<string name="delete_success">Tweet deleted</string>
+	<string name="delete_search_success">Saved search deleted</string>
+	<string name="create_search_success">Saved search created</string>
 	<string name="send_success">Tweet sent successfully</string>
 	<string name="no_tabs">No custom tabs, tap the + button</string>
 	<string name="favorite_success">Tweet favorited</string>
@@ -177,6 +180,10 @@
 	<string name="quote_format">Quote format</string>
 	<string name="quote_format_summary">\"[TEXT]\" = Tweet text\n\"[NAME]\" = Twitter username</string>
 	<string name="direct_messages">Direct messages</string>
+	<string name="search">Search</string>
+	<string name="lists">Lists</string>
+	<string name="search_menu">Search tweets &amp; users</string>
+	<string name="search_tools">Search tools</string>
 	<string name="capital_on">ON</string>
 	<string name="capital_off">OFF</string>
 	<string name="blocked_users">Blocked users</string>
@@ -269,6 +276,8 @@
 	<string name="sounds">Sounds</string>
 	<string name="sound_on_send">Sent sound</string>
 	<string name="sound_on_send_summary">Play a sound when a tweet or direct message is successfully sent.</string>
+	<string name="sound_on_navigation">Navigation sounds</string>
+	<string name="sound_on_navigation_summary">Play a sound when pulling down or refreshing a timeline.</string>
 	<string name="list_timeline">List timeline</string>
 	<string name="list_members">List members</string>
 	<string name="list_subscribers">List subscribers</string>
@@ -296,6 +305,7 @@
 	<string name="item_2_hours">2 hours</string>
 	<string name="item_4_hours">4 hours</string>
 	<string name="inline_image_preview">Inline photo preview</string>
+	<string name="inline_image_preview_display_option">Inline photo preview type</string>
 	<string name="solid_color_background">Solid color background</string>
 	<string name="solid_color_background_summary">This may be useful if screen of your device is AMOLED.</string>
 	<string name="followed_you">Followed you</string>
@@ -391,6 +401,7 @@
 	<string name="tweet_too_long">Tweet is too long</string>
 	<string name="twitlongering">Sending to Twitlonger...</string>
     <string name="uploading_media">Uploading media...</string>
+    <string name="uploading_media_wait">Waiting for upload provider...</string>
     <string name="error_upload">There was a problem uploading this file</string>
     
     <string name="confirm_twitlonger">Your tweet is over 140 characters. Would you like to post to TwitLonger or Split into multiple tweets? Note: if your account is protected, the contents of this tweet may be publicly available.</string>
@@ -447,7 +458,7 @@
 	<string name="enable_filter">Enable filter</string>
 	<string name="add_as_tab">Add to tab bar</string>
 	<string name="list_tab_added">List timeline added as a custom tab</string>
-	
+	<string name="search_tab_added">Search results added as a custom tab</string>
 	<string name="external_services">External Services</string>
 	<string name="buffer">Sign-in to Buffer</string>
 	<string name="buffer_summary">Buffer will automagically share your tweets for you through the day</string>
@@ -478,12 +489,14 @@
  	<string name="get_status">Get tweet</string>
  	<string name="automatic_retry">Automatic retry</string>
  	<string name="automatic_retry_summary">If a tweet fails to send due to a connection issue, automatically try to send when a connection is detected</string>
+ 	<string name="automatic_upload">Automatic media upload</string>
+ 	<string name="automatic_upload_summary">Automatically upload media to third party services when selecting from gallery/taking photo. You will not be able to edit before the upload starts.</string>
  	<string name="track_user">Track user</string>
  	<string name="untrack_user">Stop tracking user</string>
  	<string name="track_start">You will now receive a push notification when this user posts a tweet</string>
  	<string name="make_gap">Make Gap</string>
  	<string name="show_links">Timeline links</string>
- 	<string name="show_links_summary">Automatically make links tappable on the timeline. Note enabling this feature WILL cause a slowdown in timeline performance</string>
+ 	<string name="show_links_summary">Automatically make links tappable on the timeline. Note enabling this feature may cause timeline performance issues</string>
  	<string name="follow_dialog_title">Follow @tweetings?</string>
  	<string name="follow_dialog">Thank you for using Tweetings. Would you like to follow @tweetings for support, hints &amp; tips?</string>
  	<string name="volume_navigation">Volume navigation</string>
@@ -495,5 +508,17 @@
  	<string name="navigation">Navigation</string>
  	<string name="timelines">Timelines</string>
  	<string name="general">General</string>
- 	
+ 	<string name="save_search">Save search</string>
+ 	<string name="save_search_delete">Delete saved search</string>
+ 	<string name="display_sensitive_contents">Display sensitive contents</string>
+ 	<string name="display_sensitive_contents_summary">Display sensitive contents automatically in timeline</string>
+ 	<string name="sensitive_content_warning">This tweet may have sensitive content, are you sure you wish to continue?</string>
+ 	<string name="mark_as_sensitive">Mark as sensitive</string>
+ 	<string name="remove_sensitive_mark">Remove sensitive mark</string>
+ 	<string name="loading">Loading…</string>
+ 	<string name="none">None</string>
+ 	<string name="small">Small</string>
+ 	<string name="large">Large</string>
+ 	<string name="large_high">Large (high quality)</string>
+ 	<string name="clear_search_history">Clear search history</string>
 </resources>

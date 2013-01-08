@@ -33,10 +33,12 @@ interface ITweetingsService {
 	int getWeeklyTrends(long account_id);
 	int getLocalTrends(long account_id, int woeid);
 	String generateOAuthEchoHeader(long account_id);
-	int updateStatus(in long[] account_ids, String content, in Location location, in Uri image_uri, long in_reply_to, boolean delete_image);
+	int updateStatus(in long[] account_ids, String content, in Location location, in Uri image_uri, long in_reply_to, boolean is_possibly_sensitive, boolean delete_image);
 	int scheduleStatus(String schedule_date, in long[] account_ids, String content, in Location location, in Uri image_uri, long in_reply_to, boolean delete_image);
 	int bufferStatus(in long[] account_ids, String content);
 	int destroyStatus(long account_id, long status_id);
+	int createSavedSearch(long account_id, String query);
+	int destroySavedSearch(long account_id, int search_id);
 	int sendDirectMessage(long account_id, String screen_name, long user_id, String message);
 	int destroyDirectMessage(long account_id, long message_id);
 	int retweetStatus(long account_ids, long status_id);

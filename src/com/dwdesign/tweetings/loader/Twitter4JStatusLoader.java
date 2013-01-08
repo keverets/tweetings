@@ -19,6 +19,8 @@
 
 package com.dwdesign.tweetings.loader;
 
+import static com.dwdesign.tweetings.util.Utils.getInlineImagePreviewDisplayOptionInt;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -34,12 +36,17 @@ import java.util.ConcurrentModificationException;
 public abstract class Twitter4JStatusLoader extends ParcelableStatusesLoader {
 
 	private final long mMaxId, mSinceId;
+	private final int mInlineImagePreviewDisplayOption;
 
 	public Twitter4JStatusLoader(final Context context, final long account_id, final long max_id, final long since_id, final List<ParcelableStatus> data,
 			final String class_name, final boolean is_home_tab) {
 		super(context, account_id, data, class_name, is_home_tab);
 		mMaxId = max_id;
 		mSinceId = since_id;
+		final String inline_image_preview_display_option = context.getSharedPreferences(SHARED_PREFERENCES_NAME,
+				Context.MODE_PRIVATE).getString(PREFERENCE_KEY_INLINE_IMAGE_PREVIEW_DISPLAY_OPTION,
+			 	INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_SMALL);
+			 	mInlineImagePreviewDisplayOption = getInlineImagePreviewDisplayOptionInt(inline_image_preview_display_option);
 	}
 
 	public abstract List<Status> getStatuses(Paging paging) throws TwitterException;
@@ -72,7 +79,7 @@ public abstract class Twitter4JStatusLoader extends ParcelableStatusesLoader {
 			Collections.sort(statuses);
 			final int size = statuses.size();
 			for (int i = 0; i < size; i++) {
-				data.add(new ParcelableStatus(statuses.get(i), account_id, i == size - 1 && insert_gap));
+				data.add(new ParcelableStatus(statuses.get(i), account_id, i == size - 1 && insert_gap, mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH));
 			}
 		}
 		try {

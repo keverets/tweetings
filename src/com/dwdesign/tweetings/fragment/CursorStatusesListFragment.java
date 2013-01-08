@@ -29,6 +29,7 @@ import static com.dwdesign.tweetings.util.Utils.getTableNameForContentUri;
 import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.adapter.CursorStatusesAdapter;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
+import com.dwdesign.tweetings.util.AsyncTask;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -89,7 +90,7 @@ public abstract class CursorStatusesListFragment extends BaseStatusesListFragmen
 				Statuses.PROFILE_IMAGE_URL, Statuses.IN_REPLY_TO_SCREEN_NAME, Statuses.IN_REPLY_TO_STATUS_ID,
 				Statuses.LOCATION, Statuses.IS_RETWEET, Statuses.RETWEET_COUNT, Statuses.RETWEET_ID,
 				Statuses.RETWEETED_BY_NAME, Statuses.RETWEETED_BY_SCREEN_NAME, Statuses.IS_FAVORITE,
-				Statuses.IS_PROTECTED, Statuses.IS_VERIFIED, Statuses.IS_GAP };
+				Statuses.IS_PROTECTED, Statuses.IS_VERIFIED, Statuses.IS_GAP, Statuses.IS_POSSIBLY_SENSITIVE };
 		final Uri uri = getContentUri();
 		final String sort_by = getSharedPreferences().getBoolean(PREFERENCE_KEY_SORT_TIMELINE_BY_TIME, false) ? Statuses.SORT_ORDER_TIMESTAMP_DESC
 				: Statuses.SORT_ORDER_STATUS_ID_DESC;
@@ -123,13 +124,42 @@ public abstract class CursorStatusesListFragment extends BaseStatusesListFragmen
 	@Override
 	public void onPullDownToRefresh() {
 		gapStatusId = -1;
-		getStatuses(getActivatedAccountIds(getActivity()), null, getNewestStatusIds());
+		new AsyncTask<Void, Void, long[][]>() {
+			
+			@Override
+		 	protected long[][] doInBackground(final Void... params) {
+				final long[][] result = new long[3][];
+				result[0] = getActivatedAccountIds(getActivity());
+				result[2] = getNewestStatusIds();
+				return result;
+		 	}
+		 	
+			@Override
+		 	protected void onPostExecute(final long[][] result) {
+				getStatuses(result[0], result[1], result[2]);
+		 	}
+		 }.execute();
 	}
 
 	@Override
 	public void onPullUpToRefresh() {
 		gapStatusId = -1;
-		getStatuses(getActivatedAccountIds(getActivity()), getLastStatusIds(), null);
+		
+		new AsyncTask<Void, Void, long[][]>() {
+			
+			@Override
+		 	protected long[][] doInBackground(final Void... params) {
+				final long[][] result = new long[3][];
+				result[0] = getActivatedAccountIds(getActivity());
+				result[1] = getLastStatusIds();
+				return result;
+		 	}
+		 	
+			@Override
+		 	protected void onPostExecute(final long[][] result) {
+				getStatuses(result[0], result[1], result[2]);
+		 	}
+		 }.execute();
 	}
 	
 	@Override

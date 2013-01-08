@@ -128,6 +128,10 @@ public class SearchActivity extends MultiSelectActivity {
 		final String query = Intent.ACTION_SEARCH.equals(intent.getAction()) ? intent
 				.getStringExtra(SearchManager.QUERY) : mData != null ? mData.getQueryParameter(QUERY_PARAM_QUERY)
 				: null;
+		int search_id = -1;
+		if (mData != null && mData.getQueryParameter(QUERY_PARAM_ID) != null) {
+			search_id = Integer.parseInt(mData.getQueryParameter(QUERY_PARAM_ID));
+		}
 		if (query == null) {
 			finish();
 			return;
@@ -138,6 +142,7 @@ public class SearchActivity extends MultiSelectActivity {
 			suggestions.saveRecentQuery(query, null);
 		}
 		mArguments.putString(INTENT_KEY_QUERY, query);
+		mArguments.putInt(INTENT_KEY_ID, search_id);
 		final String param_account_id = mData != null ? mData.getQueryParameter(QUERY_PARAM_ACCOUNT_ID) : null;
 		if (param_account_id != null) {
 			mArguments.putLong(INTENT_KEY_ACCOUNT_ID, parseLong(param_account_id));

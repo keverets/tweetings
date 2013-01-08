@@ -37,6 +37,7 @@ import com.dwdesign.tweetings.model.ParcelableDirectMessage;
 import com.dwdesign.tweetings.provider.TweetStore;
 import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
 import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ClipboardUtils;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
 import android.content.BroadcastReceiver;
@@ -52,6 +53,7 @@ import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.text.Editable;
+import android.text.Html;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -73,6 +75,7 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+import android.widget.Toast;
 
 import com.twitter.Validator;
 
@@ -392,6 +395,12 @@ public class DMConversationFragment extends BaseFragment implements LoaderCallba
 				case MENU_DELETE: {
 					mService.destroyDirectMessage(account_id, message_id);
 					break;
+				}
+				case MENU_COPY: {
+					if (ClipboardUtils.setText(getActivity(), mSelectedDirectMessage.text)) {
+						Toast.makeText(getActivity(), R.string.text_copied, Toast.LENGTH_SHORT).show();
+				 	}
+				 	break;
 				}
 				case MENU_VIEW_PROFILE: {
 					if (mSelectedDirectMessage == null) return false;

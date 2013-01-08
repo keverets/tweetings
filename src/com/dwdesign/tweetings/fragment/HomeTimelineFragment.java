@@ -27,6 +27,7 @@ import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -36,11 +37,13 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.ListView;
@@ -55,6 +58,8 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 	private boolean mShouldRestorePosition = false;
 	private long mMinIdToRefresh;
 	private Timer syncTimer;
+	private Activity mActivity;
+	private boolean isReadTrackingSuspended = false;
 
 	private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
 
@@ -125,6 +130,8 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		mActivity = getActivity();
+		
 	}
 	
 	@Override
@@ -235,6 +242,7 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 	@Override
 	public int getStatuses(final long[] account_ids, final long[] max_ids, final long[] since_ids) {
 		//if (max_ids == null) return mService.refreshAll();
+		isReadTrackingSuspended = true;
 		return mService.getHomeTimelineWithSinceId(account_ids, max_ids, since_ids);
 	}
 
@@ -245,11 +253,20 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 		mService = getServiceInterface();
 		super.onActivityCreated(savedInstanceState);
 		mListView = getListView();
+		//mListView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 		mListView.setOnTouchListener(this);
 	}
 
 	@Override
 	public void onLoadFinished(final Loader<Cursor> loader, final Cursor data) {
+		isReadTrackingSuspended = true;
+		final Handler handler = new Handler();
+		handler.postDelayed(new Runnable() {
+		  @Override
+		  public void run() {
+		    isReadTrackingSuspended = false;
+		  }
+		}, 500);
 		final CursorStatusesAdapter adapter = getListAdapter();
 		long last_viewed_id = -1;
 		{
@@ -259,8 +276,10 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 			}
 		}
 		super.onLoadFinished(loader, data);
+		
 		final boolean remember_position = mPreferences.getBoolean(PREFERENCE_KEY_REMEMBER_POSITION, true);
 		if (gapStatusId > 0) {
+			
 			if (mPreferences.getBoolean(PREFERENCE_KEY_GAP_POSITION, true)) {
 				scrollToStatusId(gapStatusId);
 			}
@@ -268,7 +287,6 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 			return;
 		}
 		if (mShouldRestorePosition && remember_position) {
-
 			final long status_id = mPreferences.getLong(PREFERENCE_KEY_SAVED_HOME_TIMELINE_ID, -1);
 			final int position = adapter.findItemPositionByStatusId(status_id);
 			if (position > -1 && position < mListView.getCount()) {
@@ -284,8 +302,13 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 				mListView.setSelection(position);
 			}
 			mMinIdToRefresh = -1;
+			return;
 		}
 		
+		final int position = adapter.findItemPositionByStatusId(last_viewed_id > 0 ? last_viewed_id: mMinIdToRefresh);		
+		if (position > 0) {
+			mListView.setSelection(position);
+		}
 	}
 	
 	@Override
@@ -338,4 +361,23 @@ public class HomeTimelineFragment extends CursorStatusesListFragment implements 
 		return false;
 	}
 
+	@Override
+	public void onScroll(final AbsListView view, final int firstVisibleItem, final int visibleItemCount, final int totalItemCount) {
+		super.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+		if (firstVisibleItem == 0 && !isReadTrackingSuspended) {
+			Intent intent = new Intent(BROADCAST_TABS_READ_TWEETS);
+			intent.putExtra(INTENT_KEY_UPDATE_TAB, TAB_HOME);
+			mActivity.sendBroadcast(intent);
+		} else if (firstVisibleItem > 0 && isReadTrackingSuspended) {
+			final Handler handler = new Handler();
+			handler.postDelayed(new Runnable() {
+			  @Override
+			  public void run() {
+			    isReadTrackingSuspended = false;
+			  }
+			}, 500);
+		}
+	}
+	
+	
 }

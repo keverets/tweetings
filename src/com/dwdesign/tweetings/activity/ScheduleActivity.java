@@ -2,7 +2,6 @@ package com.dwdesign.tweetings.activity;
 
 import java.util.Calendar;
 
-import com.dwdesign.menubar.MenuBar;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
 

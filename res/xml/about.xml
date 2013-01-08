@@ -58,6 +58,13 @@
 				android:data="https://github.com/chrisbanes/Android-PullToRefresh"/>
 		</Preference>
 		<Preference
+			android:summary="Copyright 2010 The Android Open Source Project"
+			android:title="Gallery3D">
+			<intent
+				android:action="android.intent.action.VIEW"
+				android:data="http://grepcode.com/snapshot/repository.grepcode.com/java/ext/com.google.android/android-apps/4.0.1_r1/"/>
+		</Preference>
+		<Preference
 			android:summary="Copyright Apache Foundation. Apache License 2.0."
 			android:title="Apache HttpComponents">
 			<intent

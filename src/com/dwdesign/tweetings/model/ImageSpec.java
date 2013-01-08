@@ -20,15 +20,15 @@
 package com.dwdesign.tweetings.model;
 
 public class ImageSpec {
-	public final String thumbnail_link, image_link;
+	public final String preview_image_link, full_image_link;
 
 	public ImageSpec(final String thumbnail_link, final String image_link) {
-		this.thumbnail_link = thumbnail_link;
-		this.image_link = image_link;
+		preview_image_link = thumbnail_link;
+		full_image_link = image_link;
 	}
 
 	@Override
 	public String toString() {
-		return "ImageSpec(" + thumbnail_link + ", " + image_link + ")";
+		return "ImageSpec{preview_image_link=" + preview_image_link + ", full_image_link=" + full_image_link + "}";
 	}
 }

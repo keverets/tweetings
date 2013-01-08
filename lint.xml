@@ -3,6 +3,9 @@
     <issue id="ContentDescription" severity="ignore">
         <ignore path="res/layout/pull_to_refresh_header.xml" />
     </issue>
+    <issue id="DefaultLocale">
+        <ignore path="src/com/dwdesign/tweetings/activity/HomeActivity.java" />
+    </issue>
     <issue id="DuplicateIds" severity="error" />
     <issue id="ExtraTranslation" severity="error" />
     <issue id="MissingPrefix" severity="error" />

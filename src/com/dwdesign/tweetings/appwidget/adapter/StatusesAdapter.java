@@ -4,16 +4,19 @@ import static com.dwdesign.tweetings.appwidget.util.Utils.buildActivatedStatsWhe
 import static com.dwdesign.tweetings.appwidget.util.Utils.buildFilterWhereClause;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getAccountColor;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getActivatedAccountIds;
-import static com.dwdesign.tweetings.appwidget.util.Utils.getBiggerTwitterProfileImage;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getFilename;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getRoundedCornerBitmap;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getTableNameForContentUri;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getTweetingsCacheDir;
+import static com.dwdesign.tweetings.util.Utils.getBiggerTwitterProfileImage;
+import static com.dwdesign.tweetings.util.Utils.parseURL;
 
 import java.io.File;
+import java.net.URL;
 
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
+import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.model.StatusCursorIndices;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.util.HtmlEscapeHelper;
@@ -48,6 +51,7 @@ public abstract class StatusesAdapter implements RemoteViewsFactory, Constants {
 	private final SharedPreferences preferences;
 	private Cursor cursor;
 	private StatusCursorIndices indices;
+	private TweetingsApplication mApplication;
 
 	private boolean should_show_account_color;
 
@@ -57,6 +61,9 @@ public abstract class StatusesAdapter implements RemoteViewsFactory, Constants {
 		resolver = context.getContentResolver();
 		resources = context.getResources();
 		preferences = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		mApplication = TweetingsApplication.getInstance(context);
+		
+		
 	}
 
 	public abstract Uri getContentUri();
@@ -116,17 +123,32 @@ public abstract class StatusesAdapter implements RemoteViewsFactory, Constants {
 			views.setViewVisibility(R.id.profile_image, View.GONE);
 		} else {
 			views.setViewVisibility(R.id.profile_image, View.VISIBLE);
-			final File cache_dir = getTweetingsCacheDir();
-			final String profile_image_url = cursor.getString(indices.profile_image_url);
-			final String file_name = getFilename(resources.getBoolean(R.bool.hires_profile_image) ? getBiggerTwitterProfileImage(profile_image_url)
-					: profile_image_url);
-			final File profile_image_file = cache_dir != null && cache_dir.isDirectory() && file_name != null ? new File(
-					cache_dir, file_name) : null;
-			final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
-					.decodeFile(profile_image_file.getPath()) : null;
-			if (profile_image != null) {
-				views.setImageViewBitmap(R.id.profile_image, getRoundedCornerBitmap(resources, profile_image));
-			} else {
+			
+			try {
+				final String profile_image_url = cursor.getString(indices.profile_image_url);
+				URL final_url = parseURL(getBiggerTwitterProfileImage(profile_image_url));
+				
+				File profile_image_file = mApplication.mProfileImageLoader.getCachedImageFile(String.valueOf(final_url));
+				final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
+						.decodeFile(profile_image_file.getPath()) : null;
+						
+				
+				/*
+				
+				final File cache_dir = getTweetingsCacheDir();
+				final String profile_image_url = cursor.getString(indices.profile_image_url);
+				final String file_name = getFilename(resources.getBoolean(R.bool.hires_profile_image) ? getBiggerTwitterProfileImage(profile_image_url)
+						: profile_image_url);
+				final File profile_image_file = cache_dir != null && cache_dir.isDirectory() && file_name != null ? new File(
+						cache_dir, file_name) : null;
+				final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
+						.decodeFile(profile_image_file.getPath()) : null;*/
+				if (profile_image != null) {
+					views.setImageViewBitmap(R.id.profile_image, getRoundedCornerBitmap(resources, profile_image));
+				} else {
+					views.setImageViewResource(R.id.profile_image, R.drawable.ic_profile_image_default);
+				}
+			}catch (Exception e) {
 				views.setImageViewResource(R.id.profile_image, R.drawable.ic_profile_image_default);
 			}
 		}

@@ -148,6 +148,7 @@ public class FileSaveAsActivity extends BaseActivity implements Constants, OnIte
 		final String action = getIntent().getAction();
 		mCurrentDirectory = getExternalStorageDirectory();
 		final String source_filename = getIntent().getStringExtra(INTENT_KEY_FILE_SOURCE);
+		
 		if (!INTENT_ACTION_SAVE_FILE.equals(action) || mCurrentDirectory == null || source_filename == null) {
 			finish();
 			return;

@@ -58,6 +58,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import com.dwdesign.menubar.MenuBar;
 import com.dwdesign.menubar.MenuBar.OnMenuItemClickListener;
 import com.dwdesign.tweetings.R;
+import com.dwdesign.tweetings.activity.ComposeActivity;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.Panes;
@@ -74,8 +75,13 @@ import com.dwdesign.tweetings.util.TwidereLinkify;
 import twitter4j.Relationship;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import twitter4j.internal.org.json.JSONArray;
+import twitter4j.internal.org.json.JSONException;
+import twitter4j.internal.org.json.JSONObject;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -139,6 +145,10 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 	private LocationInfoTask mLocationInfoTask;
 	private ParcelableStatus mStatus;
 	private RelativeLayout mConversationView;
+	private RelativeLayout mMarketView;
+	private PlayStoreInfoTask mPlayInfoTask;
+	private LazyImageLoader mImageLoader;
+	private String mAppAwareUrl;
 
 	private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
 
@@ -166,7 +176,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 
 				mTextView.setText(expanded_text);
 				final TwidereLinkify linkify = new TwidereLinkify(mTextView);
-				linkify.setOnLinkClickListener(new OnLinkClickHandler(getActivity(), mAccountId));
+				linkify.setOnLinkClickListener(new OnLinkClickHandler(getActivity(), mAccountId, mStatus.is_possibly_sensitive));
 				linkify.addAllLinks();
 				
 			}
@@ -214,6 +224,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		mScreenNameView.setCompoundDrawablesWithIntrinsicBounds(
 				getUserTypeIconRes(status.is_verified, status.is_protected), 0, 0, 0);
 		mTextView.setText(status.text);
+		
 		final TwidereLinkify linkify = new TwidereLinkify(mTextView);
 		linkify.setOnLinkClickListener(new OnLinkClickHandler(getActivity(), mAccountId));
 		linkify.addAllLinks();
@@ -251,7 +262,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			final Fragment fragment = new ConversationFragment();
 			final Bundle args = new Bundle();
 			args.putLong(INTENT_KEY_ACCOUNT_ID, mAccountId);
-			args.putLong(INTENT_KEY_STATUS_ID, status.status_id);
+			args.putLong(INTENT_KEY_STATUS_ID, status.in_reply_to_status_id);
 			fragment.setArguments(args);
 			
 			ft.replace(R.id.conversation, fragment, getString(R.string.view_conversation));
@@ -259,6 +270,14 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
 			ft.commit();
 
+		}
+		if (status.play_package != null) {
+			mMarketView.setVisibility(View.VISIBLE);
+			mPlayInfoTask = new PlayStoreInfoTask();
+			mPlayInfoTask.execute();
+		}
+		else {
+			mMarketView.setVisibility(View.GONE);
 		}
 
 		final boolean hires_profile_image = getResources().getBoolean(R.bool.hires_profile_image);
@@ -300,9 +319,10 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		final TweetingsApplication application = getApplication();
 		mService = application.getServiceInterface();
 	 	mProfileImageLoader = application.getProfileImageLoader();
+	 	mImageLoader = application.getPreviewImageLoader();
 	 	mImagesPreviewFragment = (ImagesPreviewFragment) Fragment.instantiate(getActivity(),
 	 	    ImagesPreviewFragment.class.getName());
-		super.onActivityCreated(savedInstanceState);
+	 	super.onActivityCreated(savedInstanceState);
 		setRetainInstance(true);
 		mLoadMoreAutomatically = mPreferences.getBoolean(PREFERENCE_KEY_LOAD_MORE_AUTOMATICALLY, true);
 		final Bundle bundle = getArguments();
@@ -311,6 +331,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			mStatusId = bundle.getLong(INTENT_KEY_STATUS_ID);
 			bundle.setClassLoader(ParcelableStatus.class.getClassLoader());
 			mStatus = bundle.getParcelable(INTENT_KEY_STATUS);
+			mImagesPreviewFragment.setStatus(mStatus);
 		}
 		mInReplyToView.setOnClickListener(this);
 		mFollowButton.setOnClickListener(this);
@@ -405,6 +426,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		mProfileView = view.findViewById(R.id.profile);
 		mMenuBar = (MenuBar) view.findViewById(R.id.menu_bar);
 		mConversationView = (RelativeLayout) view.findViewById(R.id.conversation);
+		mMarketView = (RelativeLayout) view.findViewById(R.id.market);
 		return view;
 	}
 
@@ -421,6 +443,9 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		}
 		if (mLocationInfoTask != null) {
 			mLocationInfoTask.cancel(true);
+		}
+		if (mPlayInfoTask != null) {
+			mPlayInfoTask.cancel(true);
 		}
 		super.onDestroyView();
 	}
@@ -452,6 +477,16 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			}
 			case MENU_TRANSLATE: {
 				translate(mStatus);
+				break;
+			}
+			case MENU_QUOTE_REPLY: {
+				final Intent intent = new Intent(INTENT_ACTION_COMPOSE);
+				final Bundle bundle = new Bundle();
+				bundle.putLong(INTENT_KEY_ACCOUNT_ID, mAccountId);
+				bundle.putBoolean(INTENT_KEY_IS_QUOTE, true);
+				bundle.putString(INTENT_KEY_TEXT, getQuoteStatus(getActivity(), screen_name, text_plain));
+				intent.putExtras(bundle);
+				startActivity(intent);
 				break;
 			}
 			case MENU_QUOTE: {
@@ -814,5 +849,83 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			this.exception = exception;
 		}
 	}
+	
+	private class PlayStoreInfoTask extends AsyncTask<Void, Void, String> {
+		
+        // can use UI thread here
+        protected void onPreExecute() {
+        }
+   
+        // automatically done on worker thread (separate from UI thread)
+        protected String doInBackground(final Void... args) {
+        	Uri playUrl = Uri.parse(mStatus.play_package);
+			String packageId = playUrl.getQueryParameter("id");
+			String finalUrl = "http://dev.appaware.com/1/app/show.json?p=" + packageId + "&client_token=" + APPAWARE_CLIENT_TOKEN;
+			StringBuilder s = new StringBuilder();
+			
+			try {
+        	HttpClient httpclient = new DefaultHttpClient();
+		    HttpResponse response;
+			
+				response = httpclient.execute(new HttpGet(finalUrl));
+			
+			    BufferedReader reader = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+				String sResponse;
+				
+				while ((sResponse = reader.readLine()) != null) {
+					s = s.append(sResponse);
+				}
+			} catch (ClientProtocolException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	return s.toString();
+        }
+   
+        // can use UI thread here
+        protected void onPostExecute(final String result) {
+        	try {
+				JSONObject playObj = new JSONObject(result);
+				mAppAwareUrl = playObj.getString("url");
+				String name = playObj.getString("name");
+				String icon = playObj.getString("icon");
+				JSONArray screenshots = playObj.getJSONArray("screenshots");
+				String screenshot = screenshots.getString(0);
+				
+				TextView playTitleView = (TextView) getView().findViewById(R.id.play_title);
+				playTitleView.setText(name);
+				
+				ImageView playIconView = (ImageView) getView().findViewById(R.id.play_icon);
+				mImageLoader.displayImage(parseURL(icon), playIconView);
+				
+				ImageView playSSView = (ImageView) getView().findViewById(R.id.play_screenshot);
+				mImageLoader.displayImage(parseURL(screenshot), playSSView);
+				
+				ImageView playButtonView = (ImageView) getView().findViewById(R.id.play_button);
+				playButtonView.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                    	Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mStatus.play_package));
+        				startActivity(browserIntent);
+        				
+                    }
+                });
+				
+				TextView playAttributionView = (TextView) getView().findViewById(R.id.play_attribution);
+				playAttributionView.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                    	Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mAppAwareUrl));
+        				startActivity(browserIntent);
+        				
+                    }
+                });
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+     }
 
 }

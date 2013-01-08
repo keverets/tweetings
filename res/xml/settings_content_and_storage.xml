@@ -11,11 +11,17 @@
 			android:key="display_profile_image"
 			android:summary="@string/image_load_summary"
 			android:title="@string/display_profile_image"/>
+		<ListPreference
+ 	 		android:defaultValue="none"
+ 	 		android:entries="@array/entries_inline_image_preview_display_option"
+ 	 		android:entryValues="@array/values_inline_image_preview_display_option"
+ 	 		android:key="inline_image_preview_display_option"
+ 	 		android:title="@string/inline_image_preview_display_option"/>
 		<CheckBoxPreference
-			android:defaultValue="true"
-			android:key="inline_image_preview"
-			android:summary="@string/image_load_summary"
-			android:title="@string/inline_image_preview"/>
+ 	 		android:defaultValue="false"
+ 	 		android:key="display_sensitive_contents"
+ 	 		android:summary="@string/display_sensitive_contents_summary"
+ 	 		android:title="@string/display_sensitive_contents"/>
 	</PreferenceCategory>
 	
 	<PreferenceCategory
@@ -82,6 +88,10 @@
 			android:key="clear_cache"
 			android:summary="@string/clear_cache_summary"
 			android:title="@string/clear_cache"/>
+		
+		<com.dwdesign.tweetings.preference.ClearSearchHistoryPreference
+ 			android:key="clear_search_history"
+ 	 		android:title="@string/clear_search_history"/>
 
 		<com.dwdesign.tweetings.preference.ClearDatabasesPreference
 			android:key="clear_databases"

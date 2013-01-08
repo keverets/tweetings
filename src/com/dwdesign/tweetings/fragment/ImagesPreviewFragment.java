@@ -1,6 +1,7 @@
 package com.dwdesign.tweetings.fragment;
 
 import static com.dwdesign.tweetings.util.Utils.parseURL;
+import static com.dwdesign.tweetings.util.Utils.openImage;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,6 +10,7 @@ import java.util.List;
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.model.ImageSpec;
+import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.util.LazyImageLoader;
 
 import android.content.Intent;
@@ -39,8 +41,18 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 	private View mLoadImagesIndicator;
 	private Handler mHandler;
 	private Runnable mTicker;
+	private ParcelableStatus mStatus;
+	private static boolean isSensitive;
+	private static boolean mDisplaySensitiveContents;
 
 	private volatile boolean mBusy, mTickerStopped;
+	
+	public void setStatus(ParcelableStatus status) {
+		mStatus = status;
+		if (status != null) {
+			isSensitive = status.is_possibly_sensitive;
+		}
+	}
 
 	private final List<ImageSpec> mData = new ArrayList<ImageSpec>();
 	
@@ -67,6 +79,7 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 		mGallery.setAdapter(mAdapter);
 		mGallery.setOnItemClickListener(this);
 		mLoadImagesIndicator.setOnClickListener(this);
+		mDisplaySensitiveContents = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).getBoolean(PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS, false);
 	}
 
 	@Override
@@ -92,9 +105,12 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 	public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
 		final ImageSpec spec = mAdapter.getItem(position);
 		if (spec == null) return;
-		final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(spec.image_link));
-		intent.setPackage(getActivity().getPackageName());
-		startActivity(intent);
+		if (mStatus != null) {
+			openImage(getActivity(), Uri.parse(spec.full_image_link), mStatus.is_possibly_sensitive);
+		}
+		else {
+			openImage(getActivity(), Uri.parse(spec.full_image_link), false);
+		}
 	}
 
 	@Override
@@ -195,7 +211,17 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 			final View view = convertView != null ? convertView : mInflater.inflate(R.layout.images_preview_item, null);
 			final ImageView image = (ImageView) view.findViewById(R.id.image);
 			final ImageSpec spec = getItem(position);
-			mImageLoader.displayImage(spec != null ? parseURL(spec.thumbnail_link) : null, image);
+			if (spec != null && spec.preview_image_link != null) {
+				if (isSensitive && !mDisplaySensitiveContents) {
+					image.setImageResource(R.drawable.image_preview_nsfw);
+				} else {
+					mImageLoader.displayImage(spec != null ? parseURL(spec.preview_image_link) : null, image);
+				}
+			}
+			else {
+				image.setVisibility(View.GONE);
+				
+			}
 			return view;
 		}
 	}

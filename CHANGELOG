@@ -1,3 +1,99 @@
+Version 2.14.2
+
+[+] New Feature: Media uploads will now show an upload progress bar
+[+] New Feature: Setting to automatically upload images on third party image providers as soon as they are selected, allowing more than one image per tweet
+
+Version 2.14.1
+
+[-] Bug Fix: Improved timeline link display, now enabled by default
+
+Version 2.14.0
+
+[+] New Feature: New setting to allow timeline links, user names and hashtags to be tappable
+[+] New Feature: Quote or Quote and Reply. Quote is an old style Retweet, Quote and reply will send a reply id to Twitter to keep conversation threads intact
+
+Version 2.13.0
+
+[+] New Feature: The home and mentions timeline tabs will track read status of the timeline, when new tweets are delivered the tab icon will change color. Read all tweets by scrolling to top
+
+Version 2.12.2
+
+[+] New Feature: Clear search history option
+[-] Feature Change: Choose timeline image previews from none, small to large sizes. Small is now the default as it's faster for scrolling as the files are smaller
+[-] Bug Fix: Account color, when more than one account is activated, did not show on timeline gaps
+
+Version 2.12.1
+
+[+] New Feature: Tweets with media marked as sensitive by Twitter will, by default, show an 'not safe for work' image. You can turn this off from settings
+[+] New Feature: Manually mark images you post as being possibly sensitive and not safe for work when posting to pic.twitter.com
+[-] Feature Change: Faster lazy loading of images
+[-] Bug Fix: Crash loading full size images on some Gingerbread devices
+[-] Bug Fix: Numerous photo editor bug fixes
+
+Version 2.12.0
+
+[+] New Feature: Better quality photo viewing
+[+] New Feature: Add a search result as a tab using the menu button on a search results timeline
+[+] New Feature: Create or delete a saved search using the menu button on a search results timeline
+
+Version 2.11.3
+
+[+] New Feature: Delete saved searches by tapping and holding on a saved search in the list
+
+Version 2.11.2
+
+[+] New Feature: Embedded Google Play links for app urls in tweet view
+[-] Bug Fix: Inline conversation on tweet view showed the same tweet as part of the thread
+
+Version 2.11.1
+
+[+] New Feature: Multi-window support for those devices that supported it e.g. Galaxy Note 2, some version of the Galaxy S3
+
+Version 2.11.0
+
+[+] New Feature: Default lists tab showing lists created and subscribed to from every active account on one screen. You can turn this tab off from settings
+[-] Feature Change: Load all active accounts saved searches into the default search tab
+
+Version 2.10.6
+
+[+] New Feature: Navigation sounds for pulldown/release refreshing, can be disabled from settings
+[-] Bug Fix: SQL error on autocomplete when adding a single quotation character
+
+Version 2.10.5
+
+[+] New Feature: Sent sound now plays on successful retweet
+[-] Bug Fix: Sent sound played when device was on vibrate only mode
+
+Version 2.10.4
+
+[+] New Feature: When a tweet is streamed into your home or mentions timeline, if you are at the top the timeline will remain at the top. If not you'll now be kept at the your previous scroll location
+
+Version 2.10.3
+
+[-] Bug Fix: Avatars in widget didn't always show when cached
+[-] Bug Fix: Removed instagram previews as instagram has blocked them
+
+Version 2.10.2
+
+[-] Bug Fix: Fixed a crash when opening some tweets under certain circumstances
+
+Version 2.10.1
+
+[+] New Feature: New search tab
+
+Version 2.10.0
+
+[-] Feature Change: New image previews
+[-] Feature Change: Better cover photos on higher resolution screens
+
+Version 2.9.2
+
+[-] Bug Fix: Push notification LED color wasn't respected from settings
+
+Version 2.9.1
+
+[-] Bug Fix: Navigation bar icons at the right were incorrect when default tabs were hidden
+
 Version 2.9.0
 
 [+] New Feature: Hashtag autocomplete on compose. Autocomplete from any hashtag currently saved on the cache from any of your timelines

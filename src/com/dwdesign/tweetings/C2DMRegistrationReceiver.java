@@ -1,14 +1,14 @@
 package com.dwdesign.tweetings;
 
-import static com.dwdesign.tweetings.appwidget.util.Utils.getBiggerTwitterProfileImage;
-import static com.dwdesign.tweetings.appwidget.util.Utils.getFilename;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getRoundedCornerBitmap;
-import static com.dwdesign.tweetings.appwidget.util.Utils.getTweetingsCacheDir;
+import static com.dwdesign.tweetings.util.Utils.getBiggerTwitterProfileImage;
+import static com.dwdesign.tweetings.util.Utils.parseURL;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +21,7 @@ import org.apache.http.message.BasicNameValuePair;
 
 import com.dwdesign.tweetings.activity.ComposeActivity;
 import com.dwdesign.tweetings.activity.HomeActivity;
+import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.Accounts;
 import com.dwdesign.tweetings.service.TweetingsService;
 import com.twitter.Extractor;
@@ -168,16 +169,27 @@ public class C2DMRegistrationReceiver extends BroadcastReceiver implements Const
 									.setContentTitle(screenName).setTicker(ticker);
 				
 				if (profile_image_url != null) {
-					final File cache_dir = getTweetingsCacheDir();
+					TweetingsApplication application = TweetingsApplication.getInstance(context);
+					/*final File cache_dir = getTweetingsCacheDir();
 					final String file_name = getFilename(context.getResources().getBoolean(R.bool.hires_profile_image) ? getBiggerTwitterProfileImage(profile_image_url)
 							: profile_image_url);
 					final File profile_image_file = cache_dir != null && cache_dir.isDirectory() && file_name != null ? new File(
 							cache_dir, file_name) : null;
 					final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
-							.decodeFile(profile_image_file.getPath()) : null;
-					if (profile_image != null) {
-						builder.setLargeIcon(getRoundedCornerBitmap(context.getResources(), profile_image));
-					} 
+							.decodeFile(profile_image_file.getPath()) : null;*/
+					try {
+						URL final_url = parseURL(getBiggerTwitterProfileImage(profile_image_url));
+						
+						File profile_image_file = application.mProfileImageLoader.getCachedImageFile(String.valueOf(final_url));
+						final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
+								.decodeFile(profile_image_file.getPath()) : null;
+						if (profile_image != null) {
+							builder.setLargeIcon(getRoundedCornerBitmap(context.getResources(), profile_image));
+						} 
+					}
+					catch (Exception e) {
+						
+					}
 				}
 				
 				builder.setSmallIcon(R.drawable.ic_launcher).setContentText(message);
@@ -234,6 +246,7 @@ public class C2DMRegistrationReceiver extends BroadcastReceiver implements Const
 					
 				}
 				
+				
 				Notification notification = new Notification.BigTextStyle(builder)
 									.bigText(message).build();
 				notification.flags |= Notification.FLAG_AUTO_CANCEL;
@@ -242,12 +255,22 @@ public class C2DMRegistrationReceiver extends BroadcastReceiver implements Const
 				}
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_NOTIFICATION_HAVE_VIBRATION, true)) {
 					notification.defaults |= Notification.DEFAULT_VIBRATE;
+					
 			    }
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_NOTIFICATION_HAVE_LIGHTS, true)) {
-			    	notification.defaults |= Notification.DEFAULT_LIGHTS;
+			    	//notification.defaults |= Notification.DEFAULT_LIGHTS;
+					final int color_def = mContext.getResources().getColor(R.color.holo_blue_dark);
+					final int color = preferences.getInt(PREFERENCE_KEY_NOTIFICATION_LIGHT_COLOR, color_def);
+					builder.setLights(color, 2000, 1000);
+					
+					notification.ledARGB = color;
+					notification.ledOnMS = 2000;
+				    notification.ledOffMS = 1000;
+				    notification.flags |= Notification.FLAG_SHOW_LIGHTS;
 			    }
 				notification.number += 1;
 				notification.contentIntent = pending_intent;
+				
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_GROUP_NOTIFICATIONS, false) == false) {	
 					long notificationId = (System.currentTimeMillis() / 1000L);
 					notificationManager.notify(String.valueOf(notificationId), Integer.parseInt(String.valueOf(notificationId)), notification);
@@ -262,14 +285,25 @@ public class C2DMRegistrationReceiver extends BroadcastReceiver implements Const
 						.getSystemService(Context.NOTIFICATION_SERVICE);
 				Notification notification = new Notification(R.drawable.ic_launcher,
 						ticker, System.currentTimeMillis());
+				
+				
+			
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_NOTIFICATION_HAVE_SOUND, false)) {
 					notification.sound = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.notify);
 				}
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_NOTIFICATION_HAVE_VIBRATION, false)) {
 					notification.defaults |= Notification.DEFAULT_VIBRATE;
+					
 			    }
 				if (preferences.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_NOTIFICATION_HAVE_LIGHTS, false)) {
-			    	notification.defaults |= Notification.DEFAULT_LIGHTS;
+			    	//notification.defaults |= Notification.DEFAULT_LIGHTS;
+					final int color_def = mContext.getResources().getColor(R.color.holo_blue_dark);
+					final int color = preferences.getInt(PREFERENCE_KEY_NOTIFICATION_LIGHT_COLOR, color_def);
+					
+					notification.ledARGB = color;
+					notification.ledOnMS = 2000;
+				    notification.ledOffMS = 1000;
+				    notification.flags |= Notification.FLAG_SHOW_LIGHTS;
 			    }
 				
 				// Hide the notification after its selected

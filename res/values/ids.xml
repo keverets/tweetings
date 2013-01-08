@@ -38,6 +38,7 @@
 	<item name="open_in_browser" type="id"/>
 	<item name="add_account" type="id"/>
 	<item name="quote" type="id"/>
+	<item name="quote_reply" type="id"/>
 	<item name="drafts" type="id"/>
 	<item name="delete_all" type="id"/>
 	<item name="refresh" type="id"/>
@@ -69,5 +70,6 @@
 	<item name="tweet_conversation" type="id"/>
 	<item name="media_library_submenu" type="id"/>
 	<item name="make_gap" type="id"/>
-	
+	<item name="trends_location" type="id"/>
+	<item name="toggle_sensitive" type="id"/>
 </resources>

@@ -28,7 +28,7 @@ public class StatusCursorIndices {
 	public final int account_id, status_id, status_timestamp, name, screen_name, text, text_plain, profile_image_url,
 			is_retweet, is_favorite, is_gap, location, is_protected, is_verified, in_reply_to_status_id,
 			in_reply_to_screen_name, retweeted_by_name, retweeted_by_screen_name, retweet_id, retweeted_by_id, user_id,
-			source, retweet_count;
+			source, retweet_count, play_package, is_possibly_sensitive;
 
 	public StatusCursorIndices(final Cursor cursor) {
 		account_id = cursor.getColumnIndex(Statuses.ACCOUNT_ID);
@@ -36,6 +36,7 @@ public class StatusCursorIndices {
 		status_timestamp = cursor.getColumnIndex(Statuses.STATUS_TIMESTAMP);
 		name = cursor.getColumnIndex(Statuses.NAME);
 		screen_name = cursor.getColumnIndex(Statuses.SCREEN_NAME);
+		play_package = cursor.getColumnIndex(Statuses.PLAY_PACKAGE);
 		text = cursor.getColumnIndex(Statuses.TEXT);
 		text_plain = cursor.getColumnIndex(Statuses.TEXT_PLAIN);
 		profile_image_url = cursor.getColumnIndex(Statuses.PROFILE_IMAGE_URL);
@@ -54,5 +55,6 @@ public class StatusCursorIndices {
 		user_id = cursor.getColumnIndex(Statuses.USER_ID);
 		source = cursor.getColumnIndex(Statuses.SOURCE);
 		retweet_count = cursor.getColumnIndex(Statuses.RETWEET_COUNT);
+		is_possibly_sensitive = cursor.getColumnIndex(Statuses.IS_POSSIBLY_SENSITIVE);
 	}
 }

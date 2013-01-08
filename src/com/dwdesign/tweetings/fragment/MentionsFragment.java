@@ -27,6 +27,7 @@ import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -35,6 +36,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -52,6 +54,9 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 
 	private long mMinIdToRefresh;
 	private boolean mShouldRestorePosition = false;
+	private boolean isReadTrackingSuspended = false;
+	
+	private Activity mActivity;
 	
 	private Timer syncTimer;
 
@@ -129,6 +134,7 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 		@Override
 		public void onCreate(final Bundle savedInstanceState) {
 			super.onCreate(savedInstanceState);
+			mActivity = getActivity();
 		}
 		
 		@Override
@@ -236,6 +242,7 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 
 	@Override
 	public int getStatuses(final long[] account_ids, final long[] max_ids, final long[] since_ids) {
+		isReadTrackingSuspended = true;
 		return mService.getMentionsWithSinceId(account_ids, max_ids, since_ids);
 	}
 
@@ -253,6 +260,14 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 
 	@Override
 	public void onLoadFinished(final Loader<Cursor> loader, final Cursor data) {
+		isReadTrackingSuspended = true;
+		final Handler handler = new Handler();
+		handler.postDelayed(new Runnable() {
+		  @Override
+		  public void run() {
+		    isReadTrackingSuspended = false;
+		  }
+		}, 500);
 		long last_viewed_id = -1;
 		{
 			final int position = mListView.getFirstVisiblePosition();
@@ -285,6 +300,12 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 				mListView.setSelection(position);
 			}
 			mMinIdToRefresh = -1;
+			return;
+		}
+		
+		final int position = mAdapter.findItemPositionByStatusId(last_viewed_id > 0 ? last_viewed_id: mMinIdToRefresh);		
+		if (position > 0) {
+			mListView.setSelection(position);
 		}
 	}
 
@@ -336,6 +357,24 @@ public class MentionsFragment extends CursorStatusesListFragment implements OnTo
 			}
 		}
 		return false;
+	}
+	
+	@Override
+	public void onScroll(final AbsListView view, final int firstVisibleItem, final int visibleItemCount, final int totalItemCount) {
+		super.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+		if (firstVisibleItem == 0 && !isReadTrackingSuspended) {
+			Intent intent = new Intent(BROADCAST_TABS_READ_TWEETS);
+			intent.putExtra(INTENT_KEY_UPDATE_TAB, TAB_MENTIONS);
+			mActivity.sendBroadcast(intent);
+		} else if (firstVisibleItem > 0 && isReadTrackingSuspended) {
+			final Handler handler = new Handler();
+			handler.postDelayed(new Runnable() {
+			  @Override
+			  public void run() {
+			    isReadTrackingSuspended = false;
+			  }
+			}, 500);
+		}
 	}
 
 }

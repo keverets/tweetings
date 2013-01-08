@@ -29,7 +29,7 @@
 
 			<ImageView
 				android:id="@id/actionbar_icon"
-				android:layout_width="32dp"
+				android:layout_width="@dimen/actionbar_home_width"
 				android:layout_height="match_parent"
 				android:gravity="center_vertical|left"
 				android:scaleType="fitCenter"/>
@@ -43,18 +43,20 @@
 			android:gravity="center_vertical"
 			android:orientation="vertical">
 
-			<TextView android:layerType="software"
+			<TextView
 				android:id="@id/actionbar_title"
 				style="?attr/actionBarTitleStyle"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
+				android:layerType="software"
 				android:singleLine="true"
 				android:textAppearance="?android:attr/textAppearanceMedium"/>
 
-			<TextView android:layerType="software"
+			<TextView
 				android:id="@id/actionbar_subtitle"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
+				android:layerType="software"
 				android:singleLine="true"
 				android:textAppearance="?android:attr/textAppearanceSmall"
 				android:visibility="gone"/>
@@ -69,7 +71,7 @@
 			android:orientation="horizontal"
 			android:visibility="gone"/>
 
-		<ProgressBar
+		<com.dwdesign.tweetings.view.HoloProgressBar
 			android:id="@id/actionbar_progress_indeterminate"
 			style="?actionBarIndeterminateProgressStyle"
 			android:layout_width="@dimen/actionbar_height"

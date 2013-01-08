@@ -319,6 +319,8 @@ public class TabPageIndicator extends HorizontalScrollView implements ExtendedVi
 		 * @return
 		 */
 		public Drawable getIcon(int position);
+		
+		public void setIcon(int position, Drawable icon);
 
 		/**
 		 * Returns the title of the view at position

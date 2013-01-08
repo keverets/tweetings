@@ -31,6 +31,7 @@ public class StatusViewHolder {
 
 	public final ImageView profile_image, image_preview;
 	public final TextView name, name2, text, time, reply_retweet_status;
+	public final View image_preview_frame;
 	private final View gap_indicator;
 	private final ColorLabelRelativeLayout content;
 	public boolean show_as_gap;
@@ -40,6 +41,7 @@ public class StatusViewHolder {
 	public StatusViewHolder(final View view) {
 		content = (ColorLabelRelativeLayout) view;
 		gap_indicator = view.findViewById(R.id.list_gap_text);
+		image_preview_frame = view.findViewById(R.id.image_preview_frame);
 		profile_image = (ImageView) view.findViewById(R.id.profile_image);
 		image_preview = (ImageView) view.findViewById(R.id.image_preview);
 		name = (TextView) view.findViewById(R.id.name);
@@ -51,11 +53,11 @@ public class StatusViewHolder {
 	}
 
 	public void setAccountColor(final int color) {
-		content.drawRight(account_color_enabled && !show_as_gap ? color : Color.TRANSPARENT);
+		content.drawRight(account_color_enabled ? color : Color.TRANSPARENT);
 	}
 	
 	public void setAccountColorEnabled(final boolean enabled) {
-		account_color_enabled = enabled && !show_as_gap;
+		account_color_enabled = enabled;
 		if (!account_color_enabled) {
 			content.drawRight(Color.TRANSPARENT);
 		}
@@ -76,7 +78,7 @@ public class StatusViewHolder {
 			content.drawLabel(Color.TRANSPARENT, Color.TRANSPARENT, Color.TRANSPARENT);
 		}
 		profile_image.setVisibility(show_gap ? View.GONE : View.VISIBLE);
-		image_preview.setVisibility(show_gap ? View.GONE : View.VISIBLE);
+		image_preview_frame.setVisibility(show_gap ? View.GONE : View.VISIBLE);
 		name.setVisibility(show_gap ? View.GONE : View.VISIBLE);
 		if (name2 != null) {
 			name2.setVisibility(show_gap ? View.GONE : View.VISIBLE);

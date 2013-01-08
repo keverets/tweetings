@@ -79,11 +79,14 @@ import javax.net.ssl.X509TrustManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.dwdesign.gallery3d.app.ImageViewerGLActivity;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.activity.DualPaneActivity;
 import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.activity.BrowserActivity;
+import com.dwdesign.tweetings.activity.ImageViewerActivity;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.fragment.ConversationFragment;
 import com.dwdesign.tweetings.fragment.DMConversationFragment;
@@ -98,6 +101,7 @@ import com.dwdesign.tweetings.fragment.TrendsFragment;
 import com.dwdesign.tweetings.fragment.UserBlocksListFragment;
 import com.dwdesign.tweetings.fragment.UserFavoritesFragment;
 import com.dwdesign.tweetings.fragment.UserFollowersFragment;
+import com.dwdesign.tweetings.fragment.SensitiveContentWarningDialogFragment;
 import com.dwdesign.tweetings.fragment.UserFriendsFragment;
 import com.dwdesign.tweetings.fragment.UserListCreatedFragment;
 import com.dwdesign.tweetings.fragment.UserListDetailsFragment;
@@ -147,6 +151,9 @@ import twitter4j.auth.AccessToken;
 import twitter4j.auth.BasicAuthorization;
 import twitter4j.conf.Configuration;
 import twitter4j.conf.ConfigurationBuilder;
+import twitter4j.internal.http.HostAddressResolver;
+import twitter4j.internal.http.HttpClientWrapper;
+import twitter4j.internal.http.HttpResponse;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -163,6 +170,7 @@ import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
@@ -173,15 +181,18 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.webkit.WebView;
 import android.widget.Toast;
 import twitter4j.RateLimitStatus;
 
@@ -279,6 +290,7 @@ public final class Utils implements Constants {
 		LINK_HANDLER_URI_MATCHER.addURI(AUTHORITY_INCOMING_FRIENDSHIPS, null, LINK_ID_INCOMING_FRIENDSHIPS);
 		LINK_HANDLER_URI_MATCHER.addURI(AUTHORITY_BUFFERAPP, null, LINK_ID_BUFFERAPP);
 		LINK_HANDLER_URI_MATCHER.addURI(AUTHORITY_NEARBY, null, LINK_ID_NEARBY);
+		LINK_HANDLER_URI_MATCHER.addURI(AUTHORITY_TRENDS, null, LINK_ID_TRENDS);
 
 		CUSTOM_TABS_FRAGMENT_MAP.put(AUTHORITY_LIST_CREATED, UserListCreatedFragment.class);
 		CUSTOM_TABS_FRAGMENT_MAP.put(AUTHORITY_LIST_MEMBERS, UserListMembersFragment.class);
@@ -572,7 +584,7 @@ public final class Utils implements Constants {
 		}
 		return status;
 	}
-
+	
 	public static UserList findUserList(final Twitter twitter, final long user_id, final String list_name) throws TwitterException {
 		if (twitter == null || user_id <= 0 || list_name == null) return null;
 		final ResponseList<UserList> response = twitter.getUserLists(user_id, -1);
@@ -823,25 +835,25 @@ public final class Utils implements Constants {
 		if (link == null) return null;
 		Matcher m;
 		m = PATTERN_TWITTER_IMAGES.matcher(link);
-		if (m.matches()) return getTwitterImage(link);
+		if (m.matches()) return getTwitterImage(link, true);
 		m = PATTERN_TWITPIC.matcher(link);
-		if (m.matches()) return getTwitpicImage(matcherGroup(m, TWITPIC_GROUP_ID));
-		m = PATTERN_INSTAGRAM.matcher(link);
-		if (m.matches()) return getInstagramImage(matcherGroup(m, INSTAGRAM_GROUP_ID));
+		if (m.matches()) return getTwitpicImage(matcherGroup(m, TWITPIC_GROUP_ID), true);
+		//m = PATTERN_INSTAGRAM.matcher(link);
+		//if (m.matches()) return getInstagramImage(matcherGroup(m, INSTAGRAM_GROUP_ID));
 		m = PATTERN_IMGUR.matcher(link);
-		if (m.matches()) return getImgurImage(matcherGroup(m, IMGUR_GROUP_ID));
+		if (m.matches()) return getImgurImage(matcherGroup(m, IMGUR_GROUP_ID), true);
 		m = PATTERN_IMGLY.matcher(link);
-		if (m.matches()) return getImglyImage(matcherGroup(m, IMGLY_GROUP_ID));
+		if (m.matches()) return getImglyImage(matcherGroup(m, IMGLY_GROUP_ID), true);
 		m = PATTERN_YFROG.matcher(link);
-		if (m.matches()) return getYfrogImage(matcherGroup(m, YFROG_GROUP_ID));
+		if (m.matches()) return getYfrogImage(matcherGroup(m, YFROG_GROUP_ID), true);
 		m = PATTERN_LOCKERZ_AND_PLIXI.matcher(link);
-		if (m.matches()) return getLockerzAndPlixiImage(link);
+		if (m.matches()) return getLockerzAndPlixiImage(link, true);
 		m = PATTERN_SINA_WEIBO_IMAGES.matcher(link);
-		if (m.matches()) return getSinaWeiboImage(link);
+		if (m.matches()) return getSinaWeiboImage(link, true);
 		m = PATTERN_TWITGOO.matcher(link);
-		if (m.matches()) return getTwitgooImage(matcherGroup(m, TWITGOO_GROUP_ID));
+		if (m.matches()) return getTwitgooImage(matcherGroup(m, TWITGOO_GROUP_ID), true);
 		m = PATTERN_MOBYPICTURE.matcher(link);
-		if (m.matches()) return getMobyPictureImage(matcherGroup(m, MOBYPICTURE_GROUP_ID));
+		if (m.matches()) return getMobyPictureImage(matcherGroup(m, MOBYPICTURE_GROUP_ID), true);
 		return null;
 	}
 	
@@ -870,8 +882,7 @@ public final class Utils implements Constants {
 	
 	public static String getBrowserUserAgent(final Context context) {
 		if (context == null) return null;
-		final WebView wv = new WebView(context);
-		return wv.getSettings().getUserAgentString();
+		return TweetingsApplication.getInstance(context).getBrowserUserAgent();
 	}
 
 	public static Bitmap getColorPreviewBitmap(final Context context, final int color) {
@@ -991,26 +1002,38 @@ public final class Utils implements Constants {
 		return image_upload_format.replace(FORMAT_PATTERN_LINK, link).replace(FORMAT_PATTERN_TEXT, text);
 	}
 
-	public static ImageSpec getImglyImage(final String id) {
+	public static ImageSpec getImglyImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://img.ly/show/thumb/" + id;
-		final String full_size = "http://img.ly/show/full/" + id;
-		return new ImageSpec(thumbnail_size, full_size);
+		final String preview = "https://img.ly/show/" + (large_image_preview ? "medium" : "thumb") + "/" + id;
+		final String full = "https://img.ly/show/full/" + id;
+		return new ImageSpec(preview, full);
 
 	}
 
-	public static ImageSpec getImgurImage(final String id) {
+	public static ImageSpec getImgurImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://i.imgur.com/" + id + "s.jpg";
+		final String thumbnail_size = "http://i.imgur.com/" + id + (large_image_preview ? "l.jpg" : "s.jpg");
 		final String full_size = "http://i.imgur.com/" + id + ".jpg";
 		return new ImageSpec(thumbnail_size, full_size);
 	}
 
-	public static ImageSpec getInstagramImage(final String id) {
+	public static int getInlineImagePreviewDisplayOptionInt(final String option) {
+		if (INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_LARGE.equals(option))
+			return INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE;
+		else if (INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_LARGE_HIGH.equals(option))
+			return INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH;
+	 	else if (INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_SMALL.equals(option))
+	 		return INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL;
+	 	else if (INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_NONE.equals(option))
+	 		return INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE;
+	 	return INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL;
+	}
+	
+	public static ImageSpec getInstagramImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://instagr.am/p/" + id + "/media/?size=t";
-		final String full_size = "http://instagr.am/p/" + id + "/media/?size=l";
-		return new ImageSpec(thumbnail_size, full_size);
+		final String full = "https://instagr.am/p/" + id + "/media/?size=l";
+	 	final String preview = large_image_preview ? full : "https://instagr.am/p/" + id + "/media/?size=t";
+	 	return new ImageSpec(preview, full);
 	}
 
 	public static long[] getLastMessageIdsFromDatabase(final Context context, final Uri uri) {
@@ -1109,21 +1132,23 @@ public final class Utils implements Constants {
 		return status_ids;
 	}
 
-	public static ImageSpec getLockerzAndPlixiImage(final String url) {
+	public static ImageSpec getLockerzAndPlixiImage(final String url, final boolean large_image_preview) {
 		if (isNullOrEmpty(url)) return null;
-		final String thumbnail_size = "http://api.plixi.com/api/tpapi.svc/imagefromurl?url=" + url + "&size=small";
 		final String full_size = "http://api.plixi.com/api/tpapi.svc/imagefromurl?url=" + url + "&size=big";
+		final String thumbnail_size = large_image_preview ? full_size : "https://api.plixi.com/api/tpapi.svc/imagefromurl?url="
+			 	 + url + "&size=small";
+			
 		return new ImageSpec(thumbnail_size, full_size);
 
 	}
 
-	public static ImageSpec getMobyPictureImage(final String id) {
+	public static ImageSpec getMobyPictureImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://moby.to/" + id + ":thumb";
 		final String full_size = "http://moby.to/" + id + ":full";
+		final String thumbnail_size = large_image_preview ? full_size : "https://moby.to/" + id + ":thumb";
 		return new ImageSpec(thumbnail_size, full_size);
 	}
-
+	
 	public static String getNormalTwitterProfileImage(final String url) {
 		if (url == null) return null;
 		if (PATTERN_TWITTER_PROFILE_IMAGES.matcher(url).matches())
@@ -1138,16 +1163,17 @@ public final class Utils implements Constants {
 		return url;
 	}
 
-	public static PreviewImage getPreviewImage(final String html, final boolean include_preview) {
+	public static PreviewImage getPreviewImage(final String html, final int display_option) {
 		if (html == null) return new PreviewImage(false, null, null);
-		if (!include_preview)
+		if (display_option == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE)
 			 return new PreviewImage(html.contains(".twimg.com/") || html.contains("://instagr.am/")
-					|| html.contains("://instagram.com/") || html.contains("://imgur.com/")
+					/*|| html.contains("://instagram.com/")*/ || html.contains("://imgur.com/")
 					|| html.contains("://i.imgur.com/") || html.contains("://twitpic.com/")
 					|| html.contains("://img.ly/") || html.contains("://yfrog.com/")
 					|| html.contains("://twitgoo.com/") || html.contains("://moby.to/")
 					|| html.contains("://plixi.com/p/") || html.contains("://lockerz.com/s/")
 					|| html.contains(".sinaimg.cn/"), null, null);
+		final boolean large_image_preview = display_option == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH;
 		final Matcher m = PATTERN_PREVIEW_AVAILABLE_IMAGES_IN_HTML.matcher(html);
 		while (m.find()) {
 			final String image_url = m.group(PREVIEW_AVAILABLE_IMAGES_IN_HTML_GROUP_LINK);
@@ -1155,29 +1181,29 @@ public final class Utils implements Constants {
 				Matcher url_m;
 				url_m = PATTERN_TWITPIC.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getTwitpicImage(matcherGroup(url_m, TWITPIC_GROUP_ID)), image_url);
-				url_m = PATTERN_INSTAGRAM.matcher(image_url);
-				if (url_m.matches())
-					return new PreviewImage(getInstagramImage(matcherGroup(url_m, INSTAGRAM_GROUP_ID)), image_url);
+					return new PreviewImage(getTwitpicImage(matcherGroup(url_m, TWITPIC_GROUP_ID), large_image_preview), image_url);
+				//url_m = PATTERN_INSTAGRAM.matcher(image_url);
+				//if (url_m.matches())
+				//	return new PreviewImage(getInstagramImage(matcherGroup(url_m, INSTAGRAM_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_IMGUR.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getImgurImage(matcherGroup(url_m, IMGUR_GROUP_ID)), image_url);
+					return new PreviewImage(getImgurImage(matcherGroup(url_m, IMGUR_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_IMGLY.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getImglyImage(matcherGroup(url_m, IMGLY_GROUP_ID)), image_url);
+					return new PreviewImage(getImglyImage(matcherGroup(url_m, IMGLY_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_YFROG.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getYfrogImage(matcherGroup(url_m, YFROG_GROUP_ID)), image_url);
+					return new PreviewImage(getYfrogImage(matcherGroup(url_m, YFROG_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_LOCKERZ_AND_PLIXI.matcher(image_url);
-				if (url_m.matches()) return new PreviewImage(getLockerzAndPlixiImage(image_url), image_url);
+				if (url_m.matches()) return new PreviewImage(getLockerzAndPlixiImage(image_url, large_image_preview), image_url);
 				url_m = PATTERN_SINA_WEIBO_IMAGES.matcher(image_url);
-				if (url_m.matches()) return new PreviewImage(getSinaWeiboImage(image_url), image_url);
+				if (url_m.matches()) return new PreviewImage(getSinaWeiboImage(image_url, large_image_preview), image_url);
 				url_m = PATTERN_TWITGOO.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getTwitgooImage(matcherGroup(url_m, TWITGOO_GROUP_ID)), image_url);
+					return new PreviewImage(getTwitgooImage(matcherGroup(url_m, TWITGOO_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_MOBYPICTURE.matcher(image_url);
 				if (url_m.matches())
-					return new PreviewImage(getMobyPictureImage(matcherGroup(url_m, MOBYPICTURE_GROUP_ID)), image_url);
+					return new PreviewImage(getMobyPictureImage(matcherGroup(url_m, MOBYPICTURE_GROUP_ID), large_image_preview), image_url);
 			}
 		}
 		final Matcher mt = PATTERN_PREVIEW_AVAILABLE_IMAGES_IN_HTML_TWITTER.matcher(html);
@@ -1185,7 +1211,7 @@ public final class Utils implements Constants {
 			final String image_url = mt.group(PREVIEW_AVAILABLE_IMAGES_IN_HTML_GROUP_LINK);
 			Matcher url_m;
 			url_m = PATTERN_TWITTER_IMAGES.matcher(image_url);
-			if (url_m.matches()) return new PreviewImage(getTwitterImage(image_url), image_url);
+			if (url_m.matches()) return new PreviewImage(getTwitterImage(image_url, large_image_preview), image_url);
 		}
 		return new PreviewImage(false, null, null);
 	}
@@ -1225,10 +1251,10 @@ public final class Utils implements Constants {
 		return share_format.replace(FORMAT_PATTERN_TITLE, title).replace(FORMAT_PATTERN_TEXT, text);
 	}
 
-	public static ImageSpec getSinaWeiboImage(final String url) {
+	public static ImageSpec getSinaWeiboImage(final String url, final boolean large_image_preview) {
 		if (isNullOrEmpty(url)) return null;
-		final String thumbnail_size = url.replaceAll("\\/" + SINA_WEIBO_IMAGES_AVAILABLE_SIZES + "\\/", "/thumbnail/");
 		final String full_size = url.replaceAll("\\/" + SINA_WEIBO_IMAGES_AVAILABLE_SIZES + "\\/", "/large/");
+		final String thumbnail_size = large_image_preview ? full_size : url.replaceAll("\\/" + SINA_WEIBO_IMAGES_AVAILABLE_SIZES + "\\/", "/thumbnail/");
 		return new ImageSpec(thumbnail_size, full_size);
 	}
 	
@@ -1395,23 +1421,23 @@ public final class Utils implements Constants {
 		return date.getTime();
 	}
 
-	public static ImageSpec getTwitgooImage(final String id) {
+	public static ImageSpec getTwitgooImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://twitgoo.com/show/thumb/" + id;
 		final String full_size = "http://twitgoo.com/show/img/" + id;
+		final String thumbnail_size = large_image_preview ? full_size : "https://twitgoo.com/show/thumb/" + id;
 		return new ImageSpec(thumbnail_size, full_size);
 	}
 
-	public static ImageSpec getTwitpicImage(final String id) {
+	public static ImageSpec getTwitpicImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://twitpic.com/show/thumb/" + id;
 		final String full_size = "http://twitpic.com/show/large/" + id;
+		final String thumbnail_size = large_image_preview ? full_size : "https://twitpic.com/show/thumb/" + id;
 		return new ImageSpec(thumbnail_size, full_size);
 	}
 
-	public static ImageSpec getTwitterImage(final String url) {
+	public static ImageSpec getTwitterImage(final String url, final boolean large_image_preview) {
 		if (isNullOrEmpty(url)) return null;
-		return new ImageSpec(url + ":thumb", url);
+		return new ImageSpec(url + (large_image_preview ? ":large" : ":thumb"), url + ":large");
 	}
 
 	public static Twitter getTwitterInstance(final Context context, final long account_id, final boolean include_entities) {
@@ -1560,10 +1586,10 @@ public final class Utils implements Constants {
 		return 0;
 	}
 
-	public static ImageSpec getYfrogImage(final String id) {
+	public static ImageSpec getYfrogImage(final String id, final boolean large_image_preview) {
 		if (isNullOrEmpty(id)) return null;
-		final String thumbnail_size = "http://yfrog.com/" + id + ":small";
-		final String full_size = "http://yfrog.com/" + id + ":medium";
+		final String thumbnail_size = "http://yfrog.com/" + id + ":iphone";
+		final String full_size = "https://yfrog.com/" + id + (large_image_preview ? ":medium" : ":small");
 		return new ImageSpec(thumbnail_size, full_size);
 
 	}
@@ -1772,6 +1798,7 @@ public final class Utils implements Constants {
 		values.put(Statuses.IN_REPLY_TO_SCREEN_NAME, status.getInReplyToScreenName());
 		values.put(Statuses.IN_REPLY_TO_STATUS_ID, status.getInReplyToStatusId());
 		values.put(Statuses.SOURCE, status.getSource());
+		values.put(Statuses.IS_POSSIBLY_SENSITIVE, status.isPossiblySensitive());
 		final GeoLocation location = status.getGeoLocation();
 		if (location != null) {
 			values.put(Statuses.LOCATION, location.getLatitude() + "," + location.getLongitude());
@@ -1918,6 +1945,30 @@ public final class Utils implements Constants {
 		}
 	}
 	
+	public static void openImage(final Context context, final Uri uri, final boolean is_possibly_sensitive) {
+		if (context == null || uri == null) return;
+		final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE);
+		intent.setDataAndType(uri, "image/*");
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD_MR1) {
+			intent.setClass(context, ImageViewerGLActivity.class);
+		} else {
+			intent.setClass(context, ImageViewerActivity.class);
+		}
+		final SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		if (context instanceof FragmentActivity && is_possibly_sensitive
+				&& !prefs.getBoolean(PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS, false)) {
+			final FragmentActivity activity = (FragmentActivity) context;
+			final FragmentManager fm = activity.getSupportFragmentManager();
+			final DialogFragment fragment = new SensitiveContentWarningDialogFragment();
+			final Bundle args = new Bundle();
+			args.putParcelable(INTENT_KEY_URI, uri);
+			fragment.setArguments(args);
+			fragment.show(fm, "sensitive_content_warning");
+		} else {
+			context.startActivity(intent);
+		}
+	}
+	
 	public static void openIncomingFriendships(final Activity activity, final long account_id) {
 		if (activity == null) return;
 		if (activity instanceof DualPaneActivity && ((DualPaneActivity) activity).isDualPaneMode()) {
@@ -1931,6 +1982,24 @@ public final class Utils implements Constants {
 			final Uri.Builder builder = new Uri.Builder();
 			builder.scheme(SCHEME_TWEETINGS);
 			builder.authority(AUTHORITY_INCOMING_FRIENDSHIPS);
+			builder.appendQueryParameter(QUERY_PARAM_ACCOUNT_ID, String.valueOf(account_id));
+			activity.startActivity(new Intent(Intent.ACTION_VIEW, builder.build()));
+		}
+	}
+	
+	public static void openTrends(final Activity activity, final long account_id) {
+		if (activity == null) return;
+		if (activity instanceof DualPaneActivity && ((DualPaneActivity) activity).isDualPaneMode()) {
+			final DualPaneActivity dual_pane_activity = (DualPaneActivity) activity;
+			final Fragment fragment = new TrendsFragment();
+			final Bundle args = new Bundle();
+			args.putLong(INTENT_KEY_ACCOUNT_ID, account_id);
+			fragment.setArguments(args);
+			dual_pane_activity.showAtPane(DualPaneActivity.PANE_LEFT, fragment, true);
+		} else {
+			final Uri.Builder builder = new Uri.Builder();
+			builder.scheme(SCHEME_TWEETINGS);
+			builder.authority(AUTHORITY_TRENDS);
 			builder.appendQueryParameter(QUERY_PARAM_ACCOUNT_ID, String.valueOf(account_id));
 			activity.startActivity(new Intent(Intent.ACTION_VIEW, builder.build()));
 		}
@@ -2008,8 +2077,12 @@ public final class Utils implements Constants {
 		if (activity == null || url == null) return;
 		final TwitlongerAsyncTask task = new TwitlongerAsyncTask(activity, url);
 	}
-
+	
 	public static void openTweetSearch(final Activity activity, final long account_id, final String query) {
+		openTweetSearch(activity, account_id, query, -1);
+	}
+
+	public static void openTweetSearch(final Activity activity, final long account_id, final String query, final int search_id) {
 		if (activity == null) return;
 		if (activity instanceof DualPaneActivity && ((DualPaneActivity) activity).isDualPaneMode()) {
 			final DualPaneActivity dual_pane_activity = (DualPaneActivity) activity;
@@ -2018,6 +2091,9 @@ public final class Utils implements Constants {
 			args.putLong(INTENT_KEY_ACCOUNT_ID, account_id);
 			if (query != null) {
 				args.putString(INTENT_KEY_QUERY, query);
+			}
+			if (search_id > 0) {
+				args.putInt(INTENT_KEY_ID, search_id);
 			}
 			fragment.setArguments(args);
 			dual_pane_activity.showAtPane(DualPaneActivity.PANE_LEFT, fragment, true);
@@ -2029,6 +2105,9 @@ public final class Utils implements Constants {
 			builder.appendQueryParameter(QUERY_PARAM_TYPE, QUERY_PARAM_VALUE_TWEETS);
 			if (query != null) {
 				builder.appendQueryParameter(QUERY_PARAM_QUERY, query);
+			}
+			if (search_id > 0) {
+				builder.appendQueryParameter(QUERY_PARAM_ID, String.valueOf(search_id));
 			}
 			activity.startActivity(new Intent(Intent.ACTION_VIEW, builder.build()));
 		}
@@ -2170,6 +2249,25 @@ public final class Utils implements Constants {
 			activity.startActivity(new Intent(Intent.ACTION_VIEW, builder.build()));
 		}
 	}
+	
+	public static Intent createTakePhotoIntent(Uri uri) {
+	 	 final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+	 	 intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+	 	 return intent;
+	}
+	
+	public static Intent createTakePhotoIntent(Uri uri, int outputX, int outputY) {
+	    final Intent intent = new Intent("com.android.camera.action.CROP");
+	    intent.setType("image/*");
+	    intent.putExtra("outputX", outputX);
+	    intent.putExtra("outputY", outputY);
+	    intent.putExtra("aspectX", 1);
+	    intent.putExtra("aspectY", 1);
+	    intent.putExtra("scale", true);
+	    intent.putExtra("return-data", true);
+	    intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+	    return intent;
+	}
 
 	public static void openUserListDetails(final Activity activity, final long account_id, final int list_id, final long user_id,
 			final String screen_name, final String list_name) {
@@ -2184,7 +2282,7 @@ public final class Utils implements Constants {
 			args.putString(INTENT_KEY_SCREEN_NAME, screen_name);
 			args.putString(INTENT_KEY_LIST_NAME, list_name);
 			fragment.setArguments(args);
-			dual_pane_activity.showAtPane(DualPaneActivity.PANE_LEFT, fragment, true);
+			dual_pane_activity.showFragment(fragment, true);
 		} else {
 			final Uri.Builder builder = new Uri.Builder();
 			builder.scheme(SCHEME_TWEETINGS);
@@ -2789,6 +2887,119 @@ public final class Utils implements Constants {
 			}
 		}
 	}
+	
+	public static boolean isRedirected(final int code) {
+		return code == 301 || code == 302;
+	}
+	
+	public static HttpResponse getRedirectedHttpResponse(final HttpClientWrapper client, final String url)
+			throws TwitterException {
+		if (url == null) return null;
+		final ArrayList<String> urls = new ArrayList<String>();
+		urls.add(url);
+		HttpResponse resp;
+		try {
+			resp = client.get(url, url);
+		} catch (final TwitterException te) {
+			if (isRedirected(te.getStatusCode())) {
+				resp = te.getHttpResponse();
+			} else
+				throw te;
+		}
+		while (resp != null && isRedirected(resp.getStatusCode())) {
+			final String request_url = resp.getResponseHeader("Location");
+			if (request_url == null) return null;
+			if (urls.contains(request_url)) throw new TwitterException("Too many redirects");
+			urls.add(request_url);
+			try {
+				resp = client.get(request_url, request_url);
+			} catch (final TwitterException te) {
+				if (isRedirected(te.getStatusCode())) {
+					resp = te.getHttpResponse();
+				} else
+					throw te;
+			}
+		}
+		return resp;
+	}
+	
+	public static HttpClientWrapper getHttpClient(final int timeout_millis, final boolean ignore_ssl_error,
+			final Proxy proxy, final HostAddressResolver resolver, final String user_agent) {
+		final ConfigurationBuilder cb = new ConfigurationBuilder();
+		cb.setHttpConnectionTimeout(timeout_millis);
+		if (proxy != null && !Proxy.NO_PROXY.equals(proxy)) {
+			final SocketAddress address = proxy.address();
+			if (address instanceof InetSocketAddress) {
+				cb.setHttpProxyHost(((InetSocketAddress) address).getHostName());
+				cb.setHttpProxyPort(((InetSocketAddress) address).getPort());
+			}
+		}
+		// cb.setHttpClientImplementation(HttpClientImpl.class);
+		return new HttpClientWrapper(cb.build());
+	}
+	
+	public static HttpClientWrapper getImageLoaderHttpClient(final Context context) {
+		if (context == null) return null;
+		final SharedPreferences prefs = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		final int timeout_millis = prefs.getInt(PREFERENCE_KEY_CONNECTION_TIMEOUT, 10000) * 1000;
+		final Proxy proxy = getProxy(context);
+		final String user_agent = getBrowserUserAgent(context);
+		// final HostAddressResolver resolver =
+		// TwidereApplication.getInstance(context).getHostAddressResolver();
+		final HostAddressResolver resolver = null;
+		return getHttpClient(timeout_millis, true, proxy, resolver, user_agent);
+	}
+	
+	public static File getBestCacheDir(final Context context, final String cache_dir_name) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+			final File ext_cache_dir = GetExternalCacheDirAccessor.getExternalCacheDir(context);
+			if (ext_cache_dir != null && ext_cache_dir.isDirectory()) {
+				final File cache_dir = new File(ext_cache_dir, cache_dir_name);
+				if (cache_dir.isDirectory() || cache_dir.mkdirs()) return cache_dir;
+			}
+		} else {
+			final File ext_storage_dir = Environment.getExternalStorageDirectory();
+			if (ext_storage_dir != null && ext_storage_dir.isDirectory()) {
+				final String ext_cache_path = ext_storage_dir.getAbsolutePath() + "/Android/data/"
+						+ context.getPackageName() + "/cache/";
+				final File cache_dir = new File(ext_cache_path, cache_dir_name);
+				if (cache_dir.isDirectory() || cache_dir.mkdirs()) return cache_dir;
+			}
+		}
+		return new File(context.getCacheDir(), cache_dir_name);
+	}
 
-
+	/**
+	 2688	
++   * Resizes specific a Bitmap with keeping ratio.
+	 2689	
++   */
+	public static Bitmap resizeBitmap(Bitmap orig, final int desireWidth, final int desireHeight) {
+		final int width = orig.getWidth();
+		final int height = orig.getHeight();
+	 
+		if (0 < width && 0 < height && desireWidth < width || desireHeight < height) {
+			// Calculate scale
+			float scale;
+			if (width < height) {
+				scale = (float) desireHeight / (float) height;
+				if (desireWidth < width * scale) {
+					scale = (float) desireWidth / (float) width;
+				}
+			} else {
+				scale = (float) desireWidth / (float) width;
+			}
+	 
+			// Draw resized image
+			final Matrix matrix = new Matrix();
+			matrix.postScale(scale, scale);
+			final Bitmap bitmap = Bitmap.createBitmap(orig, 0, 0, width, height, matrix, true);
+			final Canvas canvas = new Canvas(bitmap);
+			canvas.drawBitmap(bitmap, 0, 0, null);
+	 
+			orig = bitmap;
+		}
+	 
+		return orig;
+	}
 }

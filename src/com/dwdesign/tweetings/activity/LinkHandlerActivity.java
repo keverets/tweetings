@@ -39,6 +39,7 @@ import com.dwdesign.tweetings.fragment.NativeNearbyMapFragment;
 import com.dwdesign.tweetings.fragment.RetweetedToMeFragment;
 import com.dwdesign.tweetings.fragment.SavedSearchesListFragment;
 import com.dwdesign.tweetings.fragment.StatusFragment;
+import com.dwdesign.tweetings.fragment.TrendsFragment;
 import com.dwdesign.tweetings.fragment.UserBlocksListFragment;
 import com.dwdesign.tweetings.fragment.UserFavoritesFragment;
 import com.dwdesign.tweetings.fragment.UserFollowersFragment;
@@ -390,6 +391,11 @@ public class LinkHandlerActivity extends MultiSelectActivity {
 				case LINK_ID_NEARBY: {
 					setTitle(R.string.nearby_tweets);
 					fragment = new NativeNearbyMapFragment();
+					break;
+				}
+				case LINK_ID_TRENDS: {
+					setTitle(R.string.trends);
+					fragment = new TrendsFragment();
 					break;
 				}
 				case LINK_ID_USER_MENTIONS: {

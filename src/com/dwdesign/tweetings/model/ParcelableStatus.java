@@ -28,8 +28,11 @@ import java.net.URL;
 import java.util.Comparator;
 import java.util.Date;
 
+import com.dwdesign.tweetings.Constants;
+
 import twitter4j.MediaEntity;
 import twitter4j.Status;
+import twitter4j.URLEntity;
 import twitter4j.User;
 import android.database.Cursor;
 import android.os.Parcel;
@@ -37,7 +40,7 @@ import android.os.Parcelable;
 import android.text.Html;
 import android.text.Spanned;
 
-public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus> {
+public class ParcelableStatus implements Constants, Parcelable, Comparable<ParcelableStatus> {
 
 	public static final Parcelable.Creator<ParcelableStatus> CREATOR = new Parcelable.Creator<ParcelableStatus>() {
 		@Override
@@ -54,11 +57,11 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 	public final long retweet_id, retweeted_by_id, status_id, account_id, user_id, status_timestamp, retweet_count,
 			in_reply_to_status_id;
 
-	public final boolean is_gap, is_retweet, is_favorite, is_protected, is_verified, has_media;
+	public final boolean is_gap, is_retweet, is_favorite, is_protected, is_verified, has_media, is_possibly_sensitive;
 
 	public final String retweeted_by_name, retweeted_by_screen_name, text_html, text_plain, name, screen_name,
 			in_reply_to_screen_name, source, profile_image_url_string, image_preview_url_string, image_orig_url_string,
-			location_string, text_unescaped;
+			location_string, text_unescaped, play_package;
 	public final ParcelableLocation location;
 
 	public final Spanned text;
@@ -95,7 +98,7 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		retweeted_by_screen_name = indices.retweeted_by_screen_name != -1 ? cursor
 				.getString(indices.retweeted_by_screen_name) : null;
 		text_html = indices.text != -1 ? cursor.getString(indices.text) : null;
-		final PreviewImage preview = getPreviewImage(text_html, true);
+		final PreviewImage preview = getPreviewImage(text_html, INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH);
 		has_media = preview.has_image;
 		text_plain = indices.text_plain != -1 ? cursor.getString(indices.text_plain) : null;
 		name = indices.name != -1 ? cursor.getString(indices.name) : null;
@@ -107,12 +110,14 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		location = indices.location != -1 ? new ParcelableLocation(location_string) : null;
 		profile_image_url_string = indices.profile_image_url != -1 ? cursor.getString(indices.profile_image_url) : null;
 		profile_image_url = parseURL(profile_image_url_string);
-
+		
 		text = text_html != null ? Html.fromHtml(text_html) : null;
 		image_preview_url_string = preview.matched_url;
 		image_orig_url_string = preview.orig_url;
 		image_preview_url = parseURL(image_preview_url_string);
 		text_unescaped = unescape(text_html);
+		play_package = indices.play_package != -1 ? cursor.getString(indices.play_package) : null;
+		is_possibly_sensitive = indices.is_possibly_sensitive != -1 ? cursor.getInt(indices.is_possibly_sensitive) == 1 : false;
 	}
 
 	public ParcelableStatus(final Parcel in) {
@@ -147,6 +152,8 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		profile_image_url = parseURL(profile_image_url_string);
 		text = text_html != null ? Html.fromHtml(text_html) : null;
 		text_unescaped = unescape(text_html);
+		play_package = in.readString();
+		is_possibly_sensitive = in.readInt() == 1;
 	}
 	
 	public ParcelableStatus(final SerializableStatus in) {
@@ -181,9 +188,16 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		profile_image_url = in.profile_image_url;
 		text = text_html != null ? Html.fromHtml(text_html) : null;
 		text_unescaped = unescape(text_html);
+		play_package = in.play_package;
+		is_possibly_sensitive = in.is_possibly_sensitive;
 	}
 
-	public ParcelableStatus(Status status, final long account_id, final boolean is_gap) {
+	public ParcelableStatus(final Status status, final long account_id, final boolean is_gap) {
+		this(status, account_id, is_gap, true);
+	}
+	
+	public ParcelableStatus(Status status, final long account_id, final boolean is_gap,
+			 final boolean large_inline_image_preview) {
 
 		this.is_gap = is_gap;
 		this.account_id = account_id;
@@ -210,7 +224,9 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 
 		status_timestamp = getTime(status.getCreatedAt());
 		text_html = formatStatusText(status);
-		final PreviewImage preview = getPreviewImage(text_html, true);
+		final PreviewImage preview = getPreviewImage(text_html,
+			 	 large_inline_image_preview ? INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH
+			 	 : INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL);
 		text_plain = status.getText();
 		retweet_count = status.getRetweetCount();
 		in_reply_to_screen_name = status.getInReplyToScreenName();
@@ -225,6 +241,21 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		image_orig_url_string = preview.orig_url;
 		image_preview_url = parseURL(image_preview_url_string);
 		text_unescaped = unescape(text_html);
+		String play = null;
+		URLEntity[] urls = status.getURLEntities();
+		if (urls != null) {
+			for (final URLEntity url : urls) {
+				final URL tco_url = url.getURL();
+				final URL expanded_url = url.getExpandedURL();
+				if (tco_url != null && expanded_url != null && expanded_url.toString().contains("play.google.com/store/apps")) {
+					play = expanded_url.toString();
+					break;
+				}
+				
+			}
+		}
+		play_package = play;
+		is_possibly_sensitive = status.isPossiblySensitive();
 	}
 
 	@Override
@@ -279,6 +310,8 @@ public class ParcelableStatus implements Parcelable, Comparable<ParcelableStatus
 		out.writeString(image_preview_url_string);
 		out.writeString(image_orig_url_string);
 		out.writeString(location_string);
+		out.writeString(play_package);
+		out.writeInt(is_possibly_sensitive ? 1 : 0);
 	}
 
 	private static long getTime(final Date date) {

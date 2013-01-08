@@ -20,34 +20,45 @@
 package com.dwdesign.tweetings.model;
 
 import static com.dwdesign.tweetings.util.Utils.parseDouble;
+
+import java.io.Serializable;
+
 import twitter4j.GeoLocation;
+import android.location.Location;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-public class ParcelableLocation implements Parcelable {
+public class ParcelableLocation implements Serializable, Parcelable {
+
+	private static final long serialVersionUID = -1690848439775407442L;
 
 	public final double latitude, longitude;
 
-	public static final Parcelable.Creator<ParcelableUserList> CREATOR = new Parcelable.Creator<ParcelableUserList>() {
+	public static final Parcelable.Creator<ParcelableLocation> CREATOR = new Parcelable.Creator<ParcelableLocation>() {
 		@Override
-		public ParcelableUserList createFromParcel(final Parcel in) {
-			return new ParcelableUserList(in);
+		public ParcelableLocation createFromParcel(final Parcel in) {
+			return new ParcelableLocation(in);
 		}
 
 		@Override
-		public ParcelableUserList[] newArray(final int size) {
-			return new ParcelableUserList[size];
+		public ParcelableLocation[] newArray(final int size) {
+			return new ParcelableLocation[size];
 		}
 	};
 
+	public ParcelableLocation(final double latitude, final double longitude) {
+		this.latitude = latitude;
+		this.longitude = longitude;
+	}
+
 	public ParcelableLocation(final GeoLocation location) {
-		if (location == null) {
-			latitude = -1;
-			longitude = -1;
-			return;
-		}
-		latitude = location.getLatitude();
-		longitude = location.getLongitude();
+		latitude = location != null ? location.getLatitude() : -1;
+		longitude = location != null ? location.getLongitude() : -1;
+	}
+
+	public ParcelableLocation(final Location location) {
+		latitude = location != null ? location.getLatitude() : -1;
+		longitude = location != null ? location.getLongitude() : -1;
 	}
 
 	public ParcelableLocation(final Parcel in) {
@@ -76,14 +87,40 @@ public class ParcelableLocation implements Parcelable {
 		return hashCode();
 	}
 
+	@Override
+	public boolean equals(final Object obj) {
+		if (this == obj) return true;
+		if (obj == null) return false;
+		if (!(obj instanceof ParcelableLocation)) return false;
+		final ParcelableLocation other = (ParcelableLocation) obj;
+		if (Double.doubleToLongBits(latitude) != Double.doubleToLongBits(other.latitude)) return false;
+		if (Double.doubleToLongBits(longitude) != Double.doubleToLongBits(other.longitude)) return false;
+		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		long temp;
+		temp = Double.doubleToLongBits(latitude);
+		result = prime * result + (int) (temp ^ temp >>> 32);
+		temp = Double.doubleToLongBits(longitude);
+		result = prime * result + (int) (temp ^ temp >>> 32);
+		return result;
+	}
+
 	public boolean isValid() {
 		return latitude >= 0 || longitude >= 0;
 	}
 
+	public GeoLocation toGeoLocation() {
+		return isValid() ? new GeoLocation(latitude, longitude) : null;
+	}
+
 	@Override
 	public String toString() {
-		if (!isValid()) return null;
-		return latitude + "," + longitude;
+		return "ParcelableLocation{latitude=" + latitude + ", longitude=" + longitude + "}";
 	}
 
 	@Override
@@ -92,7 +129,22 @@ public class ParcelableLocation implements Parcelable {
 		out.writeDouble(longitude);
 	}
 
+	public static ParcelableLocation fromString(final String string) {
+		final ParcelableLocation location = new ParcelableLocation(string);
+		if (ParcelableLocation.isValidLocation(location)) return location;
+		return null;
+	}
+
 	public static boolean isValidLocation(final ParcelableLocation location) {
 		return location != null && location.isValid();
+	}
+
+	public static GeoLocation toGeoLocation(final ParcelableLocation location) {
+		return isValidLocation(location) ? location.toGeoLocation() : null;
+	}
+
+	public static String toString(final ParcelableLocation location) {
+		if (location == null) return null;
+		return location.latitude + "," + location.longitude;
 	}
 }

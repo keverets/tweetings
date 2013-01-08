@@ -53,6 +53,27 @@ public class SeparatedListAdapter<T extends Adapter> extends BaseAdapter {
 		return total;
 	}
 
+	public int getSection(int position) {
+		int sectionCount = 0;
+		for (final Object section : mSections.keySet()) {
+			final Adapter adapter = mSections.get(section);
+			final int size = adapter.getCount() + 1;
+
+			// check if position inside this section
+			if (position == 0) {
+				return 0;
+			}
+			if (position < size) {
+				return sectionCount;
+			}
+
+			// otherwise jump into next section
+			position -= size;
+			sectionCount++;
+		}
+		return -1;
+	}
+	
 	@Override
 	public Object getItem(int position) {
 		for (final Object section : mSections.keySet()) {

@@ -22,6 +22,7 @@ package com.dwdesign.tweetings.adapter;
 import static android.text.format.DateUtils.getRelativeTimeSpanString;
 import static com.dwdesign.tweetings.Constants.INTENT_ACTION_VIEW_IMAGE;
 import static com.dwdesign.tweetings.model.ParcelableLocation.isValidLocation;
+import static com.dwdesign.tweetings.util.HtmlEscapeHelper.unescape;
 import static com.dwdesign.tweetings.util.Utils.formatSameDayTime;
 import static com.dwdesign.tweetings.util.Utils.getAccountColor;
 import static com.dwdesign.tweetings.util.Utils.getAccountUsername;
@@ -34,12 +35,16 @@ import static com.dwdesign.tweetings.util.Utils.getUserTypeIconRes;
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.openUserProfile;
 import static com.dwdesign.tweetings.util.Utils.parseURL;
+import static com.dwdesign.tweetings.util.Utils.openImage;
+import static com.dwdesign.tweetings.util.Utils.getInlineImagePreviewDisplayOptionInt;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.app.TweetingsApplication;
+import com.dwdesign.tweetings.fragment.CursorStatusesListFragment;
+import com.dwdesign.tweetings.fragment.ParcelableStatusesListFragment;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.StatusViewHolder;
@@ -48,22 +53,29 @@ import com.dwdesign.tweetings.util.NoDuplicatesArrayList;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.StatusesAdapterInterface;
 import com.dwdesign.tweetings.util.TwidereLinkify;
+import com.dwdesign.tweetings.Constants;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.Uri;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewGroup.MarginLayoutParams;
 import android.widget.BaseAdapter;
+import android.widget.ListView;
 
-public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAdapterInterface, OnClickListener {
+public class ParcelableStatusesAdapter extends BaseAdapter implements Constants, StatusesAdapterInterface, OnClickListener {
 
-	private boolean mDisplayProfileImage, mDisplayImagePreview, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
-		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks;
+	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
+		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks, mDisplaySensitiveContents;
 	private final LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
 	private float mTextSize;
 	private final Context mContext;
@@ -71,7 +83,8 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 	private final ArrayList<Long> mSelectedStatusIds;
 	private final boolean mDisplayHiResProfileImage;
 	private final NoDuplicatesArrayList<ParcelableStatus> mData = new NoDuplicatesArrayList<ParcelableStatus>();
-
+	private int mNameDisplayOption, mInlineImagePreviewDisplayOption;
+	
 	public ParcelableStatusesAdapter(final Context context) {
 		super();
 		mContext = context;
@@ -152,14 +165,14 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 
 		final View view = convertView != null ? convertView : mInflater.inflate(R.layout.status_list_item, null);
 		final Object tag = view.getTag();
-		final StatusViewHolder holder;
-
+		StatusViewHolder holder;
+		
 		if (tag instanceof StatusViewHolder) {
 			holder = (StatusViewHolder) tag;
 		} else {
 			holder = new StatusViewHolder(view);
 			view.setTag(holder);
-			holder.image_preview.setOnClickListener(this);
+			holder.image_preview_frame.setOnClickListener(this);
 			holder.profile_image.setOnClickListener(this);
 		}
 
@@ -170,7 +183,30 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 		holder.setShowAsGap(show_gap);
 		holder.setAccountColorEnabled(mShowAccountColor);
 		
-		holder.text.setText(status.text_unescaped);
+		if (mShowLinks) {
+		 	 holder.text.setText(Html.fromHtml(status.text_html));
+		 	 final TwidereLinkify linkify = new TwidereLinkify(holder.text);
+		 	 linkify.setOnLinkClickListener(new OnLinkClickHandler(mContext, status.account_id));
+		 	 linkify.addAllLinks();
+		} else {
+			holder.text.setText(status.text_unescaped);
+		}
+		holder.text.setMovementMethod(null);
+		
+		/*if (mShowLinks) {
+			holder.text.setText(TwidereLinkify.twitterifyText(status.account_id, mContext, status.text_html));
+			holder.text.setMovementMethod(LinkMovementMethod.getInstance());
+			holder.text.setLinksClickable(false);
+			holder.text.setTag(position);
+			holder.text.setOnClickListener(this);
+			holder.text.setOnLongClickListener(this);
+		}
+		else {
+			holder.text.setText(status.text_unescaped);
+			holder.text.setOnClickListener(null);
+			holder.text.setOnLongClickListener(null);
+			holder.text.setMovementMethod(null);
+		}*/
 		
 		if (mShowAccountColor) {
 			holder.setAccountColor(getAccountColor(mContext, status.account_id));
@@ -250,11 +286,27 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 				holder.profile_image.setOnClickListener(this);
 				holder.profile_image.setTag(position);
 			}
-			final boolean has_preview = mDisplayImagePreview && status.has_media && status.image_preview_url != null;
-			holder.image_preview.setVisibility(has_preview ? View.VISIBLE : View.GONE);
+			final boolean has_preview = mInlineImagePreviewDisplayOption != INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE
+				  && status.has_media && status.image_preview_url_string != null;
+			holder.image_preview_frame.setVisibility(has_preview ? View.VISIBLE : View.GONE);
 			if (has_preview) {
-				mPreviewImageLoader.displayImage(status.image_preview_url, holder.image_preview);
-				holder.image_preview.setTag(position);
+				final MarginLayoutParams lp = (MarginLayoutParams) holder.image_preview_frame.getLayoutParams();
+			 		if (mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE || mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH) {
+			 			lp.width = LayoutParams.MATCH_PARENT;
+			 			lp.leftMargin = 0;
+			 			holder.image_preview_frame.setLayoutParams(lp);
+			 		} else if (mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL) {
+			 			final Resources res = mContext.getResources();
+			 			lp.width = res.getDimensionPixelSize(R.dimen.image_preview_width);
+			 			lp.leftMargin = (int) (res.getDisplayMetrics().density * 16);
+			 			holder.image_preview_frame.setLayoutParams(lp);
+			 	}
+				if (status.is_possibly_sensitive && !mDisplaySensitiveContents) {
+					holder.image_preview.setImageResource(R.drawable.image_preview_nsfw);
+				} else {
+					mPreviewImageLoader.displayImage(status.image_preview_url, holder.image_preview);
+				}
+				holder.image_preview_frame.setTag(position);
 			}
 		}
 
@@ -266,13 +318,12 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 		final Object tag = view.getTag();
 		final ParcelableStatus status = tag instanceof Integer ? getStatus((Integer) tag) : null;
 		if (status == null) return;
+		
 		switch (view.getId()) {
-			case R.id.image_preview: {
+			case R.id.image_preview_frame: {
 				final ImageSpec spec = getAllAvailableImage(status.image_orig_url_string);
 				if (spec != null) {
-					final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(spec.image_link));
-					intent.setPackage(mContext.getPackageName());
-					mContext.startActivity(intent);
+					openImage(mContext, Uri.parse(spec.full_image_link), status.is_possibly_sensitive);
 				}
 				break;
 			}
@@ -300,14 +351,6 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 		}
 	}
 	
-	@Override
-	public void setDisplayImagePreview(final boolean preview) {
-		if (preview != mDisplayImagePreview) {
-			mDisplayImagePreview = preview;
-			notifyDataSetChanged();
-		}
-	}
-
 	@Override
 	public void setDisplayName(final boolean display) {
 		if (display != mDisplayName) {
@@ -340,6 +383,14 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 			notifyDataSetChanged();
 		}
 	}
+	
+	@Override
+	public void setDisplaySensitiveContents(final boolean display) {
+		if (display != mDisplaySensitiveContents) {
+			mDisplaySensitiveContents = display;
+			notifyDataSetChanged();
+		}
+	}
 
 	@Override
 	public void setGapDisallowed(final boolean disallowed) {
@@ -348,6 +399,14 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements StatusesAd
 			notifyDataSetChanged();
 		}
 
+	}
+	
+	@Override
+	public void setInlineImagePreviewDisplayOption(final String option) {
+		if (option != null && !option.equals(mInlineImagePreviewDisplayOption)) {
+			mInlineImagePreviewDisplayOption = getInlineImagePreviewDisplayOptionInt(option);
+			notifyDataSetChanged();
+		}
 	}
 	
 	@Override

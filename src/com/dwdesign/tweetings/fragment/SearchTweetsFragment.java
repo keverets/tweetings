@@ -21,20 +21,39 @@ package com.dwdesign.tweetings.fragment;
 
 import java.util.List;
 
+import twitter4j.internal.org.json.JSONObject;
+
+import com.dwdesign.tweetings.R;
+import com.dwdesign.tweetings.app.TweetingsApplication;
+import com.dwdesign.tweetings.fragment.CustomTabsFragment.CustomTabsAdapter;
 import com.dwdesign.tweetings.loader.TweetSearchLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
+import com.dwdesign.tweetings.provider.TweetStore.Tabs;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.content.Loader;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
 public class SearchTweetsFragment extends ParcelableStatusesListFragment {
 
 	private boolean mIsStatusesSaved = false;
-private boolean isVisibleToUser = false;
+	private boolean isVisibleToUser = false;
+	private int mSearchId = -1;
+	private long mAccountId;
+	private String mQuery;
+	Menu optionsMenu;
 	
 	// Begin Sync Code
 	private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -90,13 +109,18 @@ private boolean isVisibleToUser = false;
 		boolean is_home_tab = false;
 		String query = null;
 		if (args != null) {
-			account_id = args.getLong(INTENT_KEY_ACCOUNT_ID);
+			mAccountId = args.getLong(INTENT_KEY_ACCOUNT_ID);
 			max_id = args.getLong(INTENT_KEY_MAX_ID, -1);
 			since_id = args.getLong(INTENT_KEY_SINCE_ID, -1);
-			query = args.getString(INTENT_KEY_QUERY);
+			mQuery = args.getString(INTENT_KEY_QUERY);
 			is_home_tab = args.getBoolean(INTENT_KEY_IS_HOME_TAB);
+			mSearchId = args.getInt(INTENT_KEY_ID, -1);
+			setHasOptionsMenu(true);
+			if (optionsMenu != null) {
+				onPrepareOptionsMenu(optionsMenu);
+			}
 		}
-		return new TweetSearchLoader(getActivity(), account_id, query, max_id, since_id, getData(), getClass().getSimpleName(),
+		return new TweetSearchLoader(getActivity(), mAccountId, mQuery, max_id, since_id, getData(), getClass().getSimpleName(),
 				is_home_tab);
 	}
 	
@@ -104,7 +128,76 @@ private boolean isVisibleToUser = false;
 	public void scrollToStatusId(long statusId) {
 		
 	}
+	
+	@Override
+	public void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		
+		
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(final MenuItem item) {
+		switch (item.getItemId()) {
+			case MENU_SAVE: {
+				final TweetingsApplication application = getApplication();
+				application.getServiceInterface().createSavedSearch(mAccountId, mQuery);
+				break;
+			}
+			case MENU_DELETE: {
+				final TweetingsApplication application = getApplication();
+				application.getServiceInterface().destroySavedSearch(mAccountId, mSearchId);
+				break;
+			}
+			case MENU_ADD_TAB: {
+				CustomTabsAdapter mAdapter;
+				mAdapter = new CustomTabsAdapter(getActivity());
+				ContentResolver mResolver;
+				mResolver = getContentResolver();
+				final String tabName = mQuery;
+				final String tabType = AUTHORITY_SEARCH_TWEETS;
+				final String tabIcon = "search";
+				final long account_id = mAccountId;
+				final String tabArguments = "{\"account_id\":" + account_id + ",\"query\":" + JSONObject.quote(mQuery) + "}";
+				final ContentValues values = new ContentValues();
+				values.put(Tabs.ARGUMENTS, tabArguments);
+				values.put(Tabs.NAME, tabName);
+				values.put(Tabs.POSITION, mAdapter.getCount());
+				values.put(Tabs.TYPE, tabType);
+				values.put(Tabs.ICON, tabIcon);
+				mResolver.insert(Tabs.CONTENT_URI, values);
+				Toast.makeText(this.getActivity(), R.string.search_tab_added, Toast.LENGTH_SHORT).show();
+				break;
+			}
+		}
+		return super.onOptionsItemSelected(item);
+	}
+	
+	@Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		menu.clear();
+		inflater.inflate(R.menu.menu_searchtweets, menu);
+		super.onCreateOptionsMenu(menu, inflater);
+	}
 
+	@Override
+	public void onPrepareOptionsMenu(final Menu menu) {
+		super.onPrepareOptionsMenu(menu);
+		optionsMenu = menu;
+
+		final MenuItem itemSave = menu.findItem(MENU_SAVE);
+		final MenuItem itemDelete = menu.findItem(MENU_DELETE_SUBMENU);
+		if (mSearchId > 0) {
+			itemSave.setVisible(false);
+			itemDelete.setVisible(true);
+		}
+		else {
+			itemSave.setVisible(true);
+			itemDelete.setVisible(false);
+		}
+		
+	}
+	
 	@Override
 	public void onDestroy() {
 		saveStatuses();

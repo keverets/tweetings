@@ -32,11 +32,11 @@ public class SerializableStatus implements Serializable {
 	public long retweet_id, retweeted_by_id, status_id, account_id, user_id, status_timestamp, retweet_count,
 			in_reply_to_status_id;
 
-	public boolean is_gap, is_retweet, is_favorite, is_protected, is_verified, has_media;
+	public boolean is_gap, is_retweet, is_favorite, is_protected, is_verified, has_media, is_possibly_sensitive;
 
 	public String retweeted_by_name, retweeted_by_screen_name, text_html, text_plain, name, screen_name,
 			in_reply_to_screen_name, source, profile_image_url_string, image_preview_url_string, image_orig_url_string,
-			location_string;
+			location_string, play_package;
 	public String location;
 
 	public URL profile_image_url, image_preview_url;
@@ -71,6 +71,8 @@ public class SerializableStatus implements Serializable {
 		location = parseString(in.location);
 		image_preview_url = in.image_preview_url;
 		profile_image_url = in.profile_image_url;
+		play_package = in.play_package;
+		is_possibly_sensitive = in.is_possibly_sensitive;
 	}
 
 	SerializableStatus() {

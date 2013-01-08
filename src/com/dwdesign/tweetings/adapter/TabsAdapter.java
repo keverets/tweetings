@@ -82,6 +82,12 @@ public class TabsAdapter extends FragmentStatePagerAdapter implements TitleProvi
 	public Drawable getIcon(final int position) {
 		return getTabIconDrawable(mContext, mTabs.get(position).icon);
 	}
+	
+	@Override
+	public void setIcon(final int position, final Drawable icon) {
+		TabSpec tab = (TabSpec) mTabs.get(position);
+		tab.setIcon(icon);
+	}
 
 	@Override
 	public Fragment getItem(final int position) {

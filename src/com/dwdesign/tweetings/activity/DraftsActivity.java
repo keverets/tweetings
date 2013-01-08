@@ -229,8 +229,8 @@ public class DraftsActivity extends BaseActivity implements LoaderCallbacks<Curs
 		if (draft == null) return;
 		final Uri uri = draft.media_uri == null ? null : Uri.parse(draft.media_uri);
 		mResolver.delete(Drafts.CONTENT_URI, Drafts._ID + " = " + draft._id, null);
-		mService.updateStatus(draft.account_ids, draft.text, null, uri, draft.in_reply_to_status_id,
-				draft.is_photo_attached && !draft.is_image_attached);
+		mService.updateStatus(draft.account_ids, draft.text, null, uri, draft.in_reply_to_status_id, 
+				draft.is_possibly_sensitive, draft.is_photo_attached && !draft.is_image_attached);
 	}
 
 	static class DraftsAdapter extends SimpleCursorAdapter {

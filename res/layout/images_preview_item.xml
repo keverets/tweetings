@@ -5,8 +5,8 @@
 	
 	<ImageView
 		android:id="@+id/image"
-		android:layout_width="@dimen/status_image_size"
-		android:layout_height="@dimen/status_image_size"
+		android:layout_width="@dimen/image_preview_size"
+		android:layout_height="@dimen/image_preview_size"
 		android:background="@drawable/gallery_item_background"
 		android:scaleType="fitCenter"/>
 </FrameLayout>

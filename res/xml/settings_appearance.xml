@@ -51,11 +51,11 @@
 			android:summary="@string/show_absolute_time_summary"
 			android:title="@string/show_absolute_time"/>
 		
-		<!--  <CheckBoxPreference
-		android:defaultValue="false"
+	<CheckBoxPreference
+		android:defaultValue="true"
 		android:key="show_links"
 		android:summary="@string/show_links_summary"
-		android:title="@string/show_links"/>-->
+		android:title="@string/show_links"/>
 		
 	<CheckBoxPreference
 		    android:defaultValue="false"

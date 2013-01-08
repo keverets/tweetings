@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.dwdesign.tweetings"
 	android:installLocation="auto"
-	android:versionCode="87"
+	android:versionCode="116"
 	android:versionName="@string/app_version">
 
 	<uses-sdk
@@ -50,7 +50,7 @@
 		android:theme="@style/Theme.Blank">
 		
 	    <meta-data android:name="com.google.android.backup.api_key"
-    		android:value="AEdPqrEAAAAIzJPvnH_pq2QAloV4c7QwaiFwIMKD3rsvnzzMsA" />
+    		android:value="" />
 	    
 		<uses-library
 			android:name="com.google.android.maps"
@@ -87,6 +87,7 @@
 
 				<category android:name="android.intent.category.LAUNCHER"/>
 				<category android:name="android.intent.category.DEFAULT"/>
+				<category android:name="android.intent.category.MULTIWINDOW_LAUNCHER" />
 			</intent-filter>
 			<intent-filter>
 				<action android:name="com.dwdesign.tweetings.HOME"/>
@@ -327,6 +328,9 @@
  	  				android:host="user_mentions"
  	 				android:scheme="tweetings"/>
 				<data
+ 	  				android:host="trends"
+ 	 				android:scheme="tweetings"/>
+				<data
  	 				android:host="incoming_friendships"
  	 				android:scheme="tweetings"/>
 				<data
@@ -389,7 +393,7 @@
 				<category android:name="android.intent.category.DEFAULT"/>
 			</intent-filter>
 		</activity>
-		<activity
+	    <activity
 			android:name=".activity.ImageViewerActivity"
 			android:label="@string/view_image"
 			android:launchMode="singleTop"
@@ -402,6 +406,26 @@
 				<data android:scheme="file"/>
 				<data android:scheme="http"/>
 				<data android:scheme="https"/>
+			</intent-filter>
+		</activity> 
+		<activity
+			android:name="com.dwdesign.gallery3d.app.ImageViewerGLActivity"
+			android:configChanges="keyboardHidden|orientation|screenSize"
+			android:exported="false"
+			android:hardwareAccelerated="true"
+			android:label="@string/app_name"
+			android:launchMode="singleTop"
+			android:process=":image_viewer"
+			android:theme="@style/Theme.Twidere.Viewer">
+			<intent-filter>
+				<action android:name="com.dwdesign.tweetings.VIEW_IMAGE"/>
+
+				<category android:name="android.intent.category.DEFAULT"/>
+				<category android:name="android.intent.category.BROWSABLE"/>
+
+				<data android:scheme="http"/>
+				<data android:scheme="https"/>
+				<data android:scheme="file"/>
 			</intent-filter>
 		</activity>
 		<activity
@@ -504,6 +528,16 @@
 				<category android:name="android.intent.category.DEFAULT"/>
 			</intent-filter>
 		</activity>
+		
+		<activity
+ 			android:name=".activity.CameraCropActivity"
+ 	 		android:exported="false">
+ 	 		<intent-filter>
+ 	 			<action android:name="com.dwdesign.tweetings.CAMERA_CROP"/>
+ 	 			
+ 	 			<category android:name="android.intent.category.DEFAULT"/>
+ 	 		</intent-filter>
+ 	 	</activity>
 
 		<service
 			android:name=".service.TweetingsService"
@@ -568,6 +602,14 @@
 				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
 			</intent-filter>
 		</activity>
+		
+		<uses-library android:required="false" android:name="com.sec.android.app.multiwindow" />
+        <meta-data android:name="com.sec.android.support.multiwindow" android:value="true" />
+        <meta-data android:name="com.sec.android.multiwindow.DEFAULT_SIZE_W" android:value="632.0dip" />
+        <meta-data android:name="com.sec.android.multiwindow.DEFAULT_SIZE_H" android:value="598.0dip" />
+        <meta-data android:name="com.sec.android.multiwindow.MINIMUM_SIZE_W" android:value="632.0dip" />
+        <meta-data android:name="com.sec.android.multiwindow.MINIMUM_SIZE_H" android:value="598.0dip" />
+		
 	</application>
 
 </manifest>

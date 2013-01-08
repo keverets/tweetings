@@ -60,6 +60,12 @@
 			android:summary="@string/sound_on_send_summary"
 			android:title="@string/sound_on_send"/>
 		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="sound_on_navigation"
+			android:summary="@string/sound_on_navigation_summary"
+			android:title="@string/sound_on_navigation"/>
+		
 	</PreferenceCategory>
 	<PreferenceCategory
 		android:key="category_notifications"

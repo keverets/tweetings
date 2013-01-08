@@ -22,6 +22,7 @@ package com.dwdesign.tweetings.app;
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.setUserAgent;
 
+import java.io.File;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Hashtable;
@@ -36,11 +37,18 @@ import org.apache.http.protocol.HTTP;
 
 import java.util.ArrayList;
 
+import com.dwdesign.gallery3d.app.IGalleryApplication;
+import com.dwdesign.gallery3d.data.DataManager;
+import com.dwdesign.gallery3d.data.DownloadCache;
+import com.dwdesign.gallery3d.util.GalleryUtils;
+import com.dwdesign.gallery3d.util.ThreadPool;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
+import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.ParcelableUser;
 import com.dwdesign.tweetings.util.AsyncTaskManager;
+import com.dwdesign.tweetings.util.ImageLoaderUtils;
 import com.dwdesign.tweetings.util.LazyImageLoader;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
 import com.dwdesign.tweetings.util.ServiceInterface;
@@ -53,14 +61,16 @@ import android.app.backup.BackupManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.preference.PreferenceManager;
+import android.os.AsyncTask;
 import android.provider.Settings.Secure;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebView;
 
-public class TweetingsApplication extends Application implements Constants, OnSharedPreferenceChangeListener {
+public class TweetingsApplication extends Application implements Constants, OnSharedPreferenceChangeListener, IGalleryApplication {
 
-	private LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
+	public LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
 	private AsyncTaskManager mAsyncTaskManager;
 	private SharedPreferences mPreferences;
 	private ServiceInterface mServiceInterface;
@@ -78,6 +88,16 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 	public static final String PARAM_SYNC_ID = "PARAM_SYNC_ID";
 	public static String BROADCAST_SYNC_ACTION = "com.dwdesign.tweetings.broadcast.SYNCRECIEVED";
 	
+	private static final String DOWNLOAD_FOLDER = "download";
+
+	private static final long DOWNLOAD_CAPACITY = 64 * 1024 * 1024; // 64M
+	private DataManager mDataManager;
+
+	private ThreadPool mThreadPool;
+
+	private DownloadCache mDownloadCache;
+
+	private String mBrowserUserAgent;
 	
 	public AsyncTaskManager getAsyncTaskManager() {
 		if (mAsyncTaskManager == null) {
@@ -85,23 +105,23 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 		}
 		return mAsyncTaskManager;
 	}
+	
+	public String getBrowserUserAgent() {
+		return mBrowserUserAgent;
+	}
 
 	public LazyImageLoader getPreviewImageLoader() {
-		if (mPreviewImageLoader == null) {
-			final int preview_image_size = getResources().getDimensionPixelSize(R.dimen.preview_image_size);
-			mPreviewImageLoader = new LazyImageLoader(this, DIR_NAME_CACHED_THUMBNAILS,
-					R.drawable.image_preview_fallback, preview_image_size, preview_image_size, 10);
-		}
-		return mPreviewImageLoader;
+		if (mPreviewImageLoader != null) return mPreviewImageLoader;
+		final int preview_image_size = getResources().getDimensionPixelSize(R.dimen.image_preview_preferred_width);
+		return mPreviewImageLoader = new LazyImageLoader(this, DIR_NAME_CACHED_THUMBNAILS, 0, preview_image_size,
+				preview_image_size);
 	}
 
 	public LazyImageLoader getProfileImageLoader() {
-		if (mProfileImageLoader == null) {
-			final int profile_image_size = getResources().getDimensionPixelSize(R.dimen.profile_image_size);
-			mProfileImageLoader = new LazyImageLoader(this, DIR_NAME_PROFILE_IMAGES,
-					R.drawable.logo, profile_image_size, profile_image_size, 60);
-		}
-		return mProfileImageLoader;
+		if (mProfileImageLoader != null) return mProfileImageLoader;
+		final int profile_image_size = getResources().getDimensionPixelSize(R.dimen.profile_image_size);
+		return mProfileImageLoader = new LazyImageLoader(this, DIR_NAME_PROFILE_IMAGES,
+				R.drawable.ic_profile_image_default, profile_image_size, profile_image_size);
 	}
 	
 	public ItemsList getSelectedItems() {
@@ -131,16 +151,59 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 	public boolean isDebugBuild() {
 		return DEBUG;
 	}
+	
+	@Override
+	public synchronized DataManager getDataManager() {
+		if (mDataManager == null) {
+			mDataManager = new DataManager(this);
+		}
+		return mDataManager;
+	}
 
+	@Override
+	public synchronized DownloadCache getDownloadCache() {
+		if (mDownloadCache == null) {
+			final File cacheDir = new File(getExternalCacheDir(), DOWNLOAD_FOLDER);
+
+			if (!cacheDir.isDirectory()) {
+				cacheDir.mkdirs();
+			}
+
+			if (!cacheDir.isDirectory()) throw new RuntimeException("fail to create: " + cacheDir.getAbsolutePath());
+			mDownloadCache = new DownloadCache(this, cacheDir, DOWNLOAD_CAPACITY);
+		}
+		return mDownloadCache;
+	}
+
+	@Override
+	public synchronized ThreadPool getThreadPool() {
+		if (mThreadPool == null) {
+			mThreadPool = new ThreadPool();
+		}
+		return mThreadPool;
+	}
+	
 	@Override
 	public void onCreate() {
 		mPreferences = getSharedPreferences(SHARED_PREFERENCES_NAME, MODE_PRIVATE);
 		mPreferences.registerOnSharedPreferenceChangeListener(this);
 		super.onCreate();
+		initializeAsyncTask();
+		GalleryUtils.initialize(this);
+		mBrowserUserAgent = new WebView(this).getSettings().getUserAgentString();
 		mServiceInterface = ServiceInterface.getInstance(this);
 		registerPush();
 		backupManager = new BackupManager(this);
 		
+	}
+	
+	private void initializeAsyncTask() {
+		// AsyncTask class needs to be loaded in UI thread.
+		// So we load it here to comply the rule.
+		try {
+			Class.forName(AsyncTask.class.getName());
+		} catch (final ClassNotFoundException e) {
+		}
 	}
 	
 	public void registerPush() {
@@ -199,10 +262,10 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 
 	public void reloadConnectivitySettings() {
 		if (mPreviewImageLoader != null) {
-			mPreviewImageLoader.reloadProxySettings();
+			mPreviewImageLoader.reloadConnectivitySettings();
 		}
 		if (mProfileImageLoader != null) {
-			mProfileImageLoader.reloadProxySettings();
+			mProfileImageLoader.reloadConnectivitySettings();
 		}
 	}
 	
@@ -401,6 +464,12 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 			};
 			new Thread(runnable).start();
 		}
+		
+		
 	}
-	
+
+	@Override
+	public Context getAndroidContext() {
+		return this;
+	}
 }

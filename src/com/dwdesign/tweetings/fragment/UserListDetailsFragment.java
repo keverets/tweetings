@@ -55,6 +55,7 @@ import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.User;
 import twitter4j.UserList;
+import twitter4j.internal.org.json.JSONObject;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
@@ -484,7 +485,7 @@ public class UserListDetailsFragment extends BaseListFragment implements OnClick
 				final long account_id = mAccountId;
 				final String tabScreenName = mUserScreenName;
 				final String tabListName = mListName;
-				final String tabArguments = "{\"account_id\":" + account_id + ",\"screen_name\":\"" + tabScreenName + "\",\"list_name\":\"" + tabListName + "\"}";
+				final String tabArguments = "{\"account_id\":" + account_id + ",\"screen_name\":\"" + tabScreenName + "\",\"list_name\":" + JSONObject.quote(tabListName) + "}";
 				final ContentValues values = new ContentValues();
 				values.put(Tabs.ARGUMENTS, tabArguments);
 				values.put(Tabs.NAME, tabName);

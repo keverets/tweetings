@@ -10,6 +10,7 @@ import static com.dwdesign.tweetings.util.Utils.isMyAccount;
 import static com.dwdesign.tweetings.util.Utils.getDefaultAccountId;
 import static com.dwdesign.tweetings.util.Utils.parseString;
 import static com.dwdesign.tweetings.util.Utils.parseURL;
+import static com.dwdesign.tweetings.util.Utils.openImage;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import twitter4j.User;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.adapter.ParcelableStatusesAdapter;
+import com.dwdesign.tweetings.fragment.UserProfileFragment;
 import com.dwdesign.tweetings.loader.UserTimelineLoader;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.ParcelableStatus;
@@ -71,6 +73,7 @@ public class GalleryActivity extends BaseActivity implements Constants {
 	private ArrayList<ParcelableStatus> mStatuses;
 	private GridView gridview; 
 	private long account_id;
+	private boolean mDisplaySensitiveContents;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -91,6 +94,10 @@ public class GalleryActivity extends BaseActivity implements Constants {
         gridview = (GridView) findViewById(R.id.gridview);
         gridview.setAdapter(new ImageAdapter(this));
         
+        SharedPreferences mPreferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		mDisplaySensitiveContents = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS, false);
+		
+        
         DisplayMetrics displaymetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
         int height = displaymetrics.heightPixels;
@@ -105,9 +112,7 @@ public class GalleryActivity extends BaseActivity implements Constants {
             	ParcelableStatus pStatus = mStatuses.get(position);
             	final ImageSpec spec = getAllAvailableImage(pStatus.image_orig_url_string);
             	if (spec != null) {
-					final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(spec.image_link));
-					intent.setPackage(getPackageName());
-					startActivity(intent);
+            		openImage(GalleryActivity.this, Uri.parse(spec.full_image_link), pStatus.is_possibly_sensitive);
 				}
             }
         });
@@ -246,9 +251,11 @@ public class GalleryActivity extends BaseActivity implements Constants {
             }
             if (mStatuses != null && mStatuses.size() >= 1) {
             	ParcelableStatus pStatus = mStatuses.get(position);
-            	if (pStatus.image_preview_url_string != null) {
-            		UrlImageViewHelper.setUrlDrawable(i, pStatus.image_preview_url_string);
-            	}
+            	if (pStatus.is_possibly_sensitive && !mDisplaySensitiveContents) {
+        			i.setImageResource(R.drawable.image_preview_nsfw);
+				} else {
+					UrlImageViewHelper.setUrlDrawable(i, pStatus.image_preview_url_string);
+				}
             	//i.setImageURI(Uri.parse(pStatus.image_preview_url_string));
             }
             return i;

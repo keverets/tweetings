@@ -16,14 +16,22 @@
 package com.handmark.pulltorefresh.library.internal;
 
 import com.dwdesign.tweetings.R;
+import com.dwdesign.tweetings.Constants;
+import com.dwdesign.tweetings.activity.HomeActivity;
+import com.dwdesign.tweetings.service.TweetingsService;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.support.v4.app.FragmentActivity;
 import android.text.Html;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -38,7 +46,7 @@ import android.widget.TextView;
 
 import com.handmark.pulltorefresh.library.PullToRefreshBase.Mode;
 
-public class LoadingLayout extends FrameLayout {
+public class LoadingLayout extends FrameLayout implements Constants {
 
 	static final int DEFAULT_ROTATION_ANIMATION_DURATION = 600;
 
@@ -57,6 +65,11 @@ public class LoadingLayout extends FrameLayout {
 	private final Animation mRotateAnimation;
 
 	private boolean mArrowRotated;
+	
+	private final AudioManager audioManager;
+	private SharedPreferences mPreferences;
+	private final Context mContext;
+	private boolean hasPlayedSound = false;
 
 	public LoadingLayout(final Context context, final Mode mode, final TypedArray attrs) {
 		super(context);
@@ -68,6 +81,9 @@ public class LoadingLayout extends FrameLayout {
 		mHeaderProgress = (ProgressBar) header.findViewById(R.id.pull_to_refresh_progress);
 		mHeaderArrow = (ImageView) header.findViewById(R.id.pull_to_refresh_arrow);
 		mRotateAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.pull_to_refresh_rotate);
+		audioManager = (AudioManager) context.getSystemService(Activity.AUDIO_SERVICE);
+		mPreferences = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+		mContext = context;
 
 		switch (mode) {
 			case PULL_UP_TO_REFRESH:
@@ -104,7 +120,7 @@ public class LoadingLayout extends FrameLayout {
 
 		reset();
 	}
-
+	
 	public LoadingLayout(final Context context, final TypedArray attrs, final int defStyle) {
 		this(context, Mode.PULL_DOWN_TO_REFRESH, attrs);
 	}
@@ -114,11 +130,34 @@ public class LoadingLayout extends FrameLayout {
 			mHeaderArrow.startAnimation(mRotateAnimation);
 			rotateArrow();
 			mArrowRotated = false;
+			
 		}
 		mHeaderText.setText(Html.fromHtml(mPullLabel));
 	}
 
 	public void refreshing() {
+		if (hasPlayedSound) {
+			hasPlayedSound = false;
+			boolean isMuted = false;
+			
+			switch(audioManager.getRingerMode()) {
+				case AudioManager.RINGER_MODE_NORMAL:
+			        isMuted = false;
+			        break;
+			    case AudioManager.RINGER_MODE_SILENT:
+			        isMuted = true;
+			        break;
+			    case AudioManager.RINGER_MODE_VIBRATE:
+			    	isMuted = true;
+			    	break;
+			}
+			if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_NAVIGATION, true)) {
+				if (isMuted != true) {
+					MediaPlayer mPlayer = MediaPlayer.create(mContext, R.raw.release);
+					mPlayer.start();
+				}
+			}
+		}
 		mHeaderText.setText(Html.fromHtml(mRefreshingLabel));
 		mHeaderArrow.setVisibility(View.INVISIBLE);
 		mHeaderProgress.setVisibility(View.VISIBLE);
@@ -130,6 +169,28 @@ public class LoadingLayout extends FrameLayout {
 			mHeaderArrow.startAnimation(mRotateAnimation);
 			rotateArrow();
 			mArrowRotated = true;
+			if (!hasPlayedSound) {
+				hasPlayedSound = true;
+				boolean isMuted = false;
+				
+				switch(audioManager.getRingerMode()) {
+					case AudioManager.RINGER_MODE_NORMAL:
+				        isMuted = false;
+				        break;
+				    case AudioManager.RINGER_MODE_SILENT:
+				        isMuted = true;
+				        break;
+				    case AudioManager.RINGER_MODE_VIBRATE:
+				    	isMuted = true;
+				    	break;
+				}
+				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_NAVIGATION, true)) {
+					if (isMuted != true) {
+						MediaPlayer mPlayer = MediaPlayer.create(mContext, R.raw.pulldown);
+						mPlayer.start();
+					}
+				}
+			}
 		}
 		mHeaderText.setText(Html.fromHtml(mReleaseLabel));
 	}

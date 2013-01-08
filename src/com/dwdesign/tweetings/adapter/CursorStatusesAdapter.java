@@ -26,54 +26,72 @@ import static com.dwdesign.tweetings.util.Utils.findStatusInDatabases;
 import static com.dwdesign.tweetings.util.Utils.formatSameDayTime;
 import static com.dwdesign.tweetings.util.Utils.getAccountColor;
 import static com.dwdesign.tweetings.util.Utils.getAccountUsername;
+import static com.dwdesign.tweetings.util.Utils.getInlineImagePreviewDisplayOptionInt;
 import static com.dwdesign.tweetings.util.Utils.getAllAvailableImage;
 import static com.dwdesign.tweetings.util.Utils.getBiggerTwitterProfileImage;
 import static com.dwdesign.tweetings.util.Utils.getPreviewImage;
 import static com.dwdesign.tweetings.util.Utils.getStatusBackground;
 import static com.dwdesign.tweetings.util.Utils.getStatusTypeIconRes;
 import static com.dwdesign.tweetings.util.Utils.getUserColor;
-import static com.dwdesign.tweetings.util.Utils.getUserTypeIconRes;
+import static com.dwdesign.tweetings.util.Utils.isMyRetweet;
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.openUserProfile;
 import static com.dwdesign.tweetings.util.Utils.parseURL;
+import static com.dwdesign.tweetings.util.Utils.openImage;
+import static com.dwdesign.tweetings.util.Utils.setMenuForStatus;
 
 import java.util.ArrayList;
 
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.app.TweetingsApplication;
+import com.dwdesign.tweetings.fragment.CursorStatusesListFragment;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.PreviewImage;
 import com.dwdesign.tweetings.model.StatusCursorIndices;
 import com.dwdesign.tweetings.model.StatusViewHolder;
 import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.StatusesAdapterInterface;
 import com.dwdesign.tweetings.util.TwidereLinkify;
+import com.dwdesign.tweetings.Constants;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.support.v4.widget.SimpleCursorAdapter;
+import android.text.Html;
+import android.text.method.LinkMovementMethod;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewGroup.MarginLayoutParams;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
-public class CursorStatusesAdapter extends SimpleCursorAdapter implements StatusesAdapterInterface, OnClickListener {
+public class CursorStatusesAdapter extends SimpleCursorAdapter implements Constants, StatusesAdapterInterface, OnClickListener {
 
-	private boolean mDisplayProfileImage, mDisplayImagePreview, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
-		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks;
+	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
+		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks, mDisplaySensitiveContents;
 	private final LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
 	private float mTextSize;
 	private final Context mContext;
 	private StatusCursorIndices mIndices;
 	private final ArrayList<Long> mSelectedStatusIds;
 	private final boolean mDisplayHiResProfileImage;
-
+	private int mInlineImagePreviewDisplayOption;
+	
 	public CursorStatusesAdapter(final Context context) {
 		super(context, R.layout.status_list_item, null, new String[0], new int[0], 0);
 		mContext = context;
@@ -87,14 +105,22 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 	@Override
 	public void bindView(final View view, final Context context, final Cursor cursor) {
 		final int position = cursor.getPosition();
-		final StatusViewHolder holder = (StatusViewHolder) view.getTag();
+		StatusViewHolder holder = (StatusViewHolder) view.getTag();
 
 		final boolean is_gap = cursor.getShort(mIndices.is_gap) == 1;
 
 		final boolean show_gap = is_gap && !mGapDisallowed;
 
 		holder.setShowAsGap(show_gap);
+		
+		final long account_id = cursor.getLong(mIndices.account_id);
+		
+		holder.setAccountColorEnabled(mShowAccountColor);
 
+		if (mShowAccountColor) {
+			holder.setAccountColor(getAccountColor(mContext, account_id));
+		}
+		
 		if (!show_gap) {
 
 			final String retweeted_by = mDisplayName ? cursor.getString(mIndices.retweeted_by_name) : cursor
@@ -105,7 +131,6 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 			final String name = cursor.getString(mIndices.name);
 			final String in_reply_to_screen_name = cursor.getString(mIndices.in_reply_to_screen_name);
 
-			final long account_id = cursor.getLong(mIndices.account_id);
 			final long user_id = cursor.getLong(mIndices.user_id);
 			final long status_id = cursor.getLong(mIndices.status_id);
 			final long status_timestamp = cursor.getLong(mIndices.status_timestamp);
@@ -143,29 +168,33 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 				holder.setHighlightColor(Color.TRANSPARENT);
 			}
 			
-			holder.setAccountColorEnabled(mShowAccountColor);
-
-			if (mShowAccountColor) {
-				holder.setAccountColor(getAccountColor(mContext, account_id));
-			}
-
-			final PreviewImage preview = getPreviewImage(text, mDisplayImagePreview);
+			final PreviewImage preview = getPreviewImage(text, mInlineImagePreviewDisplayOption);
 			//final PreviewImage preview = !mFastProcessingEnabled || mDisplayImagePreview ? getPreviewImage(text,
 					//mDisplayImagePreview) : null;
 			final boolean has_media = preview != null ? preview.has_image : false;
 
 			holder.setTextSize(mTextSize);
 
-			holder.text.setText(unescape(text));
+			if (mShowLinks) {
+			 	 holder.text.setText(Html.fromHtml(text));
+			 	 final TwidereLinkify linkify = new TwidereLinkify(holder.text);
+			 	 linkify.setOnLinkClickListener(new OnLinkClickHandler(context, account_id));
+			 	 linkify.addAllLinks();
+			} else {
+				holder.text.setText(unescape(text));
+			}
+			holder.text.setMovementMethod(null);
 			
 			/*if (mShowLinks) {
-				final TwidereLinkify linkify = new TwidereLinkify(holder.text);
-				linkify.setOnLinkClickListener(new OnLinkClickHandler(mContext, account_id));
-				linkify.addAllLinks();
-				holder.text.setMovementMethod(null);
+				holder.text.setText(TwidereLinkify.twitterifyText(account_id, mContext, text));
+				holder.text.setMovementMethod(LinkMovementMethod.getInstance());
+				holder.text.setLinksClickable(false);
+				holder.text.setTag(position);
+				holder.text.setOnClickListener(this);
+				holder.text.setOnLongClickListener(this);
 			}
 			else {
-				holder.text.setMovementMethod(null);
+				holder.text.setText(unescape(text));
 			}*/
 			
 			//holder.name.setCompoundDrawablesWithIntrinsicBounds(getUserTypeIconRes(is_verified, is_protected), 0, 0, 0);
@@ -213,11 +242,29 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 				}
 				holder.profile_image.setTag(position);
 			}
-			final boolean has_preview = mDisplayImagePreview && has_media && preview.matched_url != null;
-			holder.image_preview.setVisibility(has_preview ? View.VISIBLE : View.GONE);
+			final boolean has_preview = mInlineImagePreviewDisplayOption != INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE
+				 	 && has_media && preview.matched_url != null;
+			holder.image_preview_frame.setVisibility(has_preview ? View.VISIBLE : View.GONE);
 			if (has_preview) {
-				mPreviewImageLoader.displayImage(parseURL(preview.matched_url), holder.image_preview);
-				holder.image_preview.setTag(position);
+				final MarginLayoutParams lp = (MarginLayoutParams) holder.image_preview_frame.getLayoutParams();
+			 	if (mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE || mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH) {
+			 		lp.width = LayoutParams.MATCH_PARENT;
+			 		lp.leftMargin = 0;
+			 		holder.image_preview_frame.setLayoutParams(lp);
+			 	} else if (mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL) {
+			 		final Resources res = mContext.getResources();
+			 		lp.width = res.getDimensionPixelSize(R.dimen.image_preview_width);
+			 		lp.leftMargin = (int) (res.getDisplayMetrics().density * 16);
+			 		holder.image_preview_frame.setLayoutParams(lp);
+			 	}
+				
+			 	final boolean is_possibly_sensitive = cursor.getInt(mIndices.is_possibly_sensitive) == 1;
+				if (is_possibly_sensitive && !mDisplaySensitiveContents) {
+					holder.image_preview.setImageResource(R.drawable.image_preview_nsfw);
+				} else {
+					mPreviewImageLoader.displayImage(parseURL(preview.matched_url), holder.image_preview);	
+				}
+				holder.image_preview_frame.setTag(position);
 			}
 		}
 
@@ -278,23 +325,22 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 			final StatusViewHolder holder = new StatusViewHolder(view);
 			view.setTag(holder);
 			holder.profile_image.setOnClickListener(this);
-			holder.image_preview.setOnClickListener(this);
+			holder.image_preview_frame.setOnClickListener(this);
 		}
 		return view;
 	}
-
+	
 	@Override
 	public void onClick(final View view) {
 		final Object tag = view.getTag();
 		final ParcelableStatus status = tag instanceof Integer ? getStatus((Integer) tag) : null;
 		if (status == null) return;
+			
 		switch (view.getId()) {
-			case R.id.image_preview: {
+			case R.id.image_preview_frame: {
 				final ImageSpec spec = getAllAvailableImage(status.image_orig_url_string);
 				if (spec != null) {
-					final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, Uri.parse(spec.image_link));
-					intent.setPackage(mContext.getPackageName());
-					mContext.startActivity(intent);
+					openImage(mContext, Uri.parse(spec.full_image_link), status.is_possibly_sensitive);
 				}
 				break;
 			}
@@ -304,14 +350,6 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 				}
 				break;
 			}
-		}
-	}
-
-	@Override
-	public void setDisplayImagePreview(final boolean preview) {
-		if (preview != mDisplayImagePreview) {
-			mDisplayImagePreview = preview;
-			notifyDataSetChanged();
 		}
 	}
 
@@ -348,12 +386,28 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Status
 	}
 	
 	@Override
+	public void setDisplaySensitiveContents(final boolean display) {
+		if (display != mDisplaySensitiveContents) {
+			mDisplaySensitiveContents = display;
+			notifyDataSetChanged();
+		}
+	}
+	
+	@Override
 	public void setGapDisallowed(final boolean disallowed) {
 		if (mGapDisallowed != disallowed) {
 			mGapDisallowed = disallowed;
 			notifyDataSetChanged();
 		}
 
+	}
+	
+	@Override
+	public void setInlineImagePreviewDisplayOption(final String option) {
+		if (option != null && !option.equals(mInlineImagePreviewDisplayOption)) {
+			mInlineImagePreviewDisplayOption = getInlineImagePreviewDisplayOptionInt(option);
+			notifyDataSetChanged();
+		}
 	}
 	
 	@Override

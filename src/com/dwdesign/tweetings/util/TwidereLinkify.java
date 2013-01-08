@@ -23,16 +23,28 @@ import static com.dwdesign.tweetings.util.Utils.getAllAvailableImage;
 import static com.dwdesign.tweetings.util.Utils.matcherEnd;
 import static com.dwdesign.tweetings.util.Utils.matcherGroup;
 import static com.dwdesign.tweetings.util.Utils.matcherStart;
+import static com.dwdesign.tweetings.util.Utils.openUserProfile;
+import static com.dwdesign.tweetings.util.Utils.openTweetSearch;
+import static com.dwdesign.tweetings.util.HtmlEscapeHelper.unescape;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.dwdesign.tweetings.model.ImageSpec;
+import twitter4j.Status;
 
+import com.dwdesign.tweetings.model.ImageSpec;
+import com.dwdesign.tweetings.model.ParcelableStatus;
+import com.dwdesign.tweetings.view.NoUnderlineClickableSpan;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.method.LinkMovementMethod;
 import android.text.method.MovementMethod;
 import android.text.style.URLSpan;
@@ -73,7 +85,7 @@ public class TwidereLinkify {
 
 	};
 
-	public static final String SINA_WEIBO_IMAGES_AVAILABLE_SIZES = "(woriginal|large|thumbnail|bmiddle|mw600)";
+	public static final String SINA_WEIBO_IMAGES_AVAILABLE_SIZES = "(woriginal|large|thumbnail|bmiddle|mw[\\d]+)";
 
 	public static final String AVAILABLE_URL_SCHEME_PREFIX = "(https?:\\/\\/)?";
 	public static final String AVAILABLE_IMAGE_SHUFFIX = "(png|jpeg|jpg|gif|bmp)";
@@ -129,7 +141,7 @@ public class TwidereLinkify {
 	public static final Pattern PATTERN_ALL_AVAILABLE_IMAGES = Pattern.compile("("
 			+ STRING_PATTERN_IMAGES_NO_SCHEME + "|" + STRING_PATTERN_TWITTER_IMAGES_NO_SCHEME + "|"
 			+ STRING_PATTERN_SINA_WEIBO_IMAGES_NO_SCHEME + "|" + STRING_PATTERN_LOCKERZ_AND_PLIXI_NO_SCHEME + "|"
-			+ STRING_PATTERN_INSTAGRAM_NO_SCHEME + "|" + STRING_PATTERN_TWITPIC_NO_SCHEME + "|"
+			/*+ STRING_PATTERN_INSTAGRAM_NO_SCHEME + "|"*/ + STRING_PATTERN_TWITPIC_NO_SCHEME + "|"
 			+ STRING_PATTERN_IMGLY_NO_SCHEME + "|" + STRING_PATTERN_YFROG_NO_SCHEME + "|"
 			+ STRING_PATTERN_TWITGOO_NO_SCHEME + "|" + STRING_PATTERN_MOBYPICTURE_NO_SCHEME + "|"
 			+ STRING_PATTERN_IMGUR_DOMAIN + ")", Pattern.CASE_INSENSITIVE);
@@ -137,7 +149,7 @@ public class TwidereLinkify {
 	public static final Pattern PATTERN_INLINE_PREVIEW_AVAILABLE_IMAGES_MATCH_ONLY = Pattern.compile(
 			AVAILABLE_URL_SCHEME_PREFIX + "(" + STRING_PATTERN_IMAGES_NO_SCHEME + "|"
 					+ STRING_PATTERN_TWITTER_IMAGES_DOMAIN + "|" + STRING_PATTERN_SINA_WEIBO_IMAGES_DOMAIN + "|"
-					+ STRING_PATTERN_LOCKERZ_AND_PLIXI_DOMAIN + "|" + STRING_PATTERN_INSTAGRAM_DOMAIN + "|"
+					+ STRING_PATTERN_LOCKERZ_AND_PLIXI_DOMAIN + "|"/* + STRING_PATTERN_INSTAGRAM_DOMAIN + "|"*/
 					+ STRING_PATTERN_TWITPIC_DOMAIN + "|" + STRING_PATTERN_IMGLY_DOMAIN + "|"
 					+ STRING_PATTERN_YFROG_DOMAIN + "|" + STRING_PATTERN_TWITGOO_DOMAIN + "|"
 					+ STRING_PATTERN_MOBYPICTURE_DOMAIN + "|" + STRING_PATTERN_IMGUR_DOMAIN + ")",
@@ -146,7 +158,7 @@ public class TwidereLinkify {
 	public static final Pattern PATTERN_PREVIEW_AVAILABLE_IMAGES_IN_HTML = Pattern.compile("("
 			+ STRING_PATTERN_IMAGES_NO_SCHEME + "|" 
 			+ STRING_PATTERN_SINA_WEIBO_IMAGES_NO_SCHEME + "|" + STRING_PATTERN_LOCKERZ_AND_PLIXI_NO_SCHEME + "|"
-			+ STRING_PATTERN_INSTAGRAM_NO_SCHEME + "|" + STRING_PATTERN_TWITPIC_NO_SCHEME + "|"
+			/*+ STRING_PATTERN_INSTAGRAM_NO_SCHEME + "|"*/ + STRING_PATTERN_TWITPIC_NO_SCHEME + "|"
 			+ STRING_PATTERN_IMGLY_NO_SCHEME + "|" + STRING_PATTERN_YFROG_NO_SCHEME + "|"
 			+ STRING_PATTERN_TWITGOO_NO_SCHEME + "|" + STRING_PATTERN_MOBYPICTURE_NO_SCHEME + "|"
 			+ STRING_PATTERN_IMGUR_DOMAIN + ")", Pattern.CASE_INSENSITIVE);
@@ -190,7 +202,7 @@ public class TwidereLinkify {
 	public static final int IMGUR_GROUP_ID = 3;
 
 	public static final String TWITTER_PROFILE_IMAGES_AVAILABLE_SIZES = "(bigger|normal|mini)";
-	private static final String STRING_PATTERN_TWITTER_PROFILE_IMAGES_NO_SCHEME = "([\\w\\d]+)\\.twimg\\.com\\/profile_images\\/([\\d\\w\\-_]+)\\/([\\d\\w\\-_]+)_"
+	private static final String STRING_PATTERN_TWITTER_PROFILE_IMAGES_NO_SCHEME = "(twimg[\\d\\w\\-]+\\.akamaihd\\.net|[\\w\\d]+\\.twimg\\.com)\\/profile_images\\/([\\d\\w\\-_]+)\\/([\\d\\w\\-_]+)_"
 			+ TWITTER_PROFILE_IMAGES_AVAILABLE_SIZES + "(\\.?" + AVAILABLE_IMAGE_SHUFFIX + ")?";
 	private static final String STRING_PATTERN_TWITTER_PROFILE_IMAGES = AVAILABLE_URL_SCHEME_PREFIX
 			+ STRING_PATTERN_TWITTER_PROFILE_IMAGES_NO_SCHEME;
@@ -216,6 +228,75 @@ public class TwidereLinkify {
 			return true;
 		}
 	};
+	
+	public static Spannable twitterifyText(final long account_id, final Context context, ParcelableStatus status) {
+		return twitterifyText(account_id, context, status.text_html, null);
+	}
+	
+	public static Spannable twitterifyText(final long account_id, final Context context, String status) {
+		return twitterifyText(account_id, context, status, null);
+	}
+	
+	public static Spannable twitterifyText(final long account_id, final Context context, final String status, final String highlightQuery) {
+		final String textPlain = unescape(status);
+		Spannable rtSpan = new SpannableString(textPlain);
+		
+		String anchorRegex = "<a href=\"(.*?)\">(.*?)</a>";
+		Pattern p = Pattern.compile(anchorRegex);
+		Matcher m = p.matcher(status);
+		while (m.find()) {
+			final String url = m.group(1);
+			final String displayUrl = m.group(2);
+			
+			int start = textPlain.indexOf(displayUrl);
+			int end = start + displayUrl.length();
+			rtSpan.setSpan(new NoUnderlineClickableSpan() {
+				@Override
+				public void onClick(View widget) {
+					context.startActivity(new Intent(Intent.ACTION_VIEW)
+							.setData(Uri.parse(url))
+							.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+				}
+			}, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+		}
+		
+		m = Regex.VALID_MENTION_OR_LIST.matcher(rtSpan);
+
+		while (m.find()) {
+			final int start = matcherStart(m, Regex.VALID_MENTION_OR_LIST_GROUP_AT);
+			final int username_end = matcherEnd(m, Regex.VALID_MENTION_OR_LIST_GROUP_USERNAME);
+			final String mention = matcherGroup(m, Regex.VALID_MENTION_OR_LIST_GROUP_USERNAME);
+			
+			rtSpan.setSpan(new NoUnderlineClickableSpan() {
+				@Override
+				public void onClick(View widget) {
+					openUserProfile((Activity) context, account_id, 0, mention);
+				}
+			}, start, username_end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+		}
+		
+		m = Regex.VALID_HASHTAG.matcher(rtSpan);
+
+		while (m.find()) {
+			final int start = matcherStart(m, Regex.VALID_HASHTAG_GROUP_HASHTAG_FULL);
+			final int end = matcherEnd(m, Regex.VALID_HASHTAG_GROUP_HASHTAG_FULL);
+			final String url = matcherGroup(m, Regex.VALID_HASHTAG_GROUP_HASHTAG_FULL);
+
+			rtSpan.setSpan(new NoUnderlineClickableSpan() {
+				@Override
+				public void onClick(View widget) {
+					openTweetSearch((Activity) context, account_id, url);
+				}
+			}, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+		}
+		
+		return rtSpan;
+	}
+	
+	public TwidereLinkify() {
+		this.view = null;
+	}
 
 	public TwidereLinkify(final TextView view) {
 		this.view = view;
@@ -306,7 +387,7 @@ public class TwidereLinkify {
 						if (spec == null || start < 0 || end > string.length() || start > end) {
 							continue;
 						}
-						final String url = spec.image_link;
+						final String url = spec.full_image_link;
 						string.removeSpan(span);
 						applyLink(url, start, end, string, LINK_TYPE_LINK_WITH_IMAGE_EXTENSION);
 					}
@@ -509,6 +590,12 @@ public class TwidereLinkify {
 
 		private final int type;
 		private final OnLinkClickListener listener;
+		
+		@Override
+		public void updateDrawState(TextPaint ds) {
+			ds.setColor(ds.linkColor);
+			ds.setUnderlineText(false);
+		}
 
 		public LinkSpan(final String url, final int type, final OnLinkClickListener listener) {
 			super(url);

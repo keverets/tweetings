@@ -44,7 +44,7 @@ public interface Constants {
 	public static final String SHARED_PREFERENCES_NAME = "preferences";
 
 	public static final String DATABASES_NAME = "tweetings.sqlite";
-	public static final int DATABASES_VERSION = 24;
+	public static final int DATABASES_VERSION = 26;
 
 	public static final String CONSUMER_KEY = "";
 	public static final String CONSUMER_SECRET = "";
@@ -72,6 +72,10 @@ public interface Constants {
 	public static final String BUFFERAPP_CLIENT_ID = "";
 	public static final String BUFFERAPP_CLIENT_SECRET = "";
 	
+	public static final String APPAWARE_CLIENT_TOKEN = "";
+	
+	public static final String YOUTUBE_API_KEY = "";
+	
 	public static final String C2DM_SENDER = "";
 	public static final String C2DM_SERVER_REGISTRATION_URL = "";
 	public static final String TWEETINGS_SYNC_GET_URL = "";
@@ -80,7 +84,7 @@ public interface Constants {
 	public static final String TWEETINGS_TRACKING_URL = "";
 	
 	public static final String MAPS_API_KEY = DEBUG ? MAPS_API_KEY_DEBUG : MAPS_API_KEY_RELEASE;
-
+	
 	public static final String SCHEME_HTTP = "http";
 	public static final String SCHEME_HTTPS = "https";
 	public static final String SCHEME_CONTENT = "content";
@@ -133,6 +137,7 @@ public interface Constants {
 	public static final String QUERY_PARAM_LIST_NAME = "list_name";
 	public static final String QUERY_PARAM_QUERY = "query";
 	public static final String QUERY_PARAM_TYPE = "type";
+	public static final String QUERY_PARAM_ID = "id";
 	public static final String QUERY_PARAM_VALUE_USERS = "users";
 	public static final String QUERY_PARAM_VALUE_TWEETS = "tweets";
 	public static final String QUERY_PARAM_NOTIFY = "notify";
@@ -163,7 +168,7 @@ public interface Constants {
 	public static final String PREFERENCE_KEY_CLEAR_DATABASES = "clear_databases";
 	public static final String PREFERENCE_KEY_CLEAR_CACHE = "clear_cache";
 	public static final String PREFERENCE_KEY_DISPLAY_PROFILE_IMAGE = "display_profile_image";
-	public static final String PREFERENCE_KEY_INLINE_IMAGE_PREVIEW = "inline_image_preview";
+	public static final String PREFERENCE_KEY_INLINE_IMAGE_PREVIEW_DISPLAY_OPTION = "inline_image_preview_display_option";
 	public static final String PREFERENCE_KEY_DISPLAY_NAME = "display_name";
 	public static final String PREFERENCE_KEY_DISPLAY_NAME_BOTH = "display_name_both";
 	public static final String PREFERENCE_KEY_COMPOSE_BUTTON = "bottom_compose_button";
@@ -192,6 +197,7 @@ public interface Constants {
 	public static final String PREFERENCE_KEY_HIDE_TAB_LABEL = "hide_tab_label";
 	public static final String PREFERENCE_KEY_REFRESH_AFTER_TWEET = "refresh_after_tweet";
 	public static final String PREFERENCE_KEY_SOUND_SEND = "sound_on_send";
+	public static final String PREFERENCE_KEY_SOUND_NAVIGATION = "sound_on_navigation";
 	public static final String PREFERENCE_KEY_AUTO_REFRESH = "auto_refresh";
 	public static final String PREFERENCE_KEY_REFRESH_INTERVAL = "refresh_interval";
 	public static final String PREFERENCE_KEY_REFRESH_ENABLE_HOME_TIMELINE = "refresh_enable_home_timeline";
@@ -243,19 +249,30 @@ public interface Constants {
 	public static final String PREFERENCE_KEY_SHOW_MENTIONS_TAB = "show_mentions_tab";
 	public static final String PREFERENCE_KEY_SHOW_MESSAGES_TAB = "show_messages_tab";
 	public static final String PREFERENCE_KEY_SHOW_ACCOUNTS_TAB = "show_accounts_tab";
+	public static final String PREFERENCE_KEY_SHOW_SEARCH_TAB = "show_search_tab";
+	public static final String PREFERENCE_KEY_SHOW_LISTS_TAB = "show_lists_tab";
 	public static final String PREFERENCE_KEY_VOLUME_NAVIGATION = "volume_navigation";
 	public static final String PREFERENCE_KEY_GROUP_NOTIFICATIONS = "group_notifications";
+	public static final String PREFERENCE_KEY_AUTO_UPLOAD = "auto_upload";
 	public static final String PREFERENCE_FAST_SCROLL = "fast_scroll";
-	
+	public static final String PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS = "display_sensitive_contents";
 	public static final String PREFERENCE_DEFAULT_QUOTE_FORMAT = "RT @" + FORMAT_PATTERN_NAME + ": "
 			+ FORMAT_PATTERN_TEXT;
 	public static final String PREFERENCE_DEFAULT_SHARE_FORMAT = FORMAT_PATTERN_TITLE + " - " + FORMAT_PATTERN_TEXT;
 	public static final String PREFERENCE_DEFAULT_IMAGE_UPLOAD_FORMAT = FORMAT_PATTERN_TEXT + " " + FORMAT_PATTERN_LINK;
-
 	public static final int PREFERENCE_DEFAULT_DATABASE_ITEM_LIMIT = 200;
 	public static final int PREFERENCE_DEFAULT_LOAD_ITEM_LIMIT = 50;
 	public static final float PREFERENCE_DEFAULT_TEXT_SIZE = 14.0f;
 
+	public static final String INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_NONE = "none";
+	public static final String INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_SMALL = "small";
+	public static final String INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_LARGE = "large";
+	public static final String INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_LARGE_HIGH = "large_high";
+	public static final int INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE = 0;
+	public static final int INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL = 1;
+	public static final int INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE = 2;
+	public static final int INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_LARGE_HIGH = 3;
+	
 	public static final String INTENT_PACKAGE_PREFIX = "com.dwdesign.tweetings.";
 
 	public static final String INTENT_ACTION_SERVICE = INTENT_PACKAGE_PREFIX + "SERVICE";
@@ -326,6 +343,7 @@ public interface Constants {
 	public static final String BROADCAST_SENT_DIRECT_MESSAGES_DATABASE_UPDATED = INTENT_PACKAGE_PREFIX
 			+ "SENT_DIRECT_MESSAGES_DATABASE_UPDATED";
 	public static final String BROADCAST_STATUS_DESTROYED = INTENT_PACKAGE_PREFIX + "STATUS_DESTROYED";
+	public static final String BROADCAST_SEARCH_CHANGED = INTENT_PACKAGE_PREFIX + "SEARCH_CHANGED";
 	public static final String BROADCAST_TRENDS_UPDATED = INTENT_PACKAGE_PREFIX + "TRENDS_UPDATED";
 	public static final String BROADCAST_USER_LIST_MEMBER_DELETED = INTENT_PACKAGE_PREFIX + "USER_LIST_MEMBER_DELETED";
 	public static final String BROADCAST_USER_LIST_SUBSCRIPTION_CHANGED = INTENT_PACKAGE_PREFIX
@@ -348,6 +366,8 @@ public interface Constants {
 	public static final String BROADCAST_APPLICATION_QUITTED = INTENT_PACKAGE_PREFIX + "APPLICATION_QUITTED";
 	public static final String BROADCAST_VOLUME_DOWN = INTENT_PACKAGE_PREFIX + "VOLUME_DOWN";
 	public static final String BROADCAST_VOLUME_UP = INTENT_PACKAGE_PREFIX + "VOLUME_UP";
+	public static final String BROADCAST_TABS_NEW_TWEETS = INTENT_PACKAGE_PREFIX + "TABS_NEW_TWEETS";
+	public static final String BROADCAST_TABS_READ_TWEETS = INTENT_PACKAGE_PREFIX + "TABS_READ_TWEETS";
 	
 	public static final String INTENT_KEY_LATITUDE = "latitude";
 	public static final String INTENT_KEY_LONGITUDE = "longitude";
@@ -409,6 +429,7 @@ public interface Constants {
 	public static final String INTENT_KEY_TWITLONGER_EXPANDED_TEXT = "twitlonger_expanded_text";
 	public static final String INTENT_KEY_SCHEDULE_DATE_TIME = "schedule_date_time";
 	public static final String INTENT_KEY_BUFFERAPP_CODE = "bufferapp_code";
+	public static final String INTENT_KEY_UPDATE_TAB = "update_tab";
 	public static final String QUERY_PARAM_NEW_ITEMS_COUNT = "new_items_count";	
 
 	public static final int MENU_HOME = android.R.id.home;
@@ -450,7 +471,9 @@ public interface Constants {
 	public static final int MENU_FIND_RETWEETS = R.id.find_retweets;
 	public static final int MENU_RETWEET = R.id.retweet;
 	public static final int MENU_QUOTE = R.id.quote;
+	public static final int MENU_QUOTE_REPLY = R.id.quote_reply;
 	public static final int MENU_SHARE = R.id.share;
+	public static final int MENU_TRENDS_LOCATION = R.id.trends_location;
 	public static final int MENU_TRANSLATE = R.id.translate;
 	public static final int MENU_DRAFTS = R.id.drafts;
 	public static final int MENU_DELETE_ALL = R.id.delete_all;
@@ -463,6 +486,7 @@ public interface Constants {
 	public static final int MENU_MUTE_SOURCE = R.id.mute_source;
 	public static final int MENU_MUTE_USER = R.id.mute_user;
 	public static final int MENU_MAKE_GAP = R.id.make_gap;
+	public static final int MENU_COPY = R.id.copy_clipboard;
 	public static final int MENU_REFRESH = R.id.refresh;
 	public static final int MENU_LOAD_MORE = R.id.load_more;
 	public static final int MENU_CONVERSATION = R.id.conversation;
@@ -477,7 +501,8 @@ public interface Constants {
 	public static final int MENU_MULTI_SELECT = R.id.multi_select;
 	public static final int MENU_CLEAR_COLOR = R.id.clear_color;
 	public static final int MENU_TWEET_CONVERSATION = R.id.tweet_conversation;
-
+	public static final int MENU_TOGGLE_SENSITIVE = R.id.toggle_sensitive;
+	
 	public static final int REQUEST_TAKE_PHOTO = 1;
 	public static final int REQUEST_PICK_IMAGE = 2;
 	public static final int REQUEST_SELECT_ACCOUNT = 3;
@@ -564,7 +589,8 @@ public interface Constants {
 	public static final int LINK_ID_BUFFERAPP = 23;
 	public static final int LINK_ID_NEARBY = 24;
 	public static final int LINK_ID_MENTIONS = 25;
-
+	public static final int LINK_ID_TRENDS = 26;
+	
 	public static final String DIR_NAME_PROFILE_IMAGES = "profile_images";
 	public static final String DIR_NAME_CACHED_THUMBNAILS = "cached_thumbnails";
 
@@ -577,7 +603,12 @@ public interface Constants {
 	public static final int NOTIFICATION_ID_MENTIONS = 2;
 	public static final int NOTIFICATION_ID_DIRECT_MESSAGES = 3;
 	public static final int NOTIFICATION_ID_DRAFTS = 4;
-
+	public static final int NOTIFICATION_ID_UPLOAD_PROGRESS = 5;
+	
+	public static final int TAB_HOME = 1;
+	public static final int TAB_MENTIONS = 2;
+	public static final int TAB_DIRECT_MESSAGES = 3;
+	
 	public static final String ICON_SPECIAL_TYPE_CUSTOMIZE = "_customize";
 	
 	public static final String TWITTER_VERIFY_CREDENTIALS_JSON = "https://api.twitter.com/1/account/verify_credentials.json";

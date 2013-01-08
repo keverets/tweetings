@@ -58,6 +58,7 @@ import com.dwdesign.tweetings.util.AsyncTaskManager;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
 import com.dwdesign.tweetings.util.ServiceInterface;
 import com.dwdesign.tweetings.util.StatusesAdapterInterface;
+import com.dwdesign.tweetings.util.ClipboardUtils;
 
 import android.content.BroadcastReceiver;
 import android.app.Dialog;
@@ -77,6 +78,7 @@ import android.os.SystemClock;
 import android.os.StrictMode.ThreadPolicy;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
+import android.text.Html;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -99,13 +101,13 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 	
 	private ServiceInterface mService;
 	private TweetingsApplication mApplication;
-	private SharedPreferences mPreferences;
+	protected SharedPreferences mPreferences;
 	private AsyncTaskManager mAsyncTaskManager;
 
 	private Handler mHandler;
 	private Runnable mTicker;
 	
-	private ListView mListView;
+	protected ListView mListView;
 
 	private StatusesAdapterInterface mAdapter;
 	private PopupMenu mPopupMenu;
@@ -249,7 +251,7 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 			}
 		}
 	}
-
+	
 	@Override
 	public boolean onItemLongClick(final AdapterView<?> adapter, final View view, final int position, final long id) {
 		mSelectedStatus = null;
@@ -285,7 +287,7 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 		return false;
 	}
 	
-	private void openMenu(View view, ParcelableStatus status) {
+	public void openMenu(View view, ParcelableStatus status) {
 		mPopupMenu = PopupMenu.getInstance(getActivity(), view);
 		mPopupMenu.inflate(R.menu.action_status);
 		final int activated_color = getResources().getColor(R.color.holo_blue_bright);
@@ -403,6 +405,16 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 				final Intent intent = new Intent(INTENT_ACTION_COMPOSE);
 				final Bundle bundle = new Bundle();
 				bundle.putLong(INTENT_KEY_ACCOUNT_ID, status.account_id);
+				bundle.putBoolean(INTENT_KEY_IS_QUOTE, true);
+				bundle.putString(INTENT_KEY_TEXT, getQuoteStatus(getActivity(), status.screen_name, status.text_plain));
+				intent.putExtras(bundle);
+				startActivity(intent);
+				break;
+			}
+			case MENU_QUOTE_REPLY: {
+				final Intent intent = new Intent(INTENT_ACTION_COMPOSE);
+				final Bundle bundle = new Bundle();
+				bundle.putLong(INTENT_KEY_ACCOUNT_ID, status.account_id);
 				bundle.putLong(INTENT_KEY_IN_REPLY_TO_ID, status.status_id);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME, status.screen_name);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_NAME, status.name);
@@ -504,7 +516,14 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 				where.append(" AND " + Statuses.STATUS_ID + "=" + status.status_id);
 				mResolver.update(query_uri, values, where.toString(), null);
 				getActivity().sendBroadcast(new Intent(BROADCAST_FILTERS_UPDATED).putExtra(INTENT_KEY_SUCCEED, true));
-				
+				break;
+			}
+			case MENU_COPY: {
+				final CharSequence text = Html.fromHtml(status.text_html);
+				if (ClipboardUtils.setText(getActivity(), text)) {
+					Toast.makeText(getActivity(), R.string.text_copied, Toast.LENGTH_SHORT).show();
+				}
+				break;
 			}
 		}
 		return true;
@@ -521,20 +540,22 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 		mLoadMoreAutomatically = mPreferences.getBoolean(PREFERENCE_KEY_LOAD_MORE_AUTOMATICALLY, false);
 		final float text_size = mPreferences.getFloat(PREFERENCE_KEY_TEXT_SIZE, PREFERENCE_DEFAULT_TEXT_SIZE);
 		final boolean display_profile_image = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_PROFILE_IMAGE, true);
-		final boolean display_image_preview = mPreferences.getBoolean(PREFERENCE_KEY_INLINE_IMAGE_PREVIEW, false);
+		final String inline_image_preview_display_option = mPreferences.getString(PREFERENCE_KEY_INLINE_IMAGE_PREVIEW_DISPLAY_OPTION, INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_SMALL);
 		final boolean display_name = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_NAME, false);
 		final boolean display_name_both = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_NAME_BOTH, true);
 		final boolean show_absolute_time = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_ABSOLUTE_TIME, false);
+		final boolean display_sensitive_contents = mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_SENSITIVE_CONTENTS, false);
 		final boolean fast_processing = mPreferences.getBoolean(PREFERENCE_KEY_FAST_LIST_PROCESSING, false);
-		final boolean show_links = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_LINKS, false);
+		final boolean show_links = mPreferences.getBoolean(PREFERENCE_KEY_SHOW_LINKS, true);
 		final boolean show_fast_scroll = mPreferences.getBoolean(PREFERENCE_FAST_SCROLL, false);
 		mAdapter.setMultiSelectEnabled(mApplication.isMultiSelectActive());
 		mAdapter.setDisplayProfileImage(display_profile_image);
-		mAdapter.setDisplayImagePreview(display_image_preview);
+		mAdapter.setInlineImagePreviewDisplayOption(inline_image_preview_display_option);
 		mAdapter.setShowLinks(show_links);
 		mAdapter.setFastProcessingEnabled(fast_processing);
 		mAdapter.setDisplayName(display_name);
 		mAdapter.setDisplayNameBoth(display_name_both);
+		mAdapter.setDisplaySensitiveContents(display_sensitive_contents);
 		mAdapter.setTextSize(text_size);
 		mAdapter.setShowAbsoluteTime(show_absolute_time);
 		mListView.setFastScrollEnabled(show_fast_scroll);

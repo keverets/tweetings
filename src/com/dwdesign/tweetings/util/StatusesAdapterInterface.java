@@ -27,9 +27,9 @@ public interface StatusesAdapterInterface extends BaseAdapterInterface {
 	
 	public long findItemIdByPosition(final int position);
 
-	public void setDisplayImagePreview(boolean preview);
-	
 	public void setFastProcessingEnabled(boolean enabled);
+	
+	public void setDisplaySensitiveContents(boolean display);
 
 	public void setGapDisallowed(boolean disallowed);
 	
@@ -42,5 +42,7 @@ public interface StatusesAdapterInterface extends BaseAdapterInterface {
 	public void setShowAccountColor(boolean show);
 	
 	public void setShowLinks(boolean show);
+
+	public void setInlineImagePreviewDisplayOption(String option);
 
 }

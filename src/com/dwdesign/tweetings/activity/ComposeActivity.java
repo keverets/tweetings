@@ -30,6 +30,7 @@ import static com.dwdesign.tweetings.util.Utils.getShareStatus;
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.parseString;
 import static com.dwdesign.tweetings.util.Utils.showErrorToast;
+import static com.dwdesign.tweetings.util.Utils.openImage;
 
 import static com.dwdesign.tweetings.util.Utils.getTwitterAccessToken;
 
@@ -41,6 +42,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -76,6 +79,7 @@ import com.dwdesign.tweetings.util.ArrayUtils;
 import com.dwdesign.tweetings.service.TweetingsService;
 import com.dwdesign.tweetings.util.GetExternalCacheDirAccessor;
 import com.dwdesign.tweetings.util.ServiceInterface;
+import com.dwdesign.tweetings.util.EnvironmentAccessor;
 import com.dwdesign.tweetings.view.ColorView;
 
 import android.app.Activity;
@@ -115,6 +119,7 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
+import android.text.method.ArrowKeyMovementMethod;
 import android.text.style.ClickableSpan;
 import android.util.Log;
 import android.view.Menu;
@@ -147,6 +152,10 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	private static final String FAKE_IMAGE_LINK = "https://www.example.com/fake_image.jpg";
 	private static final String INTENT_KEY_CONTENT_MODIFIED = "content_modified";
 	private static final String INTENT_KEY_IS_NAVIGATE_UP = "is_navigate_up";
+	private static final String INTENT_KEY_IS_POSSIBLY_SENSITIVE = "is_possibly_sensitive";
+	
+	private ImageUpload upload;
+	private Timer uploadTimer;
 	
 	private ServiceInterface mService;
 	private LocationManager mLocationManager;
@@ -174,7 +183,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	private Uri mImageUri;
 	private long mInReplyToStatusId = -1;
 	private String mInReplyToScreenName, mInReplyToName;
-	private boolean mIsQuote, mUploadUseExtension, mIsBuffer, mContentModified;
+	private boolean mIsQuote, mUploadUseExtension, mIsBuffer, mContentModified, mIsPossiblySensitive;
 	private String mUploadProvider;
 	private ProgressDialog progressDialog;
 	private ArrayList<String> tweetParts;
@@ -206,7 +215,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 						mScheduleDate = null;
 					}
 				}
-				setMenu(mMenuBar.getMenu());
+				setMenu();
 				break;
 			}
 			case REQUEST_TAKE_PHOTO: {
@@ -220,7 +229,11 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					} else {
 						mIsPhotoAttached = false;
 					}
-					setMenu(mMenuBar.getMenu());
+					setMenu();
+					boolean isAutoUpload = mPreferences.getBoolean(PREFERENCE_KEY_AUTO_UPLOAD, false);
+					if (!isNullOrEmpty(mUploadProvider) && mIsPhotoAttached && isAutoUpload) {
+						postMedia();
+					}
 				}
 				break;
 			}
@@ -237,7 +250,11 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					} else {
 						mIsImageAttached = false;
 					}
-					setMenu(mMenuBar.getMenu());
+					setMenu();
+					boolean isAutoUpload = mPreferences.getBoolean(PREFERENCE_KEY_AUTO_UPLOAD, false);
+					if (!isNullOrEmpty(mUploadProvider) && mIsImageAttached && isAutoUpload) {
+						postMedia();
+					}
 				}
 				break;
 			}
@@ -270,7 +287,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					} else {
 						break;
 					}
-					setMenu(mMenuBar.getMenu());
+					setMenu();
 				}
 				break;
 			}
@@ -302,7 +319,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 						} else {
 							break;
 						}
-						setMenu(mMenuBar.getMenu());
+						setMenu();
 				 }
 	                break;
 		}
@@ -474,10 +491,10 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		mImageThumbnailPreview.setOnLongClickListener(this);
 		mMenuBar.setOnMenuItemClickListener(this);
 		mMenuBar.inflate(R.menu.menu_compose);
-		setMenu(mMenuBar.getMenu());
 		mMenuBar.show();
 		if (mPreferences.getBoolean(PREFERENCE_KEY_QUICK_SEND, false)) {
-			mEditText.setRawInputType(InputType.TYPE_CLASS_TEXT); 
+			mEditText.setRawInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT); 
+			mEditText.setMovementMethod(ArrowKeyMovementMethod.getInstance());
 			mEditText.setImeOptions(EditorInfo.IME_ACTION_GO);
 			mEditText.setOnEditorActionListener(this);
 		}
@@ -494,13 +511,15 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 			}
 		}
 		invalidateSupportOptionsMenu();
-		mMenuBar.invalidate();
+		setMenu();
 		if (mColorIndicator != null) {
 			mColorIndicator.setOrientation(ColorView.VERTICAL);
 			mColorIndicator.setColor(getAccountColors(this, mAccountIds));
 		}
 		mContentModified = savedInstanceState != null ? savedInstanceState.getBoolean(
 				INTENT_KEY_CONTENT_MODIFIED) : false;
+		mIsPossiblySensitive = savedInstanceState != null ? savedInstanceState
+				.getBoolean(INTENT_KEY_IS_POSSIBLY_SENSITIVE) : false;
 	}
 
 	@Override
@@ -555,7 +574,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		mIsPhotoAttached = false;
 		mIsImageAttached = false;
 		reloadAttachedImageThumbnail(null);
-		setMenu(mMenuBar.getMenu());
+		setMenu();
 	}
 
 	@Override
@@ -593,13 +612,13 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				else {
 					mIsBuffer = true;
 				}
-				setMenu(mMenuBar.getMenu());
+				setMenu();
 				break;
 			}
 			case MENU_SCHEDULE_TWEET: {
 				if (mScheduleDate != null) {
 					mScheduleDate = null;
-					setMenu(mMenuBar.getMenu());
+					setMenu();
 				}
 				else {
 					Intent intent = new Intent(INTENT_ACTION_SCHEDULE_TWEET);
@@ -618,7 +637,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					getLocation();
 				}
 				mPreferences.edit().putBoolean(PREFERENCE_KEY_ATTACH_LOCATION, !attach_location).commit();
-				setMenu(mMenuBar.getMenu());
+				setMenu();
 				break;
 			}
 			case MENU_DRAFTS: {
@@ -670,11 +689,15 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				break;
 			}
 			case MENU_VIEW: {
-				if (mImageUri != null) {
-					final Intent intent = new Intent(INTENT_ACTION_VIEW_IMAGE, mImageUri);
-					startActivity(intent);
-				}
+				openImage(this, mImageUri, false);
 				break;
+			}
+			case MENU_TOGGLE_SENSITIVE: {
+				final boolean has_media = (mIsImageAttached || mIsPhotoAttached) && mImageUri != null;
+			 	if (!has_media) return false;
+			 	mIsPossiblySensitive = !mIsPossiblySensitive;
+			 	setMenu();
+			 	break;
 			}
 		}
 		return true;
@@ -841,8 +864,9 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				String part = tweetParts.get(i-1);
 				String postString = part + " (" + getString(R.string.split_part) + " " + Integer.toString(i) + ")"; 
 				final boolean attach_location = mPreferences.getBoolean(PREFERENCE_KEY_ATTACH_LOCATION, false);
+				final boolean has_media = (mIsImageAttached || mIsPhotoAttached) && mImageUri != null;
 				mService.updateStatus(mAccountIds, postString, attach_location ? mRecentLocation : null, mImageUri,
-					mInReplyToStatusId, mIsPhotoAttached && !mIsImageAttached);			
+					mInReplyToStatusId, has_media && mIsPossiblySensitive, mIsPhotoAttached && !mIsImageAttached);			
 			}
 			setResult(Activity.RESULT_OK);
 			finish();
@@ -860,8 +884,9 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 			mService.bufferStatus(mAccountIds, text);
 		}
 		else {
+			final boolean has_media = (mIsImageAttached || mIsPhotoAttached) && mImageUri != null;
 			mService.updateStatus(mAccountIds, text, attach_location ? mRecentLocation : null, mImageUri,
-					mInReplyToStatusId, mIsPhotoAttached && !mIsImageAttached);
+					mInReplyToStatusId, has_media && mIsPossiblySensitive, mIsPhotoAttached && !mIsImageAttached);
 		}
 		setResult(Activity.RESULT_OK);
 		finish();
@@ -870,35 +895,131 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	protected void postMedia() {
 		final String image_path = getImagePathFromUri(this, mImageUri);
 		//final File image_file = image_path != null ? new File(image_path) : null;
-		new UploadMediaTask().execute(image_path);
+		UploadMediaTask task = new UploadMediaTask();
+		long accountId = 0;
+		if (mAccountIds != null && mAccountIds.length > 0) {
+			accountId = mAccountIds[0];
+		}
+		final AccessToken accessToken = getTwitterAccessToken(this, accountId);
+		task.setAccessToken(accessToken);
+		task.execute(image_path);
 		
 	}
 	
-	private class UploadMediaTask extends AsyncTask<String, Void, String> {
+	private class UploadMediaTask extends AsyncTask<String, Integer, String> {
 		private ProgressDialog dialog;
+		private AccessToken accessToken;
 		
+		public void setAccessToken(AccessToken accessToken) {
+			this.accessToken = accessToken;
+		}
 		
         // can use UI thread here
         protected void onPreExecute() {
         	dialog = new ProgressDialog(ComposeActivity.this);
         	dialog.setMessage(getString(R.string.uploading_media));
-        	dialog.setIndeterminate(true);
+        	dialog.setIndeterminate(false);
         	dialog.setCancelable(false);
+        	dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        	dialog.setProgress(0);
         	dialog.show();
-
         }
    
         // automatically done on worker thread (separate from UI thread)
         protected String doInBackground(final String... args) {
-          String url = ComposeActivity.this.uploadImage(args[0]);
+        	String path = args[0];
+        	uploadTimer = new Timer();
+    		uploadTimer.schedule(new TimerTask() {			
+    			@Override
+    			public void run() {
+    				UploadProgressMethod(dialog);
+    			}
+    			
+    		}, 0, 50);
+    		String url = null;
+    		
+    		String consumer_key = mPreferences.getString(PREFERENCE_KEY_CONSUMER_KEY, CONSUMER_KEY);
+    		String consumer_secret = mPreferences.getString(PREFERENCE_KEY_CONSUMER_SECRET, CONSUMER_SECRET);
+    		if (isNullOrEmpty(consumer_key) || isNullOrEmpty(consumer_secret)) {
+    			consumer_key = CONSUMER_KEY;
+    			consumer_secret = CONSUMER_SECRET;
+    		}
+    		
+    		if (mUploadProvider.equals("twitpic")) {
+			
+				ConfigurationBuilder cb = new ConfigurationBuilder();
+				cb.setMediaProviderAPIKey(TWITPIC_API_KEY);
+				cb.setOAuthConsumerKey(consumer_key);
+				cb.setOAuthConsumerSecret(consumer_secret);
+				cb.setOAuthAccessToken(accessToken.getToken());
+				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
+				Configuration conf = cb.build();
+				upload = new ImageUploadFactory(conf).getInstance(MediaProvider.TWITPIC);
+
+    		}
+    		else if (mUploadProvider.equals("yfrog")) {
+    
+				ConfigurationBuilder cb = new ConfigurationBuilder();
+				cb.setMediaProviderAPIKey(YFROG_API_KEY);
+				cb.setOAuthConsumerKey(consumer_key);
+				cb.setOAuthConsumerSecret(consumer_secret);
+				cb.setOAuthAccessToken(accessToken.getToken());
+				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
+				Configuration conf = cb.build();
+				upload = new ImageUploadFactory(conf).getInstance(MediaProvider.YFROG);
+				    	
+    		}
+    		else if (mUploadProvider.equals("imgly")) {
+			
+				ConfigurationBuilder cb = new ConfigurationBuilder();
+				cb.setOAuthConsumerKey(consumer_key);
+				cb.setOAuthConsumerSecret(consumer_secret);
+				cb.setOAuthAccessToken(accessToken.getToken());
+				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
+				Configuration conf = cb.build();
+				upload = new ImageUploadFactory(conf).getInstance(MediaProvider.IMG_LY);
+			
+    		}
+    		else if (mUploadProvider.equals("lockerz")) {
+			
+				ConfigurationBuilder cb = new ConfigurationBuilder();
+				cb.setMediaProviderAPIKey(PLIXI_API_KEY);
+				cb.setOAuthConsumerKey(consumer_key);
+				cb.setOAuthConsumerSecret(consumer_secret);
+				cb.setOAuthAccessToken(accessToken.getToken());
+				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
+				Configuration conf = cb.build();
+				upload = new ImageUploadFactory(conf).getInstance(MediaProvider.LOCKERZ);
+			
+    		}
+    		else if (mUploadProvider.equals("moby")) {
+		
+				ConfigurationBuilder cb = new ConfigurationBuilder();
+				cb.setMediaProviderAPIKey(MOBY_API_KEY);
+				cb.setOAuthConsumerKey(consumer_key);
+				cb.setOAuthConsumerSecret(consumer_secret);
+				cb.setOAuthAccessToken(accessToken.getToken());
+				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
+				Configuration conf = cb.build();
+				upload = new ImageUploadFactory(conf).getInstance(MediaProvider.MOBYPICTURE);
+			
+    		}
+    		try {
+    			url = upload.upload(new File(path));
+    		} catch (TwitterException te) {
+	            te.printStackTrace();
+	        }
+    		if (uploadTimer != null) {
+    			uploadTimer.cancel();
+    		}
           return url;
+        }
+        
+        protected void onProgressUpdate(Integer... progress) {
         }
    
         // can use UI thread here
         protected void onPostExecute(final String result) {
-        	//if (this.dialog.isShowing()) {
-                //this.dialog.dismiss();
-            //}
         	if (dialog.isShowing()) {
         		dialog.dismiss();
         	}
@@ -910,7 +1031,10 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
         	else {
         		
         		ComposeActivity.this.uploadComplete(result);
-        		ComposeActivity.this.send();
+        		boolean isAutoUpload = mPreferences.getBoolean(PREFERENCE_KEY_AUTO_UPLOAD, false);
+        		if (!isAutoUpload) {
+        			ComposeActivity.this.send();
+        		}
         	}
         }
      }
@@ -918,105 +1042,36 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	public void uploadComplete(String text) {
 		String oldText = parseString(mEditText.getText());
 		mEditText.setText(oldText + " " + text);
-		
-		mImageUri = null;
-		reloadAttachedImageThumbnail(null);
-		mIsPhotoAttached = false;
-		mIsImageAttached = false;
+		removeAttachments();
 	}
 	
-	private String uploadImage(String path) {
-		String url = "";
-		long accountId = 0;
-		if (mAccountIds != null && mAccountIds.length > 0) {
-			accountId = mAccountIds[0];
-		}
-		final AccessToken accessToken = getTwitterAccessToken(this, accountId);
-		
-		String consumer_key = mPreferences.getString(PREFERENCE_KEY_CONSUMER_KEY, CONSUMER_KEY);
-		String consumer_secret = mPreferences.getString(PREFERENCE_KEY_CONSUMER_SECRET, CONSUMER_SECRET);
-		if (isNullOrEmpty(consumer_key) || isNullOrEmpty(consumer_secret)) {
-			consumer_key = CONSUMER_KEY;
-			consumer_secret = CONSUMER_SECRET;
-		}
-		
-		if (mUploadProvider.equals("twitpic")) {
-			try {
-				ConfigurationBuilder cb = new ConfigurationBuilder();
-				cb.setMediaProviderAPIKey(TWITPIC_API_KEY);
-				cb.setOAuthConsumerKey(consumer_key);
-				cb.setOAuthConsumerSecret(consumer_secret);
-				cb.setOAuthAccessToken(accessToken.getToken());
-				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
-				Configuration conf = cb.build();
-				ImageUpload upload = new ImageUploadFactory(conf).getInstance(MediaProvider.TWITPIC);
-				 url = upload.upload(new File(path));
-			} catch (TwitterException te) {
-	            
+	private void UploadProgressMethod(final ProgressDialog dialog)
+	{
+		//This method is called directly by the timer
+		//and runs in the same thread as the timer.
+
+		//We call the method that will work with the UI
+		//through the runOnUiThread method.
+		this.runOnUiThread(new Runnable() {
+	        public void run() {
+	            // use data here
+	        	if (upload != null && upload.getRequestLength() > 0) {
+	        		float progress = (float)upload.getRequestStatus()/(float)upload.getRequestLength();
+	        		float longPc = progress * 100;
+	        		int percentage = Math.round(longPc);
+	        		if (percentage >= 100) {
+	        			dialog.setProgress(100);
+	        			dialog.setIndeterminate(true);
+	        			dialog.setMessage(getString(R.string.uploading_media_wait));
+	        		}
+	        		else {
+	        			dialog.setProgress(percentage);
+	        		}
+	    		}
 	        }
-		}
-		else if (mUploadProvider.equals("yfrog")) {
-			try {
-				ConfigurationBuilder cb = new ConfigurationBuilder();
-				cb.setMediaProviderAPIKey(YFROG_API_KEY);
-				cb.setOAuthConsumerKey(consumer_key);
-				cb.setOAuthConsumerSecret(consumer_secret);
-				cb.setOAuthAccessToken(accessToken.getToken());
-				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
-				Configuration conf = cb.build();
-				ImageUpload upload = new ImageUploadFactory(conf).getInstance(MediaProvider.YFROG);
-				 url = upload.upload(new File(path));
-			} catch (TwitterException te) {
-	            
-	        }
-		}
-		else if (mUploadProvider.equals("imgly")) {
-			try {
-				ConfigurationBuilder cb = new ConfigurationBuilder();
-				cb.setOAuthConsumerKey(consumer_key);
-				cb.setOAuthConsumerSecret(consumer_secret);
-				cb.setOAuthAccessToken(accessToken.getToken());
-				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
-				Configuration conf = cb.build();
-				ImageUpload upload = new ImageUploadFactory(conf).getInstance(MediaProvider.IMG_LY);
-				 url = upload.upload(new File(path));
-			} catch (TwitterException te) {
-	            
-	        }
-		}
-		else if (mUploadProvider.equals("lockerz")) {
-			try {
-				ConfigurationBuilder cb = new ConfigurationBuilder();
-				cb.setMediaProviderAPIKey(PLIXI_API_KEY);
-				cb.setOAuthConsumerKey(consumer_key);
-				cb.setOAuthConsumerSecret(consumer_secret);
-				cb.setOAuthAccessToken(accessToken.getToken());
-				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
-				Configuration conf = cb.build();
-				ImageUpload upload = new ImageUploadFactory(conf).getInstance(MediaProvider.LOCKERZ);
-				 url = upload.upload(new File(path));
-			} catch (TwitterException te) {
-	            
-	        }
-		}
-		else if (mUploadProvider.equals("moby")) {
-			try {
-				ConfigurationBuilder cb = new ConfigurationBuilder();
-				cb.setMediaProviderAPIKey(MOBY_API_KEY);
-				cb.setOAuthConsumerKey(consumer_key);
-				cb.setOAuthConsumerSecret(consumer_secret);
-				cb.setOAuthAccessToken(accessToken.getToken());
-				cb.setOAuthAccessTokenSecret(accessToken.getTokenSecret());
-				Configuration conf = cb.build();
-				ImageUpload upload = new ImageUploadFactory(conf).getInstance(MediaProvider.MOBYPICTURE);
-				 url = upload.upload(new File(path));
-			} catch (TwitterException te) {
-	            
-	        }
-		}
-		return url;
-		
+	    });
 	}
+	
 	
 	private class UrlShortenerTask extends AsyncTask<String, Void, String> {
 		private ProgressDialog dialog;
@@ -1320,18 +1375,19 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 
 	@Override
 	public boolean onPrepareOptionsMenu(final Menu menu) {
-		final String text_orig = mEditText != null ? parseString(mEditText.getText()) : null;
+		if (menu == null || mEditText == null || mTextCount == null) return false;
+		final String text_orig = parseString(mEditText.getText());
 		final String text = mIsPhotoAttached || mIsImageAttached ? mUploadUseExtension ? getImageUploadStatus(this,
 				FAKE_IMAGE_LINK, text_orig) : text_orig + " " + FAKE_IMAGE_LINK : text_orig;
-		if (mTextCount != null) {
-			final int count = mValidator.getTweetLength(text);
-			final float hue = count < 140 ? count >= 130 ? 5 * (140 - count) : 50 : 0;
-			final float[] hsv = new float[] { hue, 1.0f, 1.0f };
-			mTextCount.setTextColor(count >= 130 ? Color.HSVToColor(0x80, hsv) : 0x80808080);
-			mTextCount.setText(parseString(140-count));
-		}
+		final int count = mValidator.getTweetLength(text);
+		final float hue = count < 140 ? count >= 130 ? 5 * (140 - count) : 50 : 0;
+		final float[] hsv = new float[] { hue, 1.0f, 1.0f };
+		mTextCount.setTextColor(count >= 130 ? Color.HSVToColor(0x80, hsv) : 0x80808080);
+		mTextCount.setText(parseString(140-count));
 		final MenuItem sendItem = menu.findItem(MENU_SEND);
-		sendItem.setEnabled(text_orig.length() > 0);
+		if (sendItem != null) {
+			sendItem.setEnabled(text_orig.length() > 0);
+		}
 		return super.onPrepareOptionsMenu(menu);
 	}
 
@@ -1356,6 +1412,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		outState.putBoolean(INTENT_KEY_IS_PHOTO_ATTACHED, mIsPhotoAttached);
 		outState.putParcelable(INTENT_KEY_IMAGE_URI, mImageUri);
 		outState.putBoolean(INTENT_KEY_CONTENT_MODIFIED, mContentModified);
+		outState.putBoolean(INTENT_KEY_IS_POSSIBLY_SENSITIVE, mIsPossiblySensitive);
 		super.onSaveInstanceState(outState);
 	}
 
@@ -1365,7 +1422,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		final String component = mPreferences.getString(PREFERENCE_KEY_IMAGE_UPLOADER, null);
 		mUploadUseExtension = !isNullOrEmpty(component);
 		if (mMenuBar != null) {
-			setMenu(mMenuBar.getMenu());
+			setMenu();
 		}
 	}
 
@@ -1390,6 +1447,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	 	values.put(Drafts.IN_REPLY_TO_SCREEN_NAME, mInReplyToScreenName);
 	 	values.put(Drafts.IS_QUOTE, mIsQuote ? 1 : 0);
 	 	values.put(Drafts.IS_QUEUED, false);
+	 	values.put(Drafts.IS_POSSIBLY_SENSITIVE, mIsPossiblySensitive ? 1 : 0);
 	 	if (mImageUri != null) {
 	 		values.put(Drafts.IS_IMAGE_ATTACHED, mIsImageAttached);
 	 		values.put(Drafts.IS_PHOTO_ATTACHED, mIsPhotoAttached);
@@ -1441,7 +1499,8 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		mAttachedImageThumbnailTask.execute();
 	}
 
-	private void setMenu(final Menu menu) {
+	private void setMenu() {
+		final Menu menu = mMenuBar.getMenu();
 		final int activated_color = getResources().getColor(R.color.holo_blue_bright);
 		final MenuItem itemAddImage = menu.findItem(MENU_ADD_IMAGE);
 		final MenuItem itemLibrary = menu.findItem(MENU_LIBRARY_MENU);
@@ -1488,17 +1547,40 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		boolean moreHighlighted = false;
 		if (itemMore != null) {
 			final MenuItem itemDrafts = menu.findItem(R.id.drafts);
-			final Drawable iconDrafts = itemDrafts.getIcon().mutate();
-			
-			final Cursor drafts_cur = getContentResolver().query(Drafts.CONTENT_URI, new String[0], null, null, null);
-			if (drafts_cur.getCount() > 0) {
-				iconDrafts.setColorFilter(activated_color, Mode.MULTIPLY);
-				moreHighlighted = true;
-			} else {
-				moreHighlighted = false;
-				iconDrafts.clearColorFilter();
+			final MenuItem itemToggleSensitive = menu.findItem(MENU_TOGGLE_SENSITIVE);
+			if (itemMore != null) {
+				if (itemDrafts != null) {
+					final Cursor drafts_cur = getContentResolver().query(Drafts.CONTENT_URI, new String[0], null, null,
+							null);
+					final Drawable iconMore = itemMore.getIcon().mutate();
+					final Drawable iconDrafts = itemDrafts.getIcon().mutate();
+					if (drafts_cur.getCount() > 0) {
+						moreHighlighted = true;
+						iconDrafts.setColorFilter(activated_color, Mode.MULTIPLY);
+					} else {
+						iconDrafts.clearColorFilter();
+					}
+					drafts_cur.close();
+				}
+				if (itemToggleSensitive != null) {
+					final boolean has_media = (mIsImageAttached || mIsPhotoAttached) && mImageUri != null;
+					if (has_media && isNullOrEmpty(mUploadProvider)) {
+						itemToggleSensitive.setVisible(true);
+					}
+					else {
+						itemToggleSensitive.setVisible(false);
+					}
+					if (has_media && isNullOrEmpty(mUploadProvider)) {
+						final Drawable iconToggleSensitive = itemToggleSensitive.getIcon().mutate();
+						if (mIsPossiblySensitive) {
+							moreHighlighted = true;
+							iconToggleSensitive.setColorFilter(activated_color, Mode.MULTIPLY);
+						} else {
+							iconToggleSensitive.clearColorFilter();
+						}
+					}
+				}
 			}
-			drafts_cur.close();
 		}
 		if (mScheduleDate != null) {
 			final MenuItem itemSchedule = menu.findItem(R.id.schedule_tweet);
@@ -1551,19 +1633,17 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				iconMore.clearColorFilter();
 			}
 		}
-		
+		mMenuBar.invalidate();
 		invalidateSupportOptionsMenu();
 	}
 
 	private void takePhoto() {
 		final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 		if (getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-			final File cache_dir = Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ? GetExternalCacheDirAccessor
-					.getExternalCacheDir(this) : new File(getExternalStorageDirectory().getPath() + "/Android/data/"
-					+ getPackageName() + "/cache/");
+			final File cache_dir = EnvironmentAccessor.getExternalCacheDir(this);
 			final File file = new File(cache_dir, "tmp_photo_" + System.currentTimeMillis() + ".jpg");
 			mImageUri = Uri.fromFile(file);
-			intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, mImageUri);
+			intent.putExtra(MediaStore.EXTRA_OUTPUT, mImageUri);
 			try {
 				startActivityForResult(intent, REQUEST_TAKE_PHOTO);
 			} catch (final ActivityNotFoundException e) {

@@ -21,6 +21,7 @@ package com.dwdesign.tweetings.fragment;
 
 import com.dwdesign.actionbarcompat.ActionBarFragmentActivity;
 import com.dwdesign.tweetings.Constants;
+import com.dwdesign.tweetings.activity.BaseActivity;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
@@ -31,6 +32,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.ListFragment;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -65,6 +67,16 @@ public class BaseListFragment extends ListFragment implements Constants {
 		final Activity activity = getActivity();
 		if (activity != null) return activity.getContentResolver();
 		return null;
+	}
+	
+	public void invalidateOptionsMenu() {
+		final FragmentActivity activity = getActivity();
+	 	if (activity == null) return;
+	 	if (activity instanceof BaseActivity) {
+	 		((BaseActivity) activity).invalidateSupportOptionsMenu();
+	 	} else {
+	 		 activity.supportInvalidateOptionsMenu();
+	 	}
 	}
 	
 	public ServiceInterface getServiceInterface() {

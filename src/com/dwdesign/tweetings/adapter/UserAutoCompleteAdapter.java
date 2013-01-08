@@ -181,8 +181,8 @@ public class UserAutoCompleteAdapter extends SimpleCursorAdapter implements Cons
 		if (filter != null) return filter.runQuery(constraint);
 		final StringBuilder where = new StringBuilder();
 		constraint = constraint != null ? constraint.toString().replaceAll("_", "^_") : null;
+		constraint = constraint != null ? constraint.toString().replaceAll("'", ""): null;
 		isHash = false;
-		
 		if (constraint != null) {
 			if (constraint.length() > 1 && constraint.charAt(0) == '@') {
 				isHash = false;

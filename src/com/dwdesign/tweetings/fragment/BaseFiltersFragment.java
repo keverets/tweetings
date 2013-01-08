@@ -41,6 +41,8 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -79,6 +81,13 @@ public abstract class BaseFiltersFragment extends BaseListFragment implements Lo
 		setListAdapter(mAdapter);
 		getListView().setOnItemLongClickListener(this);
 		getLoaderManager().initLoader(0, null, this);
+	}
+	
+	@Override
+	public void onCreateOptionsMenu(final Menu menu, final MenuInflater inflater) {
+		menu.clear();
+		inflater.inflate(R.menu.menu_filter, menu);
+		super.onCreateOptionsMenu(menu, inflater);
 	}
 
 	@Override

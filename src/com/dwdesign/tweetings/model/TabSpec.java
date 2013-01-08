@@ -9,7 +9,7 @@ import android.support.v4.app.Fragment;
 public class TabSpec {
 
 	public final String name;
-	public final Object icon;
+	public Object icon;
 	public final Class<? extends Fragment> cls;
 	public final Bundle args;
 	public final int position;
@@ -24,6 +24,10 @@ public class TabSpec {
 		this.args = args;
 		this.position = position;
 
+	}
+	
+	public void setIcon(Object icon) {
+		this.icon = icon;
 	}
 
 	@Override

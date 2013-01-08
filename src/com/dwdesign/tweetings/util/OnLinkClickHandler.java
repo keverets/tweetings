@@ -4,6 +4,7 @@ import static com.dwdesign.tweetings.util.Utils.openTweetSearch;
 import static com.dwdesign.tweetings.util.Utils.openUserListDetails;
 import static com.dwdesign.tweetings.util.Utils.openUserProfile;
 import static com.dwdesign.tweetings.util.Utils.expandTwitLonger;
+import static com.dwdesign.tweetings.util.Utils.openImage;
 
 import com.dwdesign.tweetings.fragment.StatusFragment;
 import com.dwdesign.tweetings.util.TwidereLinkify.OnLinkClickListener;
@@ -18,10 +19,16 @@ public class OnLinkClickHandler implements OnLinkClickListener {
 
 	private final Activity activity;
 	private final long account_id;
+	private final boolean is_possibly_sensitive;
 
 	public OnLinkClickHandler(final Context context, final long account_id) {
+		this(context, account_id, false);
+	}
+	
+	public OnLinkClickHandler(final Context context, final long account_id, final boolean is_possibly_sensitive) {
 		activity = context instanceof Activity ? (Activity) context : null;
 		this.account_id = account_id;
+		this.is_possibly_sensitive = is_possibly_sensitive;
 	}
 
 	@Override
@@ -37,9 +44,7 @@ public class OnLinkClickHandler implements OnLinkClickListener {
 				break;
 			}
 			case TwidereLinkify.LINK_TYPE_LINK_WITH_IMAGE_EXTENSION: {
-				final Intent intent = new Intent(StatusFragment.INTENT_ACTION_VIEW_IMAGE, Uri.parse(link));
-				intent.setPackage(activity.getPackageName());
-				activity.startActivity(intent);
+				openImage(activity, Uri.parse(link), is_possibly_sensitive);
 				break;
 			}
 			case TwidereLinkify.LINK_TYPE_TWITLONGER: {

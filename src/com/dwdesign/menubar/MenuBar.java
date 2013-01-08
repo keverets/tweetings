@@ -7,7 +7,6 @@ import com.dwdesign.tweetings.R;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -92,8 +91,7 @@ public class MenuBar extends TableRow implements PopupMenu.OnMenuItemClickListen
 
 	private View addMenuButton(final MenuItem item) {
 
-		final ImageButton actionButton = (ImageButton) LayoutInflater.from(mContext).inflate(R.layout.menu_button_item,
-				null);
+		final ImageButton actionButton = new ImageButton(mContext, null, R.attr.actionBarItemStyle);
 
 		final LayoutParams params = new LayoutParams((int) getResources().getDimension(R.dimen.actionbar_button_width),
 				ViewGroup.LayoutParams.MATCH_PARENT);
@@ -129,9 +127,8 @@ public class MenuBar extends TableRow implements PopupMenu.OnMenuItemClickListen
 				if (item.getItemId() == android.R.id.home) return false;
 
 				final Toast t = Toast.makeText(mContext, item.getTitle(), Toast.LENGTH_SHORT);
-
 				final int[] screenPos = new int[2];
-				v.getLocationInWindow(screenPos);
+				v.getLocationOnScreen(screenPos);
 
 				final int height = v.getHeight();
 

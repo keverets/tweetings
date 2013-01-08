@@ -13,7 +13,12 @@
 		android:summary="@string/automatic_retry_summary"
 		android:title="@string/automatic_retry"/>
 	
-     
+    <CheckBoxPreference
+		android:defaultValue="false"
+		android:key="auto_upload"
+		android:summary="@string/automatic_upload_summary"
+		android:title="@string/automatic_upload"/> 
+    
     <CheckBoxPreference
 		android:defaultValue="false"
 		android:key="bottom_compose_button"

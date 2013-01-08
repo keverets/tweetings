@@ -73,7 +73,7 @@ public class ParcelableDirectMessage implements Parcelable {
 		message_timestamp = indices.message_timestamp != -1 ? cursor.getLong(indices.message_timestamp) : -1;
 		sender_id = indices.sender_id != -1 ? cursor.getLong(indices.sender_id) : -1;
 		recipient_id = indices.recipient_id != -1 ? cursor.getLong(indices.recipient_id) : -1;
-		text = indices.text != -1 ? cursor.getString(indices.text) : null;
+		text = indices.text_plain != -1 ? cursor.getString(indices.text_plain) : null;
 		sender_name = indices.sender_name != -1 ? cursor.getString(indices.sender_name) : null;
 		recipient_name = indices.recipient_name != -1 ? cursor.getString(indices.recipient_name) : null;
 		sender_screen_name = indices.sender_screen_name != -1 ? cursor.getString(indices.sender_screen_name) : null;
