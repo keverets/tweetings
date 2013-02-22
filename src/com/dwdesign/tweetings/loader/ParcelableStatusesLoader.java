@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,32 +28,36 @@ import java.util.List;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.util.NoDuplicatesArrayList;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import twitter4j.Twitter;
 import android.content.Context;
 import android.support.v4.content.AsyncTaskLoader;
 
-public abstract class ParcelableStatusesLoader extends AsyncTaskLoader<List<ParcelableStatus>> implements Constants {
+public abstract class ParcelableStatusesLoader extends
+		AsyncTaskLoader<SynchronizedStateSavedList<ParcelableStatus, Long>> implements Constants {
 
-	private final Twitter mTwitter;
-	private final long mAccountId;
+	protected final Twitter mTwitter;
+	protected final long mAccountId;
 	private final String mClassName;
-	private final List<ParcelableStatus> mData;
+	private final SynchronizedStateSavedList<ParcelableStatus, Long> mData = new SynchronizedStateSavedList<ParcelableStatus, Long>();
 	private final boolean mFirstLoad, mIsHomeTab;
 
 	private Long mLastViewedId;
-	
-	public ParcelableStatusesLoader(final Context context, final long account_id, final List<ParcelableStatus> data, final String class_name,
-			final boolean is_home_tab) {
+
+	public ParcelableStatusesLoader(final Context context, final long account_id, final List<ParcelableStatus> data,
+			final String class_name, final boolean is_home_tab) {
 		super(context);
 		mClassName = class_name;
 		mTwitter = getTwitterInstance(context, account_id, true);
 		mAccountId = account_id;
 		mFirstLoad = data == null;
-		mData = data != null ? data : new NoDuplicatesArrayList<ParcelableStatus>();
+		if (data != null) {
+			mData.addAll(data);
+		}
 		mIsHomeTab = is_home_tab;
 	}
-	
+
 	public Long getLastViewedId() {
 		return mLastViewedId;
 	}
@@ -64,7 +69,7 @@ public abstract class ParcelableStatusesLoader extends AsyncTaskLoader<List<Parc
 		return false;
 	}
 
-	protected synchronized boolean deleteStatus(final long status_id) {
+	protected boolean deleteStatus(final long status_id) {
 		try {
 			final NoDuplicatesArrayList<ParcelableStatus> data_to_remove = new NoDuplicatesArrayList<ParcelableStatus>();
 			for (final ParcelableStatus status : mData) {
@@ -79,26 +84,18 @@ public abstract class ParcelableStatusesLoader extends AsyncTaskLoader<List<Parc
 		return false;
 	}
 
-	protected long getAccountId() {
-		return mAccountId;
-	}
-	
 	protected String getClassName() {
 		return mClassName;
 	}
 
-	protected List<ParcelableStatus> getData() {
+	protected SynchronizedStateSavedList<ParcelableStatus, Long> getData() {
 		return mData;
 	}
 
-	protected Twitter getTwitter() {
-		return mTwitter;
-	}
-	
 	protected boolean isFirstLoad() {
 		return mFirstLoad;
 	}
-	
+
 	protected boolean isHomeTab() {
 		return mIsHomeTab;
 	}
@@ -109,7 +106,7 @@ public abstract class ParcelableStatusesLoader extends AsyncTaskLoader<List<Parc
 	}
 
 	protected void setLastViewedId(final Long id) {
-		 mLastViewedId = id;
+		mLastViewedId = id;
 	}
-	
+
 }

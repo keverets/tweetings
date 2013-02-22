@@ -183,7 +183,7 @@ public class DualPaneActivity extends BaseActivity implements OnBackStackChanged
 	}
 	
 	@Override
-	protected void onStart() {
+	public void onStart() {
 		final FragmentManager fm = getSupportFragmentManager();
 		if (!isDualPaneMode() && !FragmentManagerTrojan.isStateSaved(fm)) {
 			final int count = fm.getBackStackEntryCount();

@@ -19,6 +19,11 @@
 				android:id="@id/add_image"
 				android:icon="@drawable/ic_menu_gallery"
 				android:title="@string/add_image"/>
+			
+			<item
+				android:id="@id/last_photo"
+				android:icon="@drawable/ic_menu_gallery"
+				android:title="@string/last_photo"/>
 		</menu>
 	</item>
 	<item

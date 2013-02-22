@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -51,7 +52,7 @@ import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
 import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.util.ArrayUtils;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -301,8 +302,16 @@ public class AccountsFragment extends BaseListFragment implements LoaderCallback
 		if (mCursor != null && position >= 0 && position < mCursor.getCount()) {
 			mCursor.moveToPosition(position);
 			final long user_id = mCursor.getLong(mCursor.getColumnIndexOrThrow(Accounts.USER_ID));
+			final boolean is_activated = mCursor.getInt(mCursor.getColumnIndexOrThrow(Accounts.IS_ACTIVATED)) == 1;
+			
 			if (isDefaultAccountValid()) {
-				openUserProfile(getActivity(), user_id, user_id, null);
+				if (is_activated) {
+					openUserProfile(getActivity(), user_id, user_id, null);
+				}
+				else {
+					long default_id = mPreferences.getLong(PREFERENCE_KEY_DEFAULT_ACCOUNT_ID, -1);
+					openUserProfile(getActivity(), default_id, user_id, null);
+				}
 			} else {
 				setDefaultAccount(user_id);
 			}
@@ -487,7 +496,7 @@ public class AccountsFragment extends BaseListFragment implements LoaderCallback
 
 	static class AccountsAdapter extends SimpleCursorAdapter {
 
-		private final LazyImageLoader mProfileImageLoader;
+		private final ImageLoaderWrapper mProfileImageLoader;
 		private final SharedPreferences mPreferences;
 		private int mUserColorIdx, mProfileImageIdx, mUserIdIdx, mIsActive;
 		private long mDefaultAccountId;
@@ -497,7 +506,7 @@ public class AccountsFragment extends BaseListFragment implements LoaderCallback
 			super(context, R.layout.account_list_item, null, new String[] { Accounts.USERNAME },
 					new int[] { android.R.id.text1 }, 0);
 			final TweetingsApplication application = TweetingsApplication.getInstance(context);
-			mProfileImageLoader = application.getProfileImageLoader();
+			mProfileImageLoader = application.getImageLoaderWrapper();
 			mPreferences = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
 			mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 		}
@@ -517,10 +526,9 @@ public class AccountsFragment extends BaseListFragment implements LoaderCallback
 			holder.setIsDefault(mDefaultAccountId != -1 && mDefaultAccountId == cursor.getLong(mUserIdIdx));
 			final String profile_image_url_string = cursor.getString(mProfileImageIdx);
 			if (mDisplayHiResProfileImage) {
-				mProfileImageLoader.displayImage(parseURL(getBiggerTwitterProfileImage(profile_image_url_string)),
-						holder.profile_image);
+				mProfileImageLoader.displayProfileImage(holder.profile_image, getBiggerTwitterProfileImage(profile_image_url_string));
 			} else {
-				mProfileImageLoader.displayImage(parseURL(profile_image_url_string), holder.profile_image);
+				mProfileImageLoader.displayProfileImage(holder.profile_image, profile_image_url_string);
 			}
 			super.bindView(view, context, cursor);
 		}

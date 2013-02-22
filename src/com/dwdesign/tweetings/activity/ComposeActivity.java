@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -67,8 +68,8 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
 
-import com.aviary.android.feather.FeatherActivity;
-import com.aviary.android.feather.library.utils.StringUtils;
+//import com.aviary.android.feather.FeatherActivity;
+//import com.aviary.android.feather.library.utils.StringUtils;
 import com.dwdesign.actionbarcompat.ActionBar;
 import com.dwdesign.menubar.MenuBar;
 import com.dwdesign.menubar.MenuBar.OnMenuItemClickListener;
@@ -182,6 +183,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	private String mText;
 	private Uri mImageUri;
 	private long mInReplyToStatusId = -1;
+	private String mInReplyToText = null;
 	private String mInReplyToScreenName, mInReplyToName;
 	private boolean mIsQuote, mUploadUseExtension, mIsBuffer, mContentModified, mIsPossiblySensitive;
 	private String mUploadProvider;
@@ -267,7 +269,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					final long[] account_ids = bundle.getLongArray(INTENT_KEY_IDS);
 					if (account_ids != null) {
 						mAccountIds = account_ids;
-						if (mInReplyToStatusId <= 0) {
+						if (mInReplyToStatusId <= 0 && !Intent.ACTION_SEND.equals(getIntent().getAction())) {
 							final SharedPreferences.Editor editor = mPreferences.edit();
 							editor.putString(PREFERENCE_KEY_COMPOSE_ACCOUNTS, ArrayUtils.toString(mAccountIds, ',', false));
 							editor.commit();
@@ -351,6 +353,13 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				mPopupMenu = PopupMenu.getInstance(this, view);
 				mPopupMenu.inflate(R.menu.action_attached_image);
 				mPopupMenu.setOnMenuItemClickListener(this);
+				
+				final Menu menu = mPopupMenu.getMenu();
+				final MenuItem itemUpload = menu.findItem(MENU_UPLOAD);
+				if (!isNullOrEmpty(mUploadProvider) && itemUpload != null) {
+					itemUpload.setVisible(true);
+				}
+				
 				mPopupMenu.show();
 				break;
 			}
@@ -388,6 +397,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		mInReplyToStatusId = bundle != null ? bundle.getLong(INTENT_KEY_IN_REPLY_TO_ID) : -1;
 		mInReplyToScreenName = bundle != null ? bundle.getString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME) : null;
 		mInReplyToName = bundle != null ? bundle.getString(INTENT_KEY_IN_REPLY_TO_NAME) : null;
+		mInReplyToText = bundle != null ? bundle.getString(INTENT_KEY_IN_REPLY_TO_TWEET) : null;
 		mIsImageAttached = bundle != null ? bundle.getBoolean(INTENT_KEY_IS_IMAGE_ATTACHED) : false;
 		mIsPhotoAttached = bundle != null ? bundle.getBoolean(INTENT_KEY_IS_PHOTO_ATTACHED) : false;
 		mImageUri = bundle != null ? (Uri) bundle.getParcelable(INTENT_KEY_IMAGE_URI) : null;
@@ -422,6 +432,14 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 			}
 			if (mAccountIds == null || mAccountIds.length == 0) {
 				mAccountIds = new long[] { account_id };
+			}
+			TextView replyText = (TextView) findViewById(R.id.reply_text);
+			if (!isNullOrEmpty(mInReplyToText)) {
+				replyText.setVisibility(View.VISIBLE);
+				replyText.setText(mInReplyToText);
+			}
+			else {
+				replyText.setVisibility(View.GONE);
 			}
 		} else {
 			if (mentions != null) {
@@ -577,6 +595,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 		setMenu();
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public boolean onMenuItemClick(final MenuItem item) {
 		switch (item.getItemId()) {
@@ -589,6 +608,35 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 					takePhoto();
 				}
 				break;
+			}
+			case MENU_LAST_PHOTO: {
+				String[] projection = new String[]{MediaStore.Images.ImageColumns._ID,
+			            MediaStore.Images.ImageColumns.DATA,
+			            MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+			            MediaStore.Images.ImageColumns.DATE_TAKEN,
+			            MediaStore.Images.ImageColumns.MIME_TYPE
+			    };
+			    final Cursor cursor = managedQuery(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+			                    projection, null, null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
+			    if (cursor.moveToFirst()) {
+			        String imageLocation = cursor.getString(1);
+			        File imageFile = new File(imageLocation);
+			        if (imageFile != null && imageFile.exists()) {   // TODO: is there a better way to do this?
+			        	mImageUri = Uri.fromFile(imageFile);
+						mIsPhotoAttached = false;
+						mIsImageAttached = true;
+						mImageThumbnailPreview.setVisibility(View.VISIBLE);
+						reloadAttachedImageThumbnail(imageFile);
+					} else {
+						mIsImageAttached = false;
+					}
+					setMenu();
+					boolean isAutoUpload = mPreferences.getBoolean(PREFERENCE_KEY_AUTO_UPLOAD, false);
+					if (!isNullOrEmpty(mUploadProvider) && mIsImageAttached && isAutoUpload) {
+						postMedia();
+					}
+			    } 
+			    break;
 			}
 			case MENU_ADD_IMAGE: {
 				if (item.getTitle().equals(getString(R.string.remove_image))) {
@@ -631,6 +679,13 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				}
 				break;
 			}
+			case MENU_UPLOAD: {
+				if (!isNullOrEmpty(mUploadProvider) && mIsImageAttached) {
+					postMedia(true);
+				}
+				break;
+			}
+			
 			case MENU_ADD_LOCATION: {
 				final boolean attach_location = mPreferences.getBoolean(PREFERENCE_KEY_ATTACH_LOCATION, false);
 				if (!attach_location) {
@@ -651,12 +706,12 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 			}
 			case MENU_EDIT: {
 				if (mImageUri == null) return false;
-				/*final Intent intent = new Intent(INTENT_ACTION_EXTENSION_EDIT_IMAGE);
+				final Intent intent = new Intent(INTENT_ACTION_EXTENSION_EDIT_IMAGE);
 				intent.setData(mImageUri);
 				startActivityForResult(Intent.createChooser(intent, getString(R.string.open_with_extensions)),
-						REQUEST_EDIT_IMAGE);*/
+						REQUEST_EDIT_IMAGE);
 				// Create the intent needed to start feather
-				Intent newIntent = new Intent( this, FeatherActivity.class );
+				/*Intent newIntent = new Intent( this, FeatherActivity.class );
 				// set the source image uri
 				newIntent.setData( mImageUri );
 				// pass the required api key ( http://developers.aviary.com/ )
@@ -685,7 +740,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 				// newIntent.putExtra( "hide-exit-unsave-confirmation", true );
 
 				// ..and start feather
-				startActivityForResult( newIntent, ACTION_REQUEST_FEATHER );
+				startActivityForResult( newIntent, ACTION_REQUEST_FEATHER );*/
 				break;
 			}
 			case MENU_VIEW: {
@@ -893,9 +948,14 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	}
 	
 	protected void postMedia() {
+		postMedia(false);
+	}
+	
+	protected void postMedia(boolean immediate_upload) {
 		final String image_path = getImagePathFromUri(this, mImageUri);
 		//final File image_file = image_path != null ? new File(image_path) : null;
 		UploadMediaTask task = new UploadMediaTask();
+		task.setUploadImmediately(immediate_upload);
 		long accountId = 0;
 		if (mAccountIds != null && mAccountIds.length > 0) {
 			accountId = mAccountIds[0];
@@ -909,9 +969,14 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	private class UploadMediaTask extends AsyncTask<String, Integer, String> {
 		private ProgressDialog dialog;
 		private AccessToken accessToken;
+		private boolean uploadImmediately = false;
 		
 		public void setAccessToken(AccessToken accessToken) {
 			this.accessToken = accessToken;
+		}
+		
+		public void setUploadImmediately(boolean uploadImmediately) {
+			this.uploadImmediately = uploadImmediately;
 		}
 		
         // can use UI thread here
@@ -1032,7 +1097,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
         		
         		ComposeActivity.this.uploadComplete(result);
         		boolean isAutoUpload = mPreferences.getBoolean(PREFERENCE_KEY_AUTO_UPLOAD, false);
-        		if (!isAutoUpload) {
+        		if (!isAutoUpload && !uploadImmediately) {
         			ComposeActivity.this.send();
         		}
         	}
@@ -1457,7 +1522,7 @@ public class ComposeActivity extends BaseActivity implements TextWatcher, Locati
 	}
 
 	@Override
-	protected void onStop() {
+	public void onStop() {
 		if (mPopupMenu != null) {
 			mPopupMenu.dismiss();
 		}

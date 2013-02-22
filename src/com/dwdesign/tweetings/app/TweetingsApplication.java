@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,12 +21,10 @@
 package com.dwdesign.tweetings.app;
 
 import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
-import static com.dwdesign.tweetings.util.Utils.setUserAgent;
+import static com.dwdesign.tweetings.util.Utils.getBestCacheDir;
 
-import java.io.File;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.Hashtable;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -37,19 +36,14 @@ import org.apache.http.protocol.HTTP;
 
 import java.util.ArrayList;
 
-import com.dwdesign.gallery3d.app.IGalleryApplication;
-import com.dwdesign.gallery3d.data.DataManager;
-import com.dwdesign.gallery3d.data.DownloadCache;
 import com.dwdesign.gallery3d.util.GalleryUtils;
-import com.dwdesign.gallery3d.util.ThreadPool;
 import com.dwdesign.tweetings.Constants;
 import com.dwdesign.tweetings.R;
-import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.ParcelableUser;
 import com.dwdesign.tweetings.util.AsyncTaskManager;
 import com.dwdesign.tweetings.util.ImageLoaderUtils;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
@@ -63,17 +57,28 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.AsyncTask;
 import android.provider.Settings.Secure;
-import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 
-public class TweetingsApplication extends Application implements Constants, OnSharedPreferenceChangeListener, IGalleryApplication {
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.cache.disc.DiscCacheAware;
+import com.nostra13.universalimageloader.cache.disc.impl.TotalSizeLimitedDiscCache;
+import java.io.File;
+import com.nostra13.universalimageloader.cache.disc.naming.FileNameGenerator;
+import com.dwdesign.tweetings.util.URLFileNameGenerator;
+import com.nostra13.universalimageloader.cache.memory.impl.WeakMemoryCache;
+import com.dwdesign.tweetings.util.TweetingsImageDownloader;
 
-	public LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
+public class TweetingsApplication extends Application implements Constants, OnSharedPreferenceChangeListener {
+
+	public ImageLoaderWrapper mImageLoaderWrapper;
+	private ImageLoader mImageLoader;
 	private AsyncTaskManager mAsyncTaskManager;
 	private SharedPreferences mPreferences;
 	private ServiceInterface mServiceInterface;
+	private TweetingsImageDownloader mImageDownloader;
 	
 	private BackupManager backupManager;
 	
@@ -88,14 +93,6 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 	public static final String PARAM_SYNC_ID = "PARAM_SYNC_ID";
 	public static String BROADCAST_SYNC_ACTION = "com.dwdesign.tweetings.broadcast.SYNCRECIEVED";
 	
-	private static final String DOWNLOAD_FOLDER = "download";
-
-	private static final long DOWNLOAD_CAPACITY = 64 * 1024 * 1024; // 64M
-	private DataManager mDataManager;
-
-	private ThreadPool mThreadPool;
-
-	private DownloadCache mDownloadCache;
 
 	private String mBrowserUserAgent;
 	
@@ -110,18 +107,24 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 		return mBrowserUserAgent;
 	}
 
-	public LazyImageLoader getPreviewImageLoader() {
-		if (mPreviewImageLoader != null) return mPreviewImageLoader;
-		final int preview_image_size = getResources().getDimensionPixelSize(R.dimen.image_preview_preferred_width);
-		return mPreviewImageLoader = new LazyImageLoader(this, DIR_NAME_CACHED_THUMBNAILS, 0, preview_image_size,
-				preview_image_size);
-	}
-
-	public LazyImageLoader getProfileImageLoader() {
-		if (mProfileImageLoader != null) return mProfileImageLoader;
-		final int profile_image_size = getResources().getDimensionPixelSize(R.dimen.profile_image_size);
-		return mProfileImageLoader = new LazyImageLoader(this, DIR_NAME_PROFILE_IMAGES,
-				R.drawable.ic_profile_image_default, profile_image_size, profile_image_size);
+	public ImageLoader getImageLoader() {
+		if (mImageLoader != null) return mImageLoader;
+ 		final File cache_dir = getBestCacheDir(this, DIR_NAME_IMAGE_CACHE);
+ 		final long usable_space = ImageLoaderUtils.getUsableSpace(cache_dir);
+ 		final long disc_cache_size = Math.min(Math.min(100 * 1024 * 1024, usable_space), Integer.MAX_VALUE);
+	 	final ImageLoader loader = ImageLoader.getInstance();
+	 	final ImageLoaderConfiguration.Builder cb = new ImageLoaderConfiguration.Builder(this);
+	 	cb.threadPoolSize(8);
+	 	cb.memoryCache(new WeakMemoryCache());
+	 	cb.discCache(new TotalSizeLimitedDiscCache(cache_dir, new URLFileNameGenerator(), (int) disc_cache_size));
+	 	cb.imageDownloader(mImageDownloader);
+	 	loader.init(cb.build());
+	 	return mImageLoader = loader;
+ 	}
+	
+	public ImageLoaderWrapper getImageLoaderWrapper() {
+		if (mImageLoaderWrapper != null) return mImageLoaderWrapper;
+	 	return mImageLoaderWrapper = new ImageLoaderWrapper(this, getImageLoader());
 	}
 	
 	public ItemsList getSelectedItems() {
@@ -150,37 +153,6 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 
 	public boolean isDebugBuild() {
 		return DEBUG;
-	}
-	
-	@Override
-	public synchronized DataManager getDataManager() {
-		if (mDataManager == null) {
-			mDataManager = new DataManager(this);
-		}
-		return mDataManager;
-	}
-
-	@Override
-	public synchronized DownloadCache getDownloadCache() {
-		if (mDownloadCache == null) {
-			final File cacheDir = new File(getExternalCacheDir(), DOWNLOAD_FOLDER);
-
-			if (!cacheDir.isDirectory()) {
-				cacheDir.mkdirs();
-			}
-
-			if (!cacheDir.isDirectory()) throw new RuntimeException("fail to create: " + cacheDir.getAbsolutePath());
-			mDownloadCache = new DownloadCache(this, cacheDir, DOWNLOAD_CAPACITY);
-		}
-		return mDownloadCache;
-	}
-
-	@Override
-	public synchronized ThreadPool getThreadPool() {
-		if (mThreadPool == null) {
-			mThreadPool = new ThreadPool();
-		}
-		return mThreadPool;
 	}
 	
 	@Override
@@ -233,11 +205,8 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 
 	@Override
 	public void onLowMemory() {
-		if (mProfileImageLoader != null) {
-			mProfileImageLoader.clearMemoryCache();
-		}
-		if (mPreviewImageLoader != null) {      
-			mPreviewImageLoader.clearMemoryCache();
+		if (mImageLoaderWrapper != null) {
+			mImageLoaderWrapper.clearMemoryCache();
 		}
 		super.onLowMemory();
 	}
@@ -261,11 +230,11 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 	}
 
 	public void reloadConnectivitySettings() {
-		if (mPreviewImageLoader != null) {
-			mPreviewImageLoader.reloadConnectivitySettings();
+		if (mImageLoaderWrapper != null) {
+			mImageLoaderWrapper.reloadConnectivitySettings();
 		}
-		if (mProfileImageLoader != null) {
-			mProfileImageLoader.reloadConnectivitySettings();
+		if (mImageDownloader != null) {
+			mImageDownloader.initHttpClient();
 		}
 	}
 	
@@ -464,12 +433,5 @@ public class TweetingsApplication extends Application implements Constants, OnSh
 			};
 			new Thread(runnable).start();
 		}
-		
-		
-	}
-
-	@Override
-	public Context getAndroidContext() {
-		return this;
 	}
 }

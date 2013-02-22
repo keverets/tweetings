@@ -17,39 +17,36 @@
 package com.dwdesign.gallery3d.ui;
 
 import com.dwdesign.gallery3d.app.ImageViewerGLActivity;
-import com.dwdesign.gallery3d.common.ApiHelper;
-import com.dwdesign.gallery3d.data.MediaItem;
-import com.dwdesign.gallery3d.data.MediaObject;
-import com.dwdesign.tweetings.util.SimpleGestureFilter;
-import com.dwdesign.tweetings.util.SimpleGestureFilter.SimpleGestureListener;
+import com.dwdesign.gallery3d.util.BitmapPool;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapRegionDecoder;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Message;
 import android.view.MotionEvent;
 
-public class PhotoView extends GLView implements SimpleGestureListener {
-
-	public static final int INVALID_SIZE = -1;
-	public static final long INVALID_DATA_VERSION = MediaObject.INVALID_DATA_VERSION;
+public class PhotoView extends GLView {
 
 	private static final int MSG_CANCEL_EXTRA_SCALING = 2;
-
 	private static final int MSG_CAPTURE_ANIMATION_DONE = 4;
 
-	private final MyGestureListener mGestureListener;
+	private static final int HOLD_TOUCH_DOWN = 1;
+	private static final int HOLD_CAPTURE_ANIMATION = 2;
+
+	private final GestureListener mGestureListener;
 
 	private final GestureRecognizer mGestureRecognizer;
 	private final PositionController mPositionController;
 
 	private Listener mListener;
-	private Model mModel;
+	private ITileImageAdapter mModel;
 
-	private TileImageView mTileView;
-	private EdgeView mEdgeView;
-	private SynchronizedHandler mHandler;
+	private final TileImageView mTileView;
+	private final EdgeView mEdgeView;
+	private final SynchronizedHandler mHandler;
 	private boolean mCancelExtraScalingPending;
 	private boolean mWantPictureCenterCallbacks = false;
 
@@ -61,81 +58,24 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 	// animation.
 	private int mHolding;
 
-	private static final int HOLD_TOUCH_DOWN = 1;
-	private static final int HOLD_CAPTURE_ANIMATION = 2;
-
 	// This is the index of the last deleted item. This is only used as a hint
 	// to hide the undo button when we are too far away from the deleted
 	// item. The value Integer.MAX_VALUE means there is no such hint.
-	private Context mContext;
-	private FullPicture mPicture;
-	
-	private SimpleGestureFilter detector;
-	private ImageViewerGLActivity mActivity;
+	private final Context mContext;
+	private final FullPicture mPicture;
 
 	public PhotoView(final ImageViewerGLActivity activity) {
 		mTileView = new TileImageView(activity);
-		mActivity = activity;
 		addComponent(mTileView);
-		mContext = activity.getAndroidContext();
+		mContext = activity;
 		mEdgeView = new EdgeView(mContext);
 		addComponent(mEdgeView);
-		mHandler = new MyHandler(activity.getGLRoot());
-
-		mGestureListener = new MyGestureListener();
-		mGestureRecognizer = new GestureRecognizer(mContext, mGestureListener);
-
-		mPositionController = new PositionController(mContext, new PositionController.Listener() {
-
-			@Override
-			public void invalidate() {
-				PhotoView.this.invalidate();
-			}
-
-			@Override
-			public boolean isHoldingDown() {
-				return (mHolding & HOLD_TOUCH_DOWN) != 0;
-			}
-
-			@Override
-			public void onAbsorb(final int velocity, final int direction) {
-				mEdgeView.onAbsorb(velocity, direction);
-			}
-
-			@Override
-			public void onPull(final int offset, final int direction) {
-				mEdgeView.onPull(offset, direction);
-			}
-		});
+		mHandler = new MyHandler(activity);
 		mPicture = new FullPicture();
-		//detector = new SimpleGestureFilter(mActivity, mActivity);
+		mGestureListener = new GestureListener();
+		mGestureRecognizer = new GestureRecognizer(mContext, mGestureListener);
+		mPositionController = new PositionController(new EventListener());
 	}
-	
-	@Override 
-    public boolean dispatchTouchEvent(MotionEvent me){ 
-		//this.detector.onTouchEvent(me);
-		return super.dispatchTouchEvent(me); 
-    }
-	
-	@Override
-	public void onDoubleTap() { 
-	}
-	
-	@Override
-	public void onSwipe(int direction) {
-		  switch (direction) {
-		  	case SimpleGestureFilter.SWIPE_RIGHT:
-		  		break;
-		  	case SimpleGestureFilter.SWIPE_LEFT:
-		        break;
-		  	case SimpleGestureFilter.SWIPE_DOWN:
-		  		mActivity.onBackPressed();
-		        break;
-		  	case SimpleGestureFilter.SWIPE_UP:
-		  		break;
-		                                           
-		  }
-	 }
 
 	public Rect getPhotoRect() {
 		return mPositionController.getPosition();
@@ -156,10 +96,6 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		}
 	}
 
-	// //////////////////////////////////////////////////////////////////////////
-	// Data/Image change notifications
-	// //////////////////////////////////////////////////////////////////////////
-
 	public void resume() {
 		mTileView.prepareTextures();
 		mPositionController.skipToFinalPosition();
@@ -169,7 +105,7 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		mListener = listener;
 	}
 
-	public void setModel(final Model model) {
+	public void setModel(final ITileImageAdapter model) {
 		mModel = model;
 		mTileView.setModel(mModel);
 	}
@@ -178,17 +114,9 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		mPositionController.setOpenAnimationRect(rect);
 	}
 
-	public void setSwipingEnabled(final boolean enabled) {
-		mGestureListener.setSwipingEnabled(enabled);
-	}
-
 	public void setWantPictureCenterCallbacks(final boolean wanted) {
 		mWantPictureCenterCallbacks = wanted;
 	}
-
-	// //////////////////////////////////////////////////////////////////////////
-	// Pictures
-	// //////////////////////////////////////////////////////////////////////////
 
 	@Override
 	protected void onLayout(final boolean changeSize, final int left, final int top, final int right, final int bottom) {
@@ -203,7 +131,6 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		if (mDisplayRotation != displayRotation || mCompensation != compensation) {
 			mDisplayRotation = displayRotation;
 			mCompensation = compensation;
-
 		}
 
 		if (changeSize) {
@@ -211,14 +138,14 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		}
 	}
 
+	// //////////////////////////////////////////////////////////////////////////
+	// Pictures
+	// //////////////////////////////////////////////////////////////////////////
+
 	@Override
 	protected boolean onTouch(final MotionEvent event) {
 		mGestureRecognizer.onTouchEvent(event);
 		return true;
-	}
-	
-	public FullPicture getPicture() {
-		return mPicture;
 	}
 
 	@Override
@@ -231,7 +158,6 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		renderChild(canvas, mEdgeView);
 
 		mPositionController.advanceAnimation();
-		checkFocusSwitching();
 	}
 
 	private void captureAnimationDone(final int offset) {
@@ -244,104 +170,55 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		snapback();
 	}
 
-	// Runs in GL thread.
-	private void checkFocusSwitching() {
-		// if (!mFilmMode) return;
-		// if (mHandler.hasMessages(MSG_SWITCH_FOCUS)) return;
-		// if (switchPosition() != 0) {
-		// mHandler.sendEmptyMessage(MSG_SWITCH_FOCUS);
-		// }
-	}
-
-	// //////////////////////////////////////////////////////////////////////////
-	// Gestures Handling
-	// //////////////////////////////////////////////////////////////////////////
-
-	// //////////////////////////////////////////////////////////////////////////
-	// Rendering
-	// //////////////////////////////////////////////////////////////////////////
-
 	private void setPictureSize() {
 		mPositionController.setImageSize(mPicture.getSize(), null);
+	}
+
+	private void snapback() {
+		mPositionController.snapback();
 	}
 
 	// //////////////////////////////////////////////////////////////////////////
 	// Film mode focus switching
 	// //////////////////////////////////////////////////////////////////////////
 
-	private void snapback() {
-		mPositionController.snapback();
-	}
-
-	private boolean snapToNeighborImage() {
-		// Rect r = mPositionController.getPosition(0);
-		// int viewW = getWidth();
-		// // Setting the move threshold proportional to the width of the view
-		// int moveThreshold = viewW / 5 ;
-		// int threshold = moveThreshold + gapToSide(r.width(), viewW);
-		//
-		// // If we have moved the picture a lot, switching.
-		// if (viewW - r.right > threshold) {
-		// return slideToNextPicture();
-		// } else if (r.left > threshold) {
-		// return slideToPrevPicture();
-		// }
-		//
-		return false;
-	}
-
-	//
-	// private boolean slideToNextPicture() {
-	// if (mNextBound <= 0) return false;
-	// switchToNextImage();
-	// mPositionController.startHorizontalSlide();
-	// return true;
-	// }
-	//
-	// private boolean slideToPrevPicture() {
-	// if (mPrevBound >= 0) return false;
-	// switchToPrevImage();
-	// mPositionController.startHorizontalSlide();
-	// return true;
-	// }
-
-	// //////////////////////////////////////////////////////////////////////////
-	// Page mode focus switching
-	//
-	// We slide image to the next one or the previous one in two cases: 1: If
-	// the user did a fling gesture with enough velocity. 2 If the user has
-	// moved the picture a lot.
-	// //////////////////////////////////////////////////////////////////////////
-
-	private boolean swipeImages(final float velocityX, final float velocityY) {
-		// if (mFilmMode) return false;
-		//
-		// // Avoid swiping images if we're possibly flinging to view the
-		// // zoomed in picture vertically.
-		// PositionController controller = mPositionController;
-		// boolean isMinimal = controller.isAtMinimalScale();
-		// int edges = controller.getImageAtEdges();
-		// if (!isMinimal && Math.abs(velocityY) > Math.abs(velocityX))
-		// if ((edges & PositionController.IMAGE_AT_TOP_EDGE) == 0
-		// || (edges & PositionController.IMAGE_AT_BOTTOM_EDGE) == 0)
-		// return false;
-		//
-		// // If we are at the edge of the current photo and the sweeping
-		// velocity
-		// // exceeds the threshold, slide to the next / previous image.
-		// if (velocityX < -SWIPE_THRESHOLD && (isMinimal
-		// || (edges & PositionController.IMAGE_AT_RIGHT_EDGE) != 0)) {
-		// return slideToNextPicture();
-		// } else if (velocityX > SWIPE_THRESHOLD && (isMinimal
-		// || (edges & PositionController.IMAGE_AT_LEFT_EDGE) != 0)) {
-		// return slideToPrevPicture();
-		// }
-		//
-		return false;
-	}
-
 	private static int getRotated(final int degree, final int original, final int theother) {
 		return degree % 180 == 0 ? original : theother;
+	}
+
+	public interface ITileImageAdapter {
+
+		public int getImageHeight();
+
+		// Returns the rotation for the specified picture.
+		public int getImageRotation();
+
+		public int getImageWidth();
+
+		public int getLevelCount();
+
+		public ScreenNail getScreenNail();
+
+		/**
+		 * The tile returned by this method can be specified this way: Assuming
+		 * the image size is (width, height), first take the intersection of (0,
+		 * 0) - (width, height) and (x, y) - (x + tileSize, y + tileSize). Then
+		 * extend this intersection region by borderSize pixels on each side. If
+		 * in extending the region, we found some part of the region are outside
+		 * the image, those pixels are filled with black.<br>
+		 * <br>
+		 * If level > 0, it does the same operation on a down-scaled version of
+		 * the original image (down-scaled by a factor of 2^level), but (x, y)
+		 * still refers to the coordinate on the original image.<br>
+		 * <br>
+		 * The method would be called in another thread.
+		 */
+		public Bitmap getTile(int level, int x, int y, int tileSize, int borderSize, BitmapPool pool);
+
+		public void recycleScreenNail();
+
+		public boolean setData(BitmapRegionDecoder decoder, Bitmap bitmap, int orientation);
+
 	}
 
 	public interface Listener {
@@ -356,67 +233,24 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		public void onSingleTapUp(int x, int y);
 	}
 
-	public interface Model extends TileImageView.Model {
-		public static final int LOADING_INIT = 0;
-
-		public static final int LOADING_COMPLETE = 1;
-
-		public static final int LOADING_FAIL = 2;
-
-		// When data change happens, we need to decide which MediaItem to focus
-		// on.
-		//
-		// 1. If focus hint path != null, we try to focus on it if we can find
-		// it. This is used for undo a deletion, so we can focus on the
-		// undeleted item.
-		//
-		// 2. Otherwise try to focus on the MediaItem that is currently focused,
-		// if we can find it.
-		//
-		// 3. Otherwise try to focus on the previous MediaItem or the next
-		// MediaItem, depending on the value of focus hint direction.
-		public static final int FOCUS_HINT_NEXT = 0;
-
-		public static final int FOCUS_HINT_PREVIOUS = 1;
-
-		// Returns the rotation for the specified picture.
-		public int getImageRotation();
-
-		public int getLoadingState();
-
-		// Returns the media item for the specified picture.
-		public MediaItem getMediaItem();
-
-	}
-
 	public static class Size {
 		public int width;
 		public int height;
 	}
 
-	private class MyGestureListener implements GestureRecognizer.Listener {
+	private class GestureListener implements GestureRecognizer.Listener {
 		private boolean mIgnoreUpEvent = false;
 		// If we can change mode for this scale gesture.
 		private boolean mCanChangeMode;
 		// If we have changed the film mode in this scaling gesture.
 		private boolean mModeChanged;
-		// If this scaling gesture should be ignored.
-		// If we should ignore all gestures other than onSingleTapUp.
-		private boolean mIgnoreSwipingGesture;
 		// If a scrolling has happened after a down gesture.
 		private boolean mScrolledAfterDown;
-		// If the first scrolling move is in X direction. In the film mode, X
-		// direction scrolling is normal scrolling. but Y direction scrolling is
-		// a delete gesture.
-		private boolean mFirstScrollX;
 		// The accumulated scaling change from a scaling gesture.
 		private float mAccScale;
-		// If an onFling happened after the last onDown
-		private boolean mHadFling;
 
 		@Override
 		public boolean onDoubleTap(final float x, final float y) {
-			if (mIgnoreSwipingGesture) return true;
 			final PositionController controller = mPositionController;
 			final float scale = controller.getImageScale();
 			// onDoubleTap happened on the second ACTION_DOWN.
@@ -435,30 +269,20 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 
 			mModeChanged = false;
 
-			if (mIgnoreSwipingGesture) return;
-
 			mHolding |= HOLD_TOUCH_DOWN;
 
-			mHadFling = false;
 			mScrolledAfterDown = false;
 		}
 
 		@Override
 		public boolean onFling(final float velocityX, final float velocityY) {
-			if (mIgnoreSwipingGesture) return true;
 			if (mModeChanged) return true;
-			if (swipeImages(velocityX, velocityY)) {
-				mIgnoreUpEvent = true;
-			} else {
-				flingImages(velocityX, velocityY);
-			}
-			mHadFling = true;
+			flingImages(velocityX, velocityY);
 			return true;
 		}
 
 		@Override
 		public boolean onScale(final float focusX, final float focusY, final float scale) {
-			if (mIgnoreSwipingGesture) return true;
 			if (mModeChanged) return true;
 			if (Float.isNaN(scale) || Float.isInfinite(scale)) return false;
 
@@ -497,7 +321,6 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 
 		@Override
 		public boolean onScaleBegin(final float focusX, final float focusY) {
-			if (mIgnoreSwipingGesture) return true;
 			// We ignore the scaling gesture if it is a camera preview.
 			mPositionController.beginScale(focusX, focusY);
 			// We can change mode if we are in film mode, or we are in page
@@ -509,36 +332,19 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 
 		@Override
 		public void onScaleEnd() {
-			if (mIgnoreSwipingGesture) return;
 			if (mModeChanged) return;
 			mPositionController.endScale();
 		}
 
 		@Override
 		public boolean onScroll(final float dx, final float dy, final float totalX, final float totalY) {
-			if (mIgnoreSwipingGesture) return true;
 			if (!mScrolledAfterDown) {
 				mScrolledAfterDown = true;
-				mFirstScrollX = Math.abs(dx) > Math.abs(dy);
 			}
 
 			final int dxi = (int) (-dx + 0.5f);
 			final int dyi = (int) (-dy + 0.5f);
-			// if (mFilmMode) {
-			// if (mFirstScrollX) {
-			// mPositionController.scrollFilmX(dxi);
-			// } else {
-			// if (mTouchBoxIndex == Integer.MAX_VALUE) return true;
-			// int newDeltaY = calculateDeltaY(totalY);
-			// int d = newDeltaY - mDeltaY;
-			// if (d != 0) {
-			// mPositionController.scrollFilmY(mTouchBoxIndex, d);
-			// mDeltaY = newDeltaY;
-			// }
-			// }
-			// } else {
 			mPositionController.scrollPage(dxi, dyi);
-			// }
 			return true;
 		}
 
@@ -557,28 +363,13 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 			// filter out the false alarm where onSingleTapUp() is called within
 			// a pinch out
 			// gesture. The framework fix went into ICS. Refer to b/4588114.
-			if (Build.VERSION.SDK_INT < ApiHelper.VERSION_CODES.ICE_CREAM_SANDWICH) {
+			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
 				if ((mHolding & HOLD_TOUCH_DOWN) == 0) return true;
 			}
 
 			// We do this in addition to onUp() because we want the snapback of
 			// setFilmMode to happen.
 			mHolding &= ~HOLD_TOUCH_DOWN;
-
-			// if (mFilmMode && !mDownInScrolling) {
-			// switchToHitPicture((int) (x + 0.5f), (int) (y + 0.5f));
-			//
-			// // If this is a lock screen photo, let the listener handle the
-			// // event. Tapping on lock screen photo should take the user
-			// // directly to the lock screen.
-			// MediaItem item = mModel.getMediaItem(0);
-			// int supported = 0;
-			// if (item != null) supported = item.getSupportedOperations();
-			// if ((supported & MediaItem.SUPPORT_ACTION) == 0) {
-			// mIgnoreUpEvent = true;
-			// return true;
-			// }
-			// }
 
 			if (mListener != null) {
 				// Do the inverse transform of the touch coordinates.
@@ -594,39 +385,15 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 
 		@Override
 		public void onUp() {
-			if (mIgnoreSwipingGesture) return;
-
 			mHolding &= ~HOLD_TOUCH_DOWN;
 			mEdgeView.onRelease();
-
-			// If we scrolled in Y direction far enough, treat it as a delete
-			// gesture.
-			// if (mFilmMode && mScrolledAfterDown && !mFirstScrollX
-			// && mTouchBoxIndex != Integer.MAX_VALUE) {
-			// Rect r = mPositionController.getPosition(mTouchBoxIndex);
-			// int h = getHeight();
-			// if (Math.abs(r.centerY() - h * 0.5f) > 0.4f * h) {
-			// int duration = mPositionController
-			// .flingFilmY(mTouchBoxIndex, 0);
-			// if (duration >= 0) {
-			// mPositionController.setPopFromTop(r.centerY() < h * 0.5f);
-			// deleteAfterAnimation(duration);
-			// }
-			// }
-			// }
 
 			if (mIgnoreUpEvent) {
 				mIgnoreUpEvent = false;
 				return;
 			}
 
-			if (!(!mHadFling && mFirstScrollX && snapToNeighborImage())) {
-				snapback();
-			}
-		}
-
-		public void setSwipingEnabled(final boolean enabled) {
-			mIgnoreSwipingGesture = !enabled;
+			snapback();
 		}
 
 		private boolean flingImages(final float velocityX, final float velocityY) {
@@ -652,6 +419,33 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		}
 	}
 
+	private class MyHandler extends SynchronizedHandler {
+
+		private MyHandler(final ImageViewerGLActivity activity) {
+			super(activity.getGLRoot());
+		}
+
+		@Override
+		public void handleMessage(final Message message) {
+			switch (message.what) {
+				case MSG_CANCEL_EXTRA_SCALING: {
+					mGestureRecognizer.cancelScale();
+					mPositionController.setExtraScalingRange(false);
+					mCancelExtraScalingPending = false;
+					break;
+				}
+				case MSG_CAPTURE_ANIMATION_DONE: {
+					// message.arg1 is the offset parameter passed to
+					// switchWithCaptureAnimation().
+					captureAnimationDone(message.arg1);
+					break;
+				}
+				default:
+					throw new AssertionError(message.what);
+			}
+		}
+	}
+
 	private interface Picture {
 		void draw(GLCanvas canvas, Rect r);
 
@@ -662,6 +456,29 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 		void reload();
 
 		void setScreenNail(ScreenNail s);
+	}
+
+	class EventListener implements PositionController.Listener {
+
+		@Override
+		public boolean isHoldingDown() {
+			return (mHolding & HOLD_TOUCH_DOWN) != 0;
+		}
+
+		@Override
+		public void onAbsorb(final int velocity, final int direction) {
+			mEdgeView.onAbsorb(velocity, direction);
+		}
+
+		@Override
+		public void onInvalidate() {
+			invalidate();
+		}
+
+		@Override
+		public void onPull(final int offset, final int direction) {
+			mEdgeView.onPull(offset, direction);
+		}
 	}
 
 	class FullPicture implements Picture {
@@ -770,32 +587,6 @@ public class PhotoView extends GLView implements SimpleGestureListener {
 			final int h = mTileView.mImageHeight;
 			mSize.width = getRotated(mRotation, w, h);
 			mSize.height = getRotated(mRotation, h, w);
-		}
-	}
-
-	class MyHandler extends SynchronizedHandler {
-		public MyHandler(final GLRoot root) {
-			super(root);
-		}
-
-		@Override
-		public void handleMessage(final Message message) {
-			switch (message.what) {
-				case MSG_CANCEL_EXTRA_SCALING: {
-					mGestureRecognizer.cancelScale();
-					mPositionController.setExtraScalingRange(false);
-					mCancelExtraScalingPending = false;
-					break;
-				}
-				case MSG_CAPTURE_ANIMATION_DONE: {
-					// message.arg1 is the offset parameter passed to
-					// switchWithCaptureAnimation().
-					captureAnimationDone(message.arg1);
-					break;
-				}
-				default:
-					throw new AssertionError(message.what);
-			}
 		}
 	}
 }

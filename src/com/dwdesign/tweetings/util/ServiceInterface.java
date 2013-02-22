@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -528,6 +529,28 @@ public final class ServiceInterface implements Constants, ITweetingsService {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	@Override
+	public void incrementActivityCount() {
+		if (mService == null) return;
+		try {
+			mService.incrementActivityCount();
+		} catch (final RemoteException e) {
+			e.printStackTrace();
+		}
+		return;
+	}
+	
+	@Override
+	public void decrementActivityCount() {
+		if (mService == null) return;
+		try {
+			mService.decrementActivityCount();
+		} catch (final RemoteException e) {
+			e.printStackTrace();
+		}
+		return;
 	}
 	
 	@Override

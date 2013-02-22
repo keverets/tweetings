@@ -36,13 +36,11 @@
 	</style>
 
 	<style name="Widget.Holo.ListView" parent="android:Widget.ListView">
-		<item name="android:cacheColorHint">#00000000</item>
 		<item name="android:divider">@drawable/list_divider_holo_dark</item>
 		<item name="android:listSelector">@drawable/list_selector_holo_dark</item>
 	</style>
 
 	<style name="Widget.Holo.Light.ListView" parent="android:Widget.ListView.White">
-		<item name="android:cacheColorHint">#00000000</item>
 		<item name="android:divider">@drawable/list_divider_holo_light</item>
 		<item name="android:listSelector">@drawable/list_selector_holo_light</item>
 	</style>

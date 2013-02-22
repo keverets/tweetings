@@ -8,9 +8,11 @@
 	<item name="select_account" type="id"/>
 	<item name="add_location" type="id"/>
 	<item name="take_photo" type="id"/>
+	<item name="last_photo" type="id"/>
 	<item name="banner_take_photo" type="id"/>
 	<item name="checkbox" type="id"/>
 	<item name="add_image" type="id"/>
+	<item name="reply_text" type="id"/>
 	<item name="banner_add_image" type="id"/>
 	<item name="shorten_links" type="id"/>
 	<item name="schedule_tweet" type="id"/>
@@ -72,4 +74,6 @@
 	<item name="make_gap" type="id"/>
 	<item name="trends_location" type="id"/>
 	<item name="toggle_sensitive" type="id"/>
+	<item name="upload" type="id"/>
+	<item name="widget_container" type="id"/>
 </resources>

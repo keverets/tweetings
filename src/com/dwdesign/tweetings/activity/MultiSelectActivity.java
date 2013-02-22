@@ -176,7 +176,7 @@ public class MultiSelectActivity extends DualPaneActivity implements ActionMode.
 	}
 
 	@Override
-	protected void onStart() {
+	public void onStart() {
 		super.onStart();
 		final IntentFilter filter = new IntentFilter();
 		filter.addAction(BROADCAST_MULTI_SELECT_STATE_CHANGED);
@@ -188,7 +188,7 @@ public class MultiSelectActivity extends DualPaneActivity implements ActionMode.
 	}
 
 	@Override
-	protected void onStop() {
+	public void onStop() {
 		unregisterReceiver(mStateReceiver);
 		super.onStop();
 	}

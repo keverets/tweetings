@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,6 +26,7 @@ import static com.dwdesign.tweetings.util.Utils.isNullOrEmpty;
 import static com.dwdesign.tweetings.util.Utils.getAccountScreenName;
 import com.dwdesign.tweetings.loader.UserFavoritesLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -111,27 +113,23 @@ public class UserFavoritesFragment extends ParcelableStatusesListFragment {
 	private boolean mIsStatusesSaved = false;
 	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
-		long account_id = -1, user_id = -1, max_id = -1, since_id = -1;		
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
+		long account_id = -1, user_id = -1, max_id = -1, since_id = -1;
 		String screen_name = null;
 		boolean is_home_tab = false;
 		if (args != null) {
-			mAccountId = account_id = args.getLong(INTENT_KEY_ACCOUNT_ID);
+			account_id = args.getLong(INTENT_KEY_ACCOUNT_ID);
 			user_id = args.getLong(INTENT_KEY_USER_ID, -1);
-			//user_id = account_id;
 			if (user_id > 0) {
 				mUserId = user_id;
 			}
 			max_id = args.getLong(INTENT_KEY_MAX_ID, -1);
 			since_id = args.getLong(INTENT_KEY_SINCE_ID, -1);
 			screen_name = args.getString(INTENT_KEY_SCREEN_NAME);
-			if (isNullOrEmpty(screen_name)) {
-				 screen_name = getAccountScreenName(this.getActivity(), account_id);
-			}
 			is_home_tab = args.getBoolean(INTENT_KEY_IS_HOME_TAB);
 		}
-		return new UserFavoritesLoader(getActivity(), account_id, user_id, screen_name, max_id, since_id, getData(), getClass()
-				.getSimpleName(), is_home_tab);
+		return new UserFavoritesLoader(getActivity(), account_id, user_id, screen_name, max_id, since_id, getData(),
+				getClass().getSimpleName(), is_home_tab);
 	}
 
 	@Override

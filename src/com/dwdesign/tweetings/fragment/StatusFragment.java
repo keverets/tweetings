@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,6 +20,7 @@
 
 package com.dwdesign.tweetings.fragment;
 
+import static com.dwdesign.tweetings.util.HtmlEscapeHelper.unescape;
 import static com.dwdesign.tweetings.util.Utils.clearUserColor;
 import static com.dwdesign.tweetings.util.Utils.findStatusInDatabases;
 import static com.dwdesign.tweetings.util.Utils.formatToLongTimeString;
@@ -66,8 +68,10 @@ import com.dwdesign.tweetings.model.ParcelableLocation;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.provider.TweetStore.Accounts;
 import com.dwdesign.tweetings.provider.TweetStore.Filters;
+import com.dwdesign.tweetings.provider.TweetStore.Mentions;
+import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.util.HtmlEscapeHelper;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.ServiceInterface;
 import com.dwdesign.tweetings.util.TwidereLinkify;
@@ -80,12 +84,14 @@ import twitter4j.internal.org.json.JSONException;
 import twitter4j.internal.org.json.JSONObject;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -130,7 +136,6 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 	private boolean mFollowInfoDisplayed, mLocationInfoDisplayed;
 	private ServiceInterface mService;
 	private SharedPreferences mPreferences;
-	private LazyImageLoader mProfileImageLoader;
 	private TextView mNameView, mScreenNameView, mTextView, mTimeAndSourceView, mInReplyToView, mLocationView,
 			mRetweetedStatusView;
 	private ImageView mProfileImageView;
@@ -147,7 +152,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 	private RelativeLayout mConversationView;
 	private RelativeLayout mMarketView;
 	private PlayStoreInfoTask mPlayInfoTask;
-	private LazyImageLoader mImageLoader;
+	private ImageLoaderWrapper mLazyImageLoader;
 	private String mAppAwareUrl;
 
 	private final BroadcastReceiver mStatusReceiver = new BroadcastReceiver() {
@@ -173,12 +178,27 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			} else if (BROADCAST_TWITLONGER_EXPANDED.equals(action)) {
 				final String expanded_status_text = intent.getStringExtra(INTENT_KEY_TWITLONGER_EXPANDED_TEXT);
 				Spanned expanded_text = Html.fromHtml(expanded_status_text);
-
+				
 				mTextView.setText(expanded_text);
 				final TwidereLinkify linkify = new TwidereLinkify(mTextView);
 				linkify.setOnLinkClickListener(new OnLinkClickHandler(getActivity(), mAccountId, mStatus.is_possibly_sensitive));
 				linkify.addAllLinks();
 				
+				final ContentResolver resolver = context.getContentResolver();
+				final ContentValues values = new ContentValues();
+			 	values.put(Statuses.TEXT, expanded_status_text);
+			 	values.put(Statuses.TEXT_PLAIN, unescape(expanded_status_text));
+				int updated = resolver.update(Statuses.CONTENT_URI, values, Statuses.STATUS_ID + " = " + mStatus.status_id, null);
+				if (updated > 0) {
+					context.sendBroadcast(new Intent(BROADCAST_HOME_TIMELINE_DATABASE_UPDATED));	
+				}
+				values.clear();
+				values.put(Mentions.TEXT, expanded_status_text);
+			 	values.put(Mentions.TEXT_PLAIN, unescape(expanded_status_text));
+				updated = resolver.update(Mentions.CONTENT_URI, values, Mentions.STATUS_ID + " = " + mStatus.status_id, null);
+				if (updated > 0) {
+					context.sendBroadcast(new Intent(BROADCAST_MENTIONS_DATABASE_UPDATED));	
+				}
 			}
 		}
 	};
@@ -281,10 +301,8 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		}
 
 		final boolean hires_profile_image = getResources().getBoolean(R.bool.hires_profile_image);
-
-		mProfileImageLoader.displayImage(
-				parseURL(hires_profile_image ? getBiggerTwitterProfileImage(status.profile_image_url_string)
-						: status.profile_image_url_string), mProfileImageView);
+		final String preview_image = hires_profile_image ? getBiggerTwitterProfileImage(status.profile_image_url_string) : status.profile_image_url_string;
+		mLazyImageLoader.displayProfileImage(mProfileImageView, preview_image);
 		final List<ImageSpec> images = getImagesInStatus(status.text_html);
 		mImagesPreviewContainer.setVisibility(images.size() > 0 ? View.VISIBLE : View.GONE);
 		mImagesPreviewFragment.addAll(images);
@@ -318,8 +336,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 		mPreferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
 		final TweetingsApplication application = getApplication();
 		mService = application.getServiceInterface();
-	 	mProfileImageLoader = application.getProfileImageLoader();
-	 	mImageLoader = application.getPreviewImageLoader();
+	 	mLazyImageLoader = application.getImageLoaderWrapper();
 	 	mImagesPreviewFragment = (ImagesPreviewFragment) Fragment.instantiate(getActivity(),
 	 	    ImagesPreviewFragment.class.getName());
 	 	super.onActivityCreated(savedInstanceState);
@@ -483,6 +500,9 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 				final Intent intent = new Intent(INTENT_ACTION_COMPOSE);
 				final Bundle bundle = new Bundle();
 				bundle.putLong(INTENT_KEY_ACCOUNT_ID, mAccountId);
+				bundle.putLong(INTENT_KEY_IN_REPLY_TO_ID, mStatusId);
+				bundle.putString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME, screen_name);
+				bundle.putString(INTENT_KEY_IN_REPLY_TO_NAME, name);
 				bundle.putBoolean(INTENT_KEY_IS_QUOTE, true);
 				bundle.putString(INTENT_KEY_TEXT, getQuoteStatus(getActivity(), screen_name, text_plain));
 				intent.putExtras(bundle);
@@ -493,9 +513,6 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 				final Intent intent = new Intent(INTENT_ACTION_COMPOSE);
 				final Bundle bundle = new Bundle();
 				bundle.putLong(INTENT_KEY_ACCOUNT_ID, mAccountId);
-				bundle.putLong(INTENT_KEY_IN_REPLY_TO_ID, mStatusId);
-				bundle.putString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME, screen_name);
-				bundle.putString(INTENT_KEY_IN_REPLY_TO_NAME, name);
 				bundle.putBoolean(INTENT_KEY_IS_QUOTE, true);
 				bundle.putString(INTENT_KEY_TEXT, getQuoteStatus(getActivity(), screen_name, text_plain));
 				intent.putExtras(bundle);
@@ -521,6 +538,7 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 				bundle.putStringArray(INTENT_KEY_MENTIONS, mentions.toArray(new String[mentions.size()]));
 				bundle.putLong(INTENT_KEY_ACCOUNT_ID, mAccountId);
 				bundle.putLong(INTENT_KEY_IN_REPLY_TO_ID, mStatusId);
+				bundle.putString(INTENT_KEY_IN_REPLY_TO_TWEET, text_plain);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME, screen_name);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_NAME, name);
 				intent.putExtras(bundle);
@@ -649,7 +667,21 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 			finalString = finalString.replace("<string xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/\">", "");
 			finalString = finalString.replace("</string>", "");
 			
-			Toast.makeText(getActivity(), finalString, Toast.LENGTH_LONG).show();
+			AlertDialog.Builder builder = new AlertDialog.Builder(this.getActivity());
+			builder.setTitle(getString(R.string.translate));
+			builder.setMessage(finalString);
+			builder.setCancelable(true);
+			builder.setPositiveButton(getString(R.string.ok),
+				new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				});
+			
+			AlertDialog alert = builder.create();
+			alert.show();
+			//Toast.makeText(getActivity(), finalString, Toast.LENGTH_LONG).show();
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -899,10 +931,10 @@ public class StatusFragment extends BaseFragment implements OnClickListener, OnM
 				playTitleView.setText(name);
 				
 				ImageView playIconView = (ImageView) getView().findViewById(R.id.play_icon);
-				mImageLoader.displayImage(parseURL(icon), playIconView);
+				mLazyImageLoader.displayPreviewImage(playIconView, icon);
 				
 				ImageView playSSView = (ImageView) getView().findViewById(R.id.play_screenshot);
-				mImageLoader.displayImage(parseURL(screenshot), playSSView);
+				mLazyImageLoader.displayPreviewImage(playSSView, screenshot);
 				
 				ImageView playButtonView = (ImageView) getView().findViewById(R.id.play_button);
 				playButtonView.setOnClickListener(new View.OnClickListener() {

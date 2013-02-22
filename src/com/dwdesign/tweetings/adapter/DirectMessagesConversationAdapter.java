@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,7 +33,7 @@ import com.dwdesign.tweetings.model.DirectMessageConversationViewHolder;
 import com.dwdesign.tweetings.model.DirectMessageCursorIndices;
 import com.dwdesign.tweetings.model.ParcelableDirectMessage;
 import com.dwdesign.tweetings.util.DirectMessagesAdapterInterface;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.TwidereLinkify;
 
@@ -44,21 +45,22 @@ import android.view.Gravity;
 import android.view.View.OnClickListener;
 import android.view.View;
 import android.view.ViewGroup;
+import com.dwdesign.tweetings.app.TweetingsApplication;
 
 public class DirectMessagesConversationAdapter extends SimpleCursorAdapter implements DirectMessagesAdapterInterface,
 	OnClickListener {
 
 	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth;
-	private final LazyImageLoader mImageLoader;
+	private final ImageLoaderWrapper mImageLoader;
 	private float mTextSize;
 	private final Context mContext;
 	private DirectMessageCursorIndices mIndices;
 	private final boolean mDisplayHiResProfileImage;
 
-	public DirectMessagesConversationAdapter(final Context context, final LazyImageLoader loader) {
+	public DirectMessagesConversationAdapter(final Context context) {
 		super(context, R.layout.direct_message_list_item, null, new String[0], new int[0], 0);
 		mContext = context;
-		mImageLoader = loader;
+		mImageLoader = TweetingsApplication.getInstance(context).getImageLoaderWrapper();
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 	}
 
@@ -94,8 +96,8 @@ public class DirectMessagesConversationAdapter extends SimpleCursorAdapter imple
 			final URL sender_profile_image_url = parseURL(mDisplayHiResProfileImage ? getBiggerTwitterProfileImage(sender_profile_image_url_string)
 					: sender_profile_image_url_string);
 
-			mImageLoader.displayImage(sender_profile_image_url, holder.profile_image_left);
-			mImageLoader.displayImage(sender_profile_image_url, holder.profile_image_right);
+			mImageLoader.displayProfileImage(holder.profile_image_left, String.valueOf(sender_profile_image_url));
+		 	mImageLoader.displayProfileImage(holder.profile_image_right, String.valueOf(sender_profile_image_url));
 			holder.profile_image_left.setTag(position);
 			holder.profile_image_right.setTag(position);
 		}

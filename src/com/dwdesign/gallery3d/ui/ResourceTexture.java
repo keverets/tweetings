@@ -16,7 +16,7 @@
 
 package com.dwdesign.gallery3d.ui;
 
-import com.dwdesign.gallery3d.common.Utils;
+import com.dwdesign.gallery3d.util.GalleryUtils;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -30,7 +30,7 @@ public class ResourceTexture extends UploadedTexture {
 	protected final int mResId;
 
 	public ResourceTexture(final Context context, final int resId) {
-		mContext = Utils.checkNotNull(context);
+		mContext = GalleryUtils.checkNotNull(context);
 		mResId = resId;
 		setOpaque(false);
 	}

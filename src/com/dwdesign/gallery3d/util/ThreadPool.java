@@ -35,8 +35,6 @@ public class ThreadPool {
 	public static final int MODE_CPU = 1;
 	public static final int MODE_NETWORK = 2;
 
-	public static final JobContext JOB_CONTEXT_STUB = new JobContextStub();
-
 	ResourceCounter mCpuCounter = new ResourceCounter(2);
 	ResourceCounter mNetworkCounter = new ResourceCounter(2);
 
@@ -46,7 +44,7 @@ public class ThreadPool {
 		this(CORE_POOL_SIZE, MAX_POOL_SIZE);
 	}
 
-	public ThreadPool(final int initPoolSize, final int maxPoolSize) {
+	private ThreadPool(final int initPoolSize, final int maxPoolSize) {
 		mExecutor = new ThreadPoolExecutor(initPoolSize, maxPoolSize, KEEP_ALIVE_TIME, TimeUnit.SECONDS,
 				new LinkedBlockingQueue<Runnable>(), new PriorityThreadFactory("thread-pool",
 						android.os.Process.THREAD_PRIORITY_BACKGROUND));
@@ -58,7 +56,7 @@ public class ThreadPool {
 
 	// Submit a job to the thread pool. The listener will be called when the
 	// job is finished (or cancelled).
-	public <T> Future<T> submit(final Job<T> job, final FutureListener<T> listener) {
+	private <T> Future<T> submit(final Job<T> job, final FutureListener<T> listener) {
 		final Worker<T> w = new Worker<T>(job, listener);
 		mExecutor.execute(w);
 		return w;
@@ -79,22 +77,6 @@ public class ThreadPool {
 		void setCancelListener(CancelListener listener);
 
 		boolean setMode(int mode);
-	}
-
-	private static class JobContextStub implements JobContext {
-		@Override
-		public boolean isCancelled() {
-			return false;
-		}
-
-		@Override
-		public void setCancelListener(final CancelListener listener) {
-		}
-
-		@Override
-		public boolean setMode(final int mode) {
-			return true;
-		}
 	}
 
 	private static class ResourceCounter {
@@ -215,11 +197,6 @@ public class ThreadPool {
 			}
 
 			return true;
-		}
-
-		@Override
-		public void waitDone() {
-			get();
 		}
 
 		private boolean acquireResource(final ResourceCounter counter) {

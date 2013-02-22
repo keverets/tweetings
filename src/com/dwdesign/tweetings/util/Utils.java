@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -49,6 +50,7 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.SocketAddress;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -132,6 +134,7 @@ import com.dwdesign.tweetings.provider.TweetStore.Filters;
 import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.provider.TweetStore.Tabs;
+import com.dwdesign.tweetings.util.httpclient.HttpClientImpl;
 
 import twitter4j.DirectMessage;
 import twitter4j.GeoLocation;
@@ -176,6 +179,8 @@ import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.NinePatchDrawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -442,7 +447,6 @@ public final class Utils implements Constants {
 		builder.append(" AND " + table + "." + Statuses.IS_GAP + " IS NULL");
 		builder.append(" OR " + table + "." + Statuses.IS_GAP + " == 0");
 		builder.append(" )");
-
 		return builder.toString();
 	}
 
@@ -528,6 +532,16 @@ public final class Utils implements Constants {
 		editor.remove(Long.toString(user_id));
 		editor.commit();
 		sUserColors.remove(user_id);
+	}
+	
+	public static boolean closeSilently(final Closeable c) {
+		if (c == null) return false;
+		try {
+			c.close();
+		} catch (final IOException e) {
+			return false;
+		}
+		return true;
 	}
 	
 	public static void copyStream(final InputStream is, final OutputStream os) throws IOException {
@@ -838,8 +852,8 @@ public final class Utils implements Constants {
 		if (m.matches()) return getTwitterImage(link, true);
 		m = PATTERN_TWITPIC.matcher(link);
 		if (m.matches()) return getTwitpicImage(matcherGroup(m, TWITPIC_GROUP_ID), true);
-		//m = PATTERN_INSTAGRAM.matcher(link);
-		//if (m.matches()) return getInstagramImage(matcherGroup(m, INSTAGRAM_GROUP_ID));
+		m = PATTERN_INSTAGRAM.matcher(link);
+		if (m.matches()) return getInstagramImage(matcherGroup(m, INSTAGRAM_GROUP_ID), true);
 		m = PATTERN_IMGUR.matcher(link);
 		if (m.matches()) return getImgurImage(matcherGroup(m, IMGUR_GROUP_ID), true);
 		m = PATTERN_IMGLY.matcher(link);
@@ -943,7 +957,7 @@ public final class Utils implements Constants {
 
 	public static Twitter getDefaultTwitterInstance(final Context context, final boolean include_entities, final boolean include_rts) {
 		if (context == null) return null;
-		return getTwitterInstance(context, getDefaultAccountId(context), include_entities, include_rts);
+		return getTwitterInstance(context, getDefaultAccountId(context), include_entities, include_rts, true);
 	}
 
 	public static String getImagePathFromUri(final Context context, final Uri uri) {
@@ -1167,7 +1181,7 @@ public final class Utils implements Constants {
 		if (html == null) return new PreviewImage(false, null, null);
 		if (display_option == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_NONE)
 			 return new PreviewImage(html.contains(".twimg.com/") || html.contains("://instagr.am/")
-					/*|| html.contains("://instagram.com/")*/ || html.contains("://imgur.com/")
+					|| html.contains("://instagram.com/") || html.contains("://imgur.com/")
 					|| html.contains("://i.imgur.com/") || html.contains("://twitpic.com/")
 					|| html.contains("://img.ly/") || html.contains("://yfrog.com/")
 					|| html.contains("://twitgoo.com/") || html.contains("://moby.to/")
@@ -1182,9 +1196,9 @@ public final class Utils implements Constants {
 				url_m = PATTERN_TWITPIC.matcher(image_url);
 				if (url_m.matches())
 					return new PreviewImage(getTwitpicImage(matcherGroup(url_m, TWITPIC_GROUP_ID), large_image_preview), image_url);
-				//url_m = PATTERN_INSTAGRAM.matcher(image_url);
-				//if (url_m.matches())
-				//	return new PreviewImage(getInstagramImage(matcherGroup(url_m, INSTAGRAM_GROUP_ID), large_image_preview), image_url);
+				url_m = PATTERN_INSTAGRAM.matcher(image_url);
+				if (url_m.matches())
+					return new PreviewImage(getInstagramImage(matcherGroup(url_m, INSTAGRAM_GROUP_ID), large_image_preview), image_url);
 				url_m = PATTERN_IMGUR.matcher(image_url);
 				if (url_m.matches())
 					return new PreviewImage(getImgurImage(matcherGroup(url_m, IMGUR_GROUP_ID), large_image_preview), image_url);
@@ -1247,8 +1261,8 @@ public final class Utils implements Constants {
 		if (isNullOrEmpty(share_format)) {
 			share_format = PREFERENCE_DEFAULT_SHARE_FORMAT;
 		}
-		if (title == null) return text;
-		return share_format.replace(FORMAT_PATTERN_TITLE, title).replace(FORMAT_PATTERN_TEXT, text);
+		if (isNullOrEmpty(title)) return text;
+		return share_format.replace(FORMAT_PATTERN_TITLE, title).replace(FORMAT_PATTERN_TEXT, text != null ? text : "");
 	}
 
 	public static ImageSpec getSinaWeiboImage(final String url, final boolean large_image_preview) {
@@ -1441,7 +1455,7 @@ public final class Utils implements Constants {
 	}
 
 	public static Twitter getTwitterInstance(final Context context, final long account_id, final boolean include_entities) {
-		return getTwitterInstance(context, account_id, include_entities, true);
+		return getTwitterInstance(context, account_id, include_entities, true, true);
 	}
 	
 	public static AccessToken getTwitterAccessToken(final Context context, final long account_id) {
@@ -1463,9 +1477,9 @@ public final class Utils implements Constants {
 		}
 		return accessToken;
 	}
-
+	
 	public static Twitter getTwitterInstance(final Context context, final long account_id, final boolean include_entities,
-			final boolean include_rts) {
+			final boolean include_rts, final boolean use_httpclient) {
 		if (context == null) return null;
 		final SharedPreferences preferences = context.getSharedPreferences(SHARED_PREFERENCES_NAME,
 				Context.MODE_PRIVATE);
@@ -1490,6 +1504,9 @@ public final class Utils implements Constants {
 				cur.moveToFirst();
 				final ConfigurationBuilder cb = new ConfigurationBuilder();
 				setUserAgent(context, cb);
+				if (use_httpclient) {
+					cb.setHttpClientImplementation(HttpClientImpl.class);
+				}
 				cb.setGZIPEnabled(enable_gzip_compressing);
 				if (enable_proxy) {
 					final String proxy_host = preferences.getString(PREFERENCE_KEY_PROXY_HOST, null);
@@ -1563,7 +1580,7 @@ public final class Utils implements Constants {
 			}
 			cur.close();
 		}
-		if (account_id > 0) return getTwitterInstance(context, account_id, include_entities, include_rts);
+		if (account_id > 0) return getTwitterInstance(context, account_id, include_entities, include_rts, true);
 		return null;
 	}
 	
@@ -1591,7 +1608,6 @@ public final class Utils implements Constants {
 		final String thumbnail_size = "http://yfrog.com/" + id + ":iphone";
 		final String full_size = "https://yfrog.com/" + id + (large_image_preview ? ":medium" : ":small");
 		return new ImageSpec(thumbnail_size, full_size);
-
 	}
 	
 	public static boolean isFiltered(final Context context, final String screen_name, final String source, final String text) {
@@ -1677,6 +1693,23 @@ public final class Utils implements Constants {
 	public static boolean isNullOrEmpty(final CharSequence text) {
 		return text == null || "".equals(text);
 	}
+	
+	public static boolean isValidImage(final File image) {
+		if (image == null) return false;
+		final BitmapFactory.Options o = new BitmapFactory.Options();
+		o.inJustDecodeBounds = true;
+		BitmapFactory.decodeFile(image.getPath(), o);
+		return o.outHeight > 0 && o.outWidth > 0;
+	}
+
+	public static boolean isValidImage(final InputStream is) {
+		if (is == null) return false;
+		final BitmapFactory.Options o = new BitmapFactory.Options();
+		o.inJustDecodeBounds = true;
+		BitmapFactory.decodeStream(is, new Rect(), o);
+		return o.outHeight > 0 && o.outWidth > 0;
+	}
+
 
 	public static boolean isUserLoggedIn(final Context context, final long account_id) {
 		if (context == null) return false;
@@ -2950,6 +2983,22 @@ public final class Utils implements Constants {
 		return getHttpClient(timeout_millis, true, proxy, resolver, user_agent);
 	}
 	
+	public static String getImageMimeType(final File image) {
+		if (image == null) return null;
+		final BitmapFactory.Options o = new BitmapFactory.Options();
+		o.inJustDecodeBounds = true;
+		BitmapFactory.decodeFile(image.getPath(), o);
+		return o.outMimeType;
+	}
+
+	public static String getImageMimeType(final InputStream is) {
+		if (is == null) return null;
+		final BitmapFactory.Options o = new BitmapFactory.Options();
+		o.inJustDecodeBounds = true;
+		BitmapFactory.decodeStream(is, null, o);
+		return o.outMimeType;
+	}
+	
 	public static File getBestCacheDir(final Context context, final String cache_dir_name) {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
 			final File ext_cache_dir = GetExternalCacheDirAccessor.getExternalCacheDir(context);
@@ -3002,4 +3051,27 @@ public final class Utils implements Constants {
 	 
 		return orig;
 	}
+	
+	public static boolean isOnWifi(final Context context) {
+		if (context == null) return false;
+	 	final ConnectivityManager conn = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+	 	final NetworkInfo networkInfo = conn.getActiveNetworkInfo();
+	 	
+	 	return networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI
+	 			&& networkInfo.isConnected();
+	}
+	
+	public static Bitmap getBitmap(final Drawable drawable) {
+		if (drawable instanceof NinePatchDrawable) return null;
+ 		if (drawable instanceof BitmapDrawable)
+ 			return ((BitmapDrawable) drawable).getBitmap();
+ 		else if (drawable instanceof TransitionDrawable) {
+ 			final int layer_count = ((TransitionDrawable) drawable).getNumberOfLayers();
+ 			for (int i = 0; i < layer_count; i++) {
+ 				final Drawable layer = ((TransitionDrawable) drawable).getDrawable(i);
+ 				if (layer instanceof BitmapDrawable) return ((BitmapDrawable) layer).getBitmap();
+ 			}
+ 		}
+ 		return null;
+ 	 }
 }

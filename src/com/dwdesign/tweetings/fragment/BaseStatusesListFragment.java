@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -61,16 +62,20 @@ import com.dwdesign.tweetings.util.StatusesAdapterInterface;
 import com.dwdesign.tweetings.util.ClipboardUtils;
 
 import android.content.BroadcastReceiver;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
+import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.StrictMode;
@@ -112,7 +117,7 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 	private StatusesAdapterInterface mAdapter;
 	private PopupMenu mPopupMenu;
 
-	private Data mData;
+	protected Data mData;
 	private ParcelableStatus mSelectedStatus;
 
 	private boolean mLoadMoreAutomatically;
@@ -184,6 +189,9 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 		mListView.setOnScrollListener(this);
 		mListView.setOnItemClickListener(this);
 		mListView.setOnItemLongClickListener(this);
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+			mListView.setCacheColorHint(0);
+		}
 		setMode(Mode.BOTH);
 		getLoaderManager().initLoader(0, getArguments(), this);
 		setListShown(false);
@@ -200,12 +208,6 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 	
 	@Override
 	public abstract Loader<Data> onCreateLoader(int id, Bundle args);
-
-	@Override
-	public void onDestroy() {
-		mActivityFirstCreated = true;
-		super.onDestroy();
-	}
 
 	@Override
 	public void onItemClick(final AdapterView<?> adapter, final View view, final int position, final long id) {
@@ -260,7 +262,7 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 			final boolean click_to_open_menu = mPreferences.getBoolean(PREFERENCE_KEY_CLICK_TO_OPEN_MENU, false);
 			final StatusViewHolder holder = (StatusViewHolder) tag;
 			if (holder.show_as_gap) return false;
-			final ParcelableStatus status = mSelectedStatus = getListAdapter().findStatus(id);
+			final ParcelableStatus status = mSelectedStatus = getListAdapter().getStatus(position - mListView.getHeaderViewsCount());
 			if (mApplication.isMultiSelectActive()) {
 				final NoDuplicatesLinkedList<Object> list = mApplication.getSelectedItems();
 				if (!list.contains(mSelectedStatus)) {
@@ -359,7 +361,22 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 			finalString = finalString.replace("<string xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/\">", "");
 			finalString = finalString.replace("</string>", "");
 			
-			Toast.makeText(getActivity(), finalString, Toast.LENGTH_LONG).show();
+			AlertDialog.Builder builder = new AlertDialog.Builder(this.getActivity());
+			builder.setTitle(getString(R.string.translate));
+			builder.setMessage(finalString);
+			builder.setCancelable(true);
+			builder.setPositiveButton(getString(R.string.ok),
+				new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+				});
+			
+			AlertDialog alert = builder.create();
+			alert.show();
+			
+			//Toast.makeText(getActivity(), finalString, Toast.LENGTH_LONG).show();
 		} catch (ClientProtocolException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -443,6 +460,7 @@ abstract class BaseStatusesListFragment<Data> extends PullToRefreshListFragment 
 				bundle.putStringArray(INTENT_KEY_MENTIONS, mentions.toArray(new String[mentions.size()]));
 				bundle.putLong(INTENT_KEY_ACCOUNT_ID, status.account_id);
 				bundle.putLong(INTENT_KEY_IN_REPLY_TO_ID, status.status_id);
+				bundle.putString(INTENT_KEY_IN_REPLY_TO_TWEET, status.text_plain);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_SCREEN_NAME, status.screen_name);
 				bundle.putString(INTENT_KEY_IN_REPLY_TO_NAME, status.name);
 				intent.putExtras(bundle);

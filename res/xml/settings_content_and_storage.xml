@@ -12,7 +12,7 @@
 			android:summary="@string/image_load_summary"
 			android:title="@string/display_profile_image"/>
 		<ListPreference
- 	 		android:defaultValue="none"
+ 	 		android:defaultValue="small"
  	 		android:entries="@array/entries_inline_image_preview_display_option"
  	 		android:entryValues="@array/values_inline_image_preview_display_option"
  	 		android:key="inline_image_preview_display_option"
@@ -28,13 +28,21 @@
 		android:key="category_content"
 		android:title="@string/content">
 		
-		
-		
 		<CheckBoxPreference
 			android:defaultValue="true"
 			android:key="load_more_automatically"
 			android:summary="@string/load_more_automatically_summary"
 			android:title="@string/load_more_automatically"/>
+		
+		<com.dwdesign.tweetings.preference.ImagePreloadPreference
+ 	 		android:key="image_preload_options"
+ 	 		android:title="@string/image_preload_options"/>
+		
+		<CheckBoxPreference
+			android:defaultValue="true"
+			android:key="preload_on_wifi_only"
+			android:summary="@string/preload_on_wifi_only_summary"
+			android:title="@string/preload_on_wifi_only"/>
 
 		<org.mariotaku.preference.SeekBarPreference
 			maxValue="200"

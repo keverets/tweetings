@@ -11,6 +11,12 @@
 			android:key="stream_enabled"
 			android:summary="@string/stream_enabled_summary"
 			android:title="@string/stream_enabled"/>
+		
+		<!-- <CheckBoxPreference
+			android:defaultValue="false"
+			android:key="stream_notification"
+			android:summary="@string/stream_notification_summary"
+			android:title="@string/stream_notification"/>  -->
 	</PreferenceCategory>
 	<PreferenceCategory
 		android:key="category_api"

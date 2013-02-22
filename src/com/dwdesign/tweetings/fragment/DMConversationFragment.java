@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,7 +37,7 @@ import com.dwdesign.tweetings.model.Panes;
 import com.dwdesign.tweetings.model.ParcelableDirectMessage;
 import com.dwdesign.tweetings.provider.TweetStore;
 import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.ClipboardUtils;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
@@ -225,8 +226,7 @@ public class DMConversationFragment extends BaseFragment implements LoaderCallba
 		mPreferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
 		mService = getServiceInterface();
 
-		final LazyImageLoader imageloader = mApplication.getProfileImageLoader();
-		mAdapter = new DirectMessagesConversationAdapter(getActivity(), imageloader);
+		mAdapter = new DirectMessagesConversationAdapter(getActivity());
 		mListView.setAdapter(mAdapter);
 		mListView.setTranscriptMode(ListView.TRANSCRIPT_MODE_NORMAL);
 		mListView.setStackFromBottom(true);

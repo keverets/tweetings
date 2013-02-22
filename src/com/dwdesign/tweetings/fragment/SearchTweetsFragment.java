@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,6 +30,7 @@ import com.dwdesign.tweetings.fragment.CustomTabsFragment.CustomTabsAdapter;
 import com.dwdesign.tweetings.loader.TweetSearchLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.provider.TweetStore.Tabs;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -104,25 +106,21 @@ public class SearchTweetsFragment extends ParcelableStatusesListFragment {
 	}
 	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		long account_id = -1, max_id = -1, since_id = -1;
-		boolean is_home_tab = false;
 		String query = null;
+		boolean is_home_tab = false;
 		if (args != null) {
-			mAccountId = args.getLong(INTENT_KEY_ACCOUNT_ID);
+			account_id = args.getLong(INTENT_KEY_ACCOUNT_ID);
 			max_id = args.getLong(INTENT_KEY_MAX_ID, -1);
 			since_id = args.getLong(INTENT_KEY_SINCE_ID, -1);
-			mQuery = args.getString(INTENT_KEY_QUERY);
+			query = args.getString(INTENT_KEY_QUERY);
 			is_home_tab = args.getBoolean(INTENT_KEY_IS_HOME_TAB);
-			mSearchId = args.getInt(INTENT_KEY_ID, -1);
-			setHasOptionsMenu(true);
-			if (optionsMenu != null) {
-				onPrepareOptionsMenu(optionsMenu);
-			}
 		}
-		return new TweetSearchLoader(getActivity(), mAccountId, mQuery, max_id, since_id, getData(), getClass().getSimpleName(),
-				is_home_tab);
+		return new TweetSearchLoader(getActivity(), account_id, query, max_id, since_id, getData(), getClass()
+				.getSimpleName(), is_home_tab);
 	}
+
 	
 	@Override
 	public void scrollToStatusId(long statusId) {

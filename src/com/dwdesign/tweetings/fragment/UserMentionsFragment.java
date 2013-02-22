@@ -7,6 +7,7 @@ import java.util.List;
 import com.dwdesign.tweetings.loader.DummyParcelableStatusesLoader;
 import com.dwdesign.tweetings.loader.TweetSearchLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 import com.dwdesign.tweetings.util.Utils;
 
 import android.content.BroadcastReceiver;
@@ -48,8 +49,8 @@ public class UserMentionsFragment extends SearchTweetsFragment {
         }
     };
 	
-	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+    @Override
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		final long account_id = args != null ? args.getLong(INTENT_KEY_ACCOUNT_ID, -1) : -1;
 		if (args == null) return new DummyParcelableStatusesLoader(getActivity(), account_id, getData());
 		final long max_id = args.getLong(INTENT_KEY_MAX_ID, -1);
@@ -60,7 +61,7 @@ public class UserMentionsFragment extends SearchTweetsFragment {
 				Utils.equals(getAccountUsername(getActivity(), account_id), screen_name));
 		if (screen_name == null) return new DummyParcelableStatusesLoader(getActivity(), account_id, getData());
 		return new TweetSearchLoader(getActivity(), account_id, screen_name.startsWith("@") ? screen_name : "@"
-			+ screen_name, max_id, since_id, getData(), getClass().getSimpleName(), is_home_tab);
+				+ screen_name, max_id, since_id, getData(), getClass().getSimpleName(), is_home_tab);
 	}
 	
 	

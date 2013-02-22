@@ -19,7 +19,7 @@ import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.model.DirectMessageEntryViewHolder;
 import com.dwdesign.tweetings.provider.TweetStore.DirectMessages.ConversationsEntry;
 import com.dwdesign.tweetings.util.BaseAdapterInterface;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -27,17 +27,18 @@ import android.graphics.Color;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.view.View;
 import android.view.ViewGroup;
+import com.dwdesign.tweetings.app.TweetingsApplication;
 
 public class DirectMessagesEntryAdapter extends SimpleCursorAdapter implements BaseAdapterInterface {
 
 	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime, mFastProcessingEnabled;
-	private final LazyImageLoader mProfileImageLoader;
+	private final ImageLoaderWrapper mLazyImageLoader;
 	private float mTextSize;
 	private final boolean mDisplayHiResProfileImage;
 
-	public DirectMessagesEntryAdapter(final Context context, final LazyImageLoader loader) {
+	public DirectMessagesEntryAdapter(final Context context) {
 		super(context, R.layout.direct_messages_entry_item, null, new String[0], new int[0], 0);
-		mProfileImageLoader = loader;
+		mLazyImageLoader = TweetingsApplication.getInstance(context).getImageLoaderWrapper();
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 	}
 
@@ -79,10 +80,9 @@ public class DirectMessagesEntryAdapter extends SimpleCursorAdapter implements B
 		if (mDisplayProfileImage) {
 			final String profile_image_url_string = cursor.getString(IDX_PROFILE_IMAGE_URL);
 			if (mDisplayHiResProfileImage) {
-				mProfileImageLoader.displayImage(parseURL(getBiggerTwitterProfileImage(profile_image_url_string)),
-						holder.profile_image);
+				mLazyImageLoader.displayProfileImage(holder.profile_image, getBiggerTwitterProfileImage(profile_image_url_string));
 			} else {
-				mProfileImageLoader.displayImage(parseURL(profile_image_url_string), holder.profile_image);
+				mLazyImageLoader.displayProfileImage(holder.profile_image, profile_image_url_string);
 			}
 		}
 

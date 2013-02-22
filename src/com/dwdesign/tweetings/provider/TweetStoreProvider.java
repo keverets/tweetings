@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,10 +26,12 @@ import static com.dwdesign.tweetings.util.Utils.clearAccountName;
 import static com.dwdesign.tweetings.util.Utils.getTableId;
 import static com.dwdesign.tweetings.util.Utils.getTableNameForContentUri;
 import static com.dwdesign.tweetings.util.Utils.showErrorToast;
+import static com.dwdesign.tweetings.util.Utils.isOnWifi;
 
 import java.util.List;
 
 import com.dwdesign.tweetings.Constants;
+import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.provider.TweetStore.Accounts;
 import com.dwdesign.tweetings.provider.TweetStore.CachedTrends;
 import com.dwdesign.tweetings.provider.TweetStore.CachedUsers;
@@ -39,22 +42,30 @@ import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.provider.TweetStore.Tabs;
 import com.dwdesign.tweetings.util.ArrayUtils;
+import com.dwdesign.tweetings.util.ImagePreloader;
+import com.dwdesign.tweetings.util.Utils;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 
 public final class TweetStoreProvider extends ContentProvider implements Constants {
-
+	
+	private Context mContext;
+	
 	private SQLiteDatabase database;
+	private SharedPreferences mPreferences;
+	private ImagePreloader mImagePreloader;
 
 	private final Handler mErrorToastHandler = new Handler() {
 
@@ -84,6 +95,7 @@ public final class TweetStoreProvider extends ContentProvider implements Constan
 		if (result > 0) {
 			onDatabaseUpdated(uri, false);
 		}
+		onNewItemsInserted(uri, values);
 		return result;
 	};
 
@@ -123,6 +135,7 @@ public final class TweetStoreProvider extends ContentProvider implements Constan
 			return null;
 		final long row_id = database.insert(table, null, values);
 		onDatabaseUpdated(uri, true);
+		onNewItemsInserted(uri, values);
 		try {
 			return Uri.withAppendedPath(uri, String.valueOf(row_id));
 		} catch (final SQLiteException e) {
@@ -130,10 +143,57 @@ public final class TweetStoreProvider extends ContentProvider implements Constan
 		}
 		return null;
 	}
+	
+	private void onNewItemsInserted(final Uri uri, final ContentValues... values) {
+		if (uri == null || values == null || values.length == 0) return;
+		preloadImages(values);
+	}
+
+	private void preloadImages(final ContentValues... values) {
+		if (values == null) return;
+		boolean shouldPreload = true;
+		if (mPreferences.getBoolean(PREFERENCE_KEY_PRELOAD_WIFI_ONLY, true) 
+				&& (mPreferences.getBoolean(PREFERENCE_KEY_PRELOAD_PROFILE_IMAGES, false) 
+						|| mPreferences.getBoolean(PREFERENCE_KEY_PRELOAD_PREVIEW_IMAGES, false))) {
+			shouldPreload = false;
+			if (isOnWifi(mContext)) {
+				shouldPreload = true;
+			}
+		}
+		if (shouldPreload) {
+			for (final ContentValues v : values) {
+				if (mPreferences.getBoolean(PREFERENCE_KEY_PRELOAD_PROFILE_IMAGES, false)) {
+					final String profile_image_url = v.getAsString(Statuses.PROFILE_IMAGE_URL);
+					if (profile_image_url != null) {
+						mImagePreloader.preloadImage(DIR_NAME_IMAGE_CACHE, profile_image_url);
+					}
+					final String sender_profile_image_url = v.getAsString(DirectMessages.SENDER_PROFILE_IMAGE_URL);
+					if (sender_profile_image_url != null) {
+						mImagePreloader.preloadImage(DIR_NAME_IMAGE_CACHE, sender_profile_image_url);
+					}
+					final String recipient_profile_image_url = v.getAsString(DirectMessages.RECIPIENT_PROFILE_IMAGE_URL);
+					if (recipient_profile_image_url != null) {
+						mImagePreloader.preloadImage(DIR_NAME_IMAGE_CACHE, recipient_profile_image_url);
+					}
+				}
+				if (mPreferences.getBoolean(PREFERENCE_KEY_PRELOAD_PREVIEW_IMAGES, false)) {
+					final String text_html = v.getAsString(Statuses.TEXT);
+					for (final ImageSpec spec : Utils.getImagesInStatus(text_html)) {
+						if (spec != null && spec.preview_image_link != null) {
+							mImagePreloader.preloadImage(DIR_NAME_IMAGE_CACHE, spec.preview_image_link);
+						}
+					}
+				}
+			}
+		}
+	}
 
 	@Override
 	public boolean onCreate() {
+		mContext = getContext();
 		database = new DatabaseHelper(getContext(), DATABASES_NAME, DATABASES_VERSION).getWritableDatabase();
+		mImagePreloader = new ImagePreloader(mContext);
+		mPreferences = mContext.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
 		return database != null;
 	}
 
@@ -252,7 +312,15 @@ public final class TweetStoreProvider extends ContentProvider implements Constan
 			}
 		}
 		if (result > 0) {
-			onDatabaseUpdated(uri, false);
+			boolean notifyUpdate = true;
+			if (TABLE_ACCOUNTS.equals(table)) {
+				if (selection != null && selection.endsWith("AND 1 = 1")) {
+					notifyUpdate = false;
+				}
+			}
+			if (notifyUpdate) {
+				onDatabaseUpdated(uri, false);
+			}
 		}
 		return result;
 	}

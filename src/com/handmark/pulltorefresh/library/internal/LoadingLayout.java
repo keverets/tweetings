@@ -60,6 +60,8 @@ public class LoadingLayout extends FrameLayout implements Constants {
 	private String mRefreshingLabel;
 	private String mReleaseLabel;
 
+	private MediaPlayer mPlayer;
+	
 	private final Mode mMode;
 
 	private final Animation mRotateAnimation;
@@ -153,7 +155,13 @@ public class LoadingLayout extends FrameLayout implements Constants {
 			}
 			if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_NAVIGATION, true)) {
 				if (isMuted != true) {
-					MediaPlayer mPlayer = MediaPlayer.create(mContext, R.raw.release);
+					if (mPlayer != null) {
+						if (mPlayer.isPlaying()) {
+							mPlayer.stop();
+						}
+						mPlayer.release();
+					}
+					mPlayer = MediaPlayer.create(mContext, R.raw.release);
 					mPlayer.start();
 				}
 			}
@@ -186,7 +194,13 @@ public class LoadingLayout extends FrameLayout implements Constants {
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_NAVIGATION, true)) {
 					if (isMuted != true) {
-						MediaPlayer mPlayer = MediaPlayer.create(mContext, R.raw.pulldown);
+						if (mPlayer != null) {
+							if (mPlayer.isPlaying()) {
+								mPlayer.stop();
+							}
+							mPlayer.release();
+						}
+						mPlayer = MediaPlayer.create(mContext, R.raw.pulldown);
 						mPlayer.start();
 					}
 				}

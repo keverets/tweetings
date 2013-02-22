@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,10 +29,12 @@ import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.loader.UserListTimelineLoader;
 import com.dwdesign.tweetings.loader.UserRetweetedStatusLoader;
+import com.dwdesign.tweetings.loader.UserTimelineLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.ParcelableUser;
 import com.dwdesign.tweetings.model.StatusViewHolder;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -47,8 +50,9 @@ public class UserRetweetedStatusFragment extends ParcelableStatusesListFragment 
 	private TweetingsApplication mApplication;
 	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		long account_id = -1, max_id = -1, since_id = -1, status_id = -1;
+		String screen_name = null;
 		boolean is_home_tab = false;
 		if (args != null) {
 			account_id = args.getLong(INTENT_KEY_ACCOUNT_ID, -1);
@@ -80,27 +84,4 @@ public class UserRetweetedStatusFragment extends ParcelableStatusesListFragment 
 			}
 		}
 	}
-	
-	/*@Override
-	public Loader<List<ParcelableUser>> newLoaderInstance() {
-		final Bundle args = getArguments();
-		long account_id = -1, max_id = -1, status_id = -1;
-		if (args != null) {
-			account_id = args.getLong(INTENT_KEY_ACCOUNT_ID, -1);
-			max_id = args.getLong(INTENT_KEY_MAX_ID, -1);
-			status_id = args.getLong(INTENT_KEY_STATUS_ID, -1);
-		}
-		int page = 1;
-		if (max_id > 0) {
-			final int prefs_load_item_limit = getSharedPreferences().getInt(PREFERENCE_KEY_LOAD_ITEM_LIMIT,
-					PREFERENCE_DEFAULT_LOAD_ITEM_LIMIT);
-			final int load_item_limit = prefs_load_item_limit > 100 ? 100 : prefs_load_item_limit;
-			final int pos = getListAdapter().findItemPositionByUserId(max_id);
-			if (pos > 0) {
-				page = pos / load_item_limit + 1;
-			}
-		}
-		return new UserRetweetedStatusLoader(getActivity(), account_id, status_id, page, getData());
-	}*/
-
 }

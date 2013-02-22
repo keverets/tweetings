@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -48,7 +49,7 @@ import com.dwdesign.tweetings.fragment.ParcelableStatusesListFragment;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.StatusViewHolder;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.NoDuplicatesArrayList;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.StatusesAdapterInterface;
@@ -76,7 +77,7 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 
 	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
 		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks, mDisplaySensitiveContents;
-	private final LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
+	private final ImageLoaderWrapper mLazyImageLoader;
 	private float mTextSize;
 	private final Context mContext;
 	private final LayoutInflater mInflater;
@@ -84,6 +85,7 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 	private final boolean mDisplayHiResProfileImage;
 	private final NoDuplicatesArrayList<ParcelableStatus> mData = new NoDuplicatesArrayList<ParcelableStatus>();
 	private int mNameDisplayOption, mInlineImagePreviewDisplayOption;
+	private final float mDensity;
 	
 	public ParcelableStatusesAdapter(final Context context) {
 		super();
@@ -91,8 +93,8 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 		mInflater = LayoutInflater.from(context);
 		final TweetingsApplication application = TweetingsApplication.getInstance(context);
 		mSelectedStatusIds = application.getSelectedStatusIds();
-		mProfileImageLoader = application.getProfileImageLoader();
-		mPreviewImageLoader = application.getPreviewImageLoader();
+		mLazyImageLoader = application.getImageLoaderWrapper();
+	 	mDensity = context.getResources().getDisplayMetrics().density;
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 	}
 	
@@ -175,6 +177,10 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 			holder.image_preview_frame.setOnClickListener(this);
 			holder.profile_image.setOnClickListener(this);
 		}
+		
+		// Clear images in prder to prevent images in recycled view shown.
+	 	holder.profile_image.setImageDrawable(null);
+	 	holder.image_preview.setImageDrawable(null);
 
 		final ParcelableStatus status = getItem(position);
 
@@ -183,7 +189,7 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 		holder.setShowAsGap(show_gap);
 		holder.setAccountColorEnabled(mShowAccountColor);
 		
-		if (mShowLinks) {
+		if (mShowLinks && status.text_html != null) {
 		 	 holder.text.setText(Html.fromHtml(status.text_html));
 		 	 final TwidereLinkify linkify = new TwidereLinkify(holder.text);
 		 	 linkify.setOnLinkClickListener(new OnLinkClickHandler(mContext, status.account_id));
@@ -277,11 +283,9 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 			holder.profile_image.setVisibility(mDisplayProfileImage ? View.VISIBLE : View.GONE);
 			if (mDisplayProfileImage) {
 				if (mDisplayHiResProfileImage) {
-					mProfileImageLoader.displayImage(
-							parseURL(getBiggerTwitterProfileImage(status.profile_image_url_string)),
-							holder.profile_image);
+					mLazyImageLoader.displayProfileImage(holder.profile_image, getBiggerTwitterProfileImage(status.profile_image_url_string));
 				} else {
-					mProfileImageLoader.displayImage(parseURL(status.profile_image_url_string), holder.profile_image);
+					mLazyImageLoader.displayPreviewImage(holder.image_preview, status.image_preview_url_string);
 				}
 				holder.profile_image.setOnClickListener(this);
 				holder.profile_image.setTag(position);
@@ -304,7 +308,7 @@ public class ParcelableStatusesAdapter extends BaseAdapter implements Constants,
 				if (status.is_possibly_sensitive && !mDisplaySensitiveContents) {
 					holder.image_preview.setImageResource(R.drawable.image_preview_nsfw);
 				} else {
-					mPreviewImageLoader.displayImage(status.image_preview_url, holder.image_preview);
+					mLazyImageLoader.displayPreviewImage(holder.image_preview, String.valueOf(status.image_preview_url));
 				}
 				holder.image_preview_frame.setTag(position);
 			}

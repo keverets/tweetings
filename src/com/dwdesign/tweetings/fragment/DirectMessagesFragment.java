@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,7 +30,7 @@ import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.DirectMessages;
 import com.dwdesign.tweetings.util.ArrayUtils;
 import com.dwdesign.tweetings.util.AsyncTask;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.ServiceInterface;
 
 import android.content.BroadcastReceiver;
@@ -123,8 +124,7 @@ public class DirectMessagesFragment extends PullToRefreshListFragment implements
 		super.onActivityCreated(savedInstanceState);
 		mApplication = getApplication();
 		mService.clearNotification(NOTIFICATION_ID_DIRECT_MESSAGES);
-		final LazyImageLoader imageloader = getApplication().getProfileImageLoader();
-		mAdapter = new DirectMessagesEntryAdapter(getActivity(), imageloader);
+		mAdapter = new DirectMessagesEntryAdapter(getActivity());
 
 		setListAdapter(mAdapter);
 		mListView = getListView();

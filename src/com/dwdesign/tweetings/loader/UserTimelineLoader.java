@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,6 +33,7 @@ import java.util.List;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.SerializableStatus;
 import com.dwdesign.tweetings.util.NoDuplicatesStateSavedList;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import twitter4j.Paging;
 import twitter4j.ResponseList;
@@ -60,22 +62,21 @@ public class UserTimelineLoader extends Twitter4JStatusLoader {
 
 	@Override
 	public ResponseList<Status> getStatuses(final Paging paging) throws TwitterException {
-		final Twitter twitter = getTwitter();
-		if (twitter == null) return null;
+		if (mTwitter == null) return null;
 		if (mUserId != -1) {
 			if (mTotalItemsCount == -1) {
 				try {
-					mTotalItemsCount = twitter.showUser(mUserId).getStatusesCount();
+					mTotalItemsCount = mTwitter.showUser(mUserId).getStatusesCount();
 				} catch (final TwitterException e) {
 					mTotalItemsCount = -1;
 				}
 			}
 			SharedPreferences mPreferences = mContext.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
 			if (mPreferences.getBoolean(PREFERENCE_KEY_API_V1, true) == true) {
-				return twitter.getUserTimelinev1(mUserId, paging);
+				return mTwitter.getUserTimelinev1(mUserId, paging);
 			}
-			return twitter.getUserTimeline(mUserId, paging);
-		} else if (mUserScreenName != null) return twitter.getUserTimeline(mUserScreenName, paging);
+			return mTwitter.getUserTimeline(mUserId, paging);
+		} else if (mUserScreenName != null) return mTwitter.getUserTimeline(mUserScreenName, paging);
 		return null;
 	}
 
@@ -84,31 +85,32 @@ public class UserTimelineLoader extends Twitter4JStatusLoader {
 	}
 	
 	@Override
-	public synchronized List<ParcelableStatus> loadInBackground() {
+	public SynchronizedStateSavedList<ParcelableStatus, Long> loadInBackground() {
 		if (isFirstLoad() && isHomeTab() && getClassName() != null) {
 			try {
-				final String path = SerializationUtil.getSerializationFilePath(getContext(), getClassName(), getAccountId(), mUserId, mUserScreenName);
-				@SuppressWarnings("unchecked")
-				final NoDuplicatesStateSavedList<SerializableStatus, Long> statuses = (NoDuplicatesStateSavedList<SerializableStatus, Long>)
-						SerializationUtil.read(path);
-				final ArrayList<ParcelableStatus> result = new ArrayList<ParcelableStatus>();
-				for (final SerializableStatus status : statuses) {
-					result.add(new ParcelableStatus(status));
+				final String path = SerializationUtil.getSerializationFilePath(getContext(), getClassName(),
+						mAccountId, mUserId, mUserScreenName);
+				final SynchronizedStateSavedList<ParcelableStatus, Long> statuses = SerializationUtil.read(path);
+				setLastViewedId(statuses.getState());
+				final SynchronizedStateSavedList<ParcelableStatus, Long> data = getData();
+				if (data != null && statuses != null) {
+					data.addAll(statuses);
+					Collections.sort(data);
 				}
-				final List<ParcelableStatus> data = getData();
-				data.addAll(result);
-				Collections.sort(data);
 				return data;
 			} catch (final IOException e) {
+				e.printStackTrace();
 			} catch (final ClassNotFoundException e) {
-			} catch (final ClassCastException e) {  
+				e.printStackTrace();
+			} catch (final ClassCastException e) {
+				e.printStackTrace();
 			}
 		}
 		return super.loadInBackground();
 	}
 
-	public static void writeSerializableStatuses(final Object instance, final Context context, 
-			final List<ParcelableStatus> data, final long last_viewed_id, final Bundle args) {
+	public static void writeSerializableStatuses(final Object instance, final Context context,
+			final SynchronizedStateSavedList<ParcelableStatus, Long> data, final long last_viewed_id, final Bundle args) {
 		if (instance == null || context == null || data == null || args == null) return;
 		final long account_id = args.getLong(INTENT_KEY_ACCOUNT_ID, -1);
 		final long user_id = args.getLong(INTENT_KEY_USER_ID, -1);
@@ -116,18 +118,14 @@ public class UserTimelineLoader extends Twitter4JStatusLoader {
 		final int items_limit = context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).getInt(
 				PREFERENCE_KEY_DATABASE_ITEM_LIMIT, PREFERENCE_DEFAULT_DATABASE_ITEM_LIMIT);
 		try {
-			final NoDuplicatesStateSavedList<SerializableStatus, Long> statuses = new NoDuplicatesStateSavedList<SerializableStatus, Long>();
+			final int size = data.size();
+			final SynchronizedStateSavedList<ParcelableStatus, Long> statuses = new SynchronizedStateSavedList<ParcelableStatus, Long>(
+					data.subList(0, size > items_limit ? items_limit : size));
 			if (last_viewed_id > 0) {
 				statuses.setState(last_viewed_id);
 			}
-			final int count = data.size();
-			for (int i = 0; i < count; i++) {
-				if (i >= items_limit) {
-					break;
-				}
-				statuses.add(new SerializableStatus(data.get(i)));
-			}
-			final String path = SerializationUtil.getSerializationFilePath(context, instance.getClass().getSimpleName() ,account_id, user_id, screen_name);
+			final String path = SerializationUtil.getSerializationFilePath(context,
+					instance.getClass().getSimpleName(), account_id, user_id, screen_name);
 			SerializationUtil.write(statuses, path);
 		} catch (final IOException e) {
 		}

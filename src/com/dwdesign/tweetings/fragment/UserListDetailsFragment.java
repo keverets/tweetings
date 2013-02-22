@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,7 +47,7 @@ import com.dwdesign.tweetings.model.ListAction;
 import com.dwdesign.tweetings.model.Panes;
 import com.dwdesign.tweetings.model.ParcelableUserList;
 import com.dwdesign.tweetings.provider.TweetStore.Tabs;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.ServiceInterface;
 import com.dwdesign.tweetings.util.TwidereLinkify;
 import com.dwdesign.tweetings.util.TwidereLinkify.OnLinkClickListener;
@@ -141,7 +142,7 @@ public class UserListDetailsFragment extends BaseListFragment implements OnClick
 		// TODO: Implement this method
 	}
 
-	private LazyImageLoader mProfileImageLoader;
+	private ImageLoaderWrapper mProfileImageLoader;
 	private ImageView mProfileImageView;
 	private TextView mListNameView, mUserNameView, mDescriptionView, mErrorMessageView;
 	private View mNameContainer, mProfileImageContainer, mDescriptionContainer;
@@ -227,9 +228,9 @@ public class UserListDetailsFragment extends BaseListFragment implements OnClick
 		mDescriptionView.setMovementMethod(LinkMovementMethod.getInstance());
 		final String profile_image_url_string = parseString(user.getProfileImageURL());
 		final boolean hires_profile_image = getResources().getBoolean(R.bool.hires_profile_image);
-		mProfileImageLoader.displayImage(
-				parseURL(hires_profile_image ? getBiggerTwitterProfileImage(profile_image_url_string)
-						: profile_image_url_string), mProfileImageView);
+		mProfileImageLoader.displayProfileImage(mProfileImageView, 
+				hires_profile_image ? getBiggerTwitterProfileImage(profile_image_url_string)
+						: profile_image_url_string);
 		mUserList = user_list;
 		//if (mUserId == mAccountId) {
 			mFollowMoreButton.setText(R.string.more);
@@ -288,7 +289,7 @@ public class UserListDetailsFragment extends BaseListFragment implements OnClick
 			list_name = args.getString(INTENT_KEY_LIST_NAME);
 			screen_name = args.getString(INTENT_KEY_SCREEN_NAME);
 		}
-		mProfileImageLoader = getApplication().getProfileImageLoader();
+		mProfileImageLoader = getApplication().getImageLoaderWrapper();
 		mAdapter = new ListActionAdapter(getActivity());
 		mAdapter.add(new ListTimelineAction());
 		mAdapter.add(new ListMembersAction());

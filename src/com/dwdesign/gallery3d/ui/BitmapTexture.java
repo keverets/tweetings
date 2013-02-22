@@ -16,7 +16,7 @@
 
 package com.dwdesign.gallery3d.ui;
 
-import com.dwdesign.gallery3d.common.Utils;
+import com.dwdesign.gallery3d.util.GalleryUtils;
 
 import android.graphics.Bitmap;
 
@@ -32,9 +32,9 @@ public class BitmapTexture extends UploadedTexture {
 		this(bitmap, false);
 	}
 
-	public BitmapTexture(final Bitmap bitmap, final boolean hasBorder) {
+	private BitmapTexture(final Bitmap bitmap, final boolean hasBorder) {
 		super(hasBorder);
-		Utils.assertTrue(bitmap != null && !bitmap.isRecycled());
+		GalleryUtils.assertTrue(bitmap != null && !bitmap.isRecycled());
 		mContentBitmap = bitmap;
 	}
 

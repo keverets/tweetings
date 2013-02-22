@@ -16,50 +16,75 @@
 
 package com.dwdesign.gallery3d.util;
 
-import com.dwdesign.gallery3d.data.MediaItem;
-import com.dwdesign.gallery3d.ui.TiledScreenNail;
-import com.dwdesign.tweetings.R;
+import java.io.Closeable;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.WindowManager;
 
 public class GalleryUtils {
-	public static final String MIME_TYPE_IMAGE = "image/*";
 
 	private static float sPixelDensity = -1f;
+	private static final String TAG = "Utils";
 
-	private static final double EARTH_RADIUS_METERS = 6367000.0;
-
-	public static double accurateDistanceMeters(final double lat1, final double lng1, final double lat2,
-			final double lng2) {
-		final double dlat = Math.sin(0.5 * (lat2 - lat1));
-		final double dlng = Math.sin(0.5 * (lng2 - lng1));
-		final double x = dlat * dlat + dlng * dlng * Math.cos(lat1) * Math.cos(lat2);
-		return 2 * Math.atan2(Math.sqrt(x), Math.sqrt(Math.max(0.0, 1.0 - x))) * EARTH_RADIUS_METERS;
+	// Throws AssertionError if the input is false.
+	public static void assertTrue(final boolean cond) {
+		if (!cond) throw new AssertionError();
 	}
 
-	public static float dpToPixel(final float dp) {
-		return sPixelDensity * dp;
+	public static int ceilLog2(final float value) {
+		int i;
+		for (i = 0; i < 31; i++) {
+			if (1 << i >= value) {
+				break;
+			}
+		}
+		return i;
 	}
 
-	// Below are used the detect using database in the render thread. It only
-	// works most of the time, but that's ok because it's for debugging only.
+	// Throws NullPointerException if the input is null.
+	public static <T> T checkNotNull(final T object) {
+		if (object == null) throw new NullPointerException();
+		return object;
+	}
+
+	// Returns the input value x clamped to the range [min, max].
+	public static float clamp(final float x, final float min, final float max) {
+		if (x > max) return max;
+		if (x < min) return min;
+		return x;
+	}
+
+	// Returns the input value x clamped to the range [min, max].
+	public static int clamp(final int x, final int min, final int max) {
+		if (x > max) return max;
+		if (x < min) return min;
+		return x;
+	}
+
+	public static void closeSilently(final Closeable c) {
+		if (c == null) return;
+		try {
+			c.close();
+		} catch (final Throwable t) {
+			Log.w(TAG, "close fail", t);
+		}
+	}
 
 	public static int dpToPixel(final int dp) {
 		return Math.round(dpToPixel((float) dp));
 	}
 
-	public static byte[] getBytes(final String in) {
-		final byte[] result = new byte[in.length() * 2];
-		int output = 0;
-		for (final char ch : in.toCharArray()) {
-			result[output++] = (byte) (ch & 0xFF);
-			result[output++] = (byte) (ch >> 8);
+	public static int floorLog2(final float value) {
+		int i;
+		for (i = 0; i < 31; i++) {
+			if (1 << i > value) {
+				break;
+			}
 		}
-		return result;
+		return i - 1;
 	}
 
 	public static void initialize(final Context context) {
@@ -67,9 +92,6 @@ public class GalleryUtils {
 		final WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 		wm.getDefaultDisplay().getMetrics(metrics);
 		sPixelDensity = metrics.density;
-		final Resources r = context.getResources();
-		TiledScreenNail.setPlaceholderColor(r.getColor(R.color.bitmap_screennail_placeholder));
-		initializeThumbnailSizes(metrics, r);
 	}
 
 	public static float[] intColorToFloatARGBArray(final int from) {
@@ -84,12 +106,43 @@ public class GalleryUtils {
 		return metrics.heightPixels > 2048 || metrics.widthPixels > 2048;
 	}
 
-	private static void initializeThumbnailSizes(final DisplayMetrics metrics, final Resources r) {
-		final int maxPixels = Math.max(metrics.heightPixels, metrics.widthPixels);
+	public static boolean isOpaque(final int color) {
+		return color >>> 24 == 0xFF;
+	}
 
-		// For screen-nails, we never need to completely fill the screen
-		MediaItem.setThumbnailSizes(maxPixels / 2, maxPixels / 5);
-		TiledScreenNail.setMaxSide(maxPixels / 2);
+	// Returns the next power of two.
+	// Returns the input if it is already power of 2.
+	// Throws IllegalArgumentException if the input is <= 0 or
+	// the answer overflows.
+	public static int nextPowerOf2(int n) {
+		if (n <= 0 || n > 1 << 30) throw new IllegalArgumentException("n is invalid: " + n);
+		n -= 1;
+		n |= n >> 16;
+		n |= n >> 8;
+		n |= n >> 4;
+		n |= n >> 2;
+		n |= n >> 1;
+		return n + 1;
+	}
+
+	// Returns the previous power of two.
+	// Returns the input if it is already power of 2.
+	// Throws IllegalArgumentException if the input is <= 0
+	public static int prevPowerOf2(final int n) {
+		if (n <= 0) throw new IllegalArgumentException();
+		return Integer.highestOneBit(n);
+	}
+
+	public static void waitWithoutInterrupt(final Object object) {
+		try {
+			object.wait();
+		} catch (final InterruptedException e) {
+			Log.w(TAG, "unexpected interrupt: " + object);
+		}
+	}
+
+	private static float dpToPixel(final float dp) {
+		return sPixelDensity * dp;
 	}
 
 }

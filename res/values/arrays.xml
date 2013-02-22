@@ -62,5 +62,13 @@
  	 	<item>large</item>
  	 	<item>large_high</item>
  	</string-array>
+ 	<string-array name="entries_image_preload_option">
+ 		<item>@string/profile_images</item>
+ 	 	<item>@string/preview_images</item>
+ 	</string-array>
+ 	<string-array name="entries_widget_background_option">
+ 		<item>@string/black_transparent</item>
+ 	 	<item>@string/grey</item>
+ 	</string-array>
 
 </resources>

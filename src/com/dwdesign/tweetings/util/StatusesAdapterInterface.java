@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,6 +25,8 @@ import com.dwdesign.tweetings.model.ParcelableStatus;
 public interface StatusesAdapterInterface extends BaseAdapterInterface {
 
 	public ParcelableStatus findStatus(long id);
+	
+	public ParcelableStatus getStatus(int position);
 	
 	public long findItemIdByPosition(final int position);
 

@@ -10,6 +10,7 @@
 	<string name="add_location">Add location</string>
 	<string name="add_image">Pick from gallery</string>
 	<string name="take_photo">Take photo</string>
+	<string name="last_photo">Last taken photo</string>
 	<string name="remove_location">Remove location</string>
 	<string name="remove_image">Remove image</string>
 	<string name="remove_photo">Remove photo</string>
@@ -97,9 +98,9 @@
 	<string name="ignore_ssl_error">Ignore SSL Errors</string>
 	<string name="ignore_ssl_error_summary">Enable this if you are having problems with a custom API server.</string>
 	<string name="gzip_compressing">GZip compressing</string>
-	<string name="gzip_compressing_summary">Compress all API request, it can reduce traffic usage, but may not work on custom API servers.</string>
+	<string name="gzip_compressing_summary">Compress all API requests, it can reduce traffic usage, but may not work on some cellular networks.</string>
 	<string name="storage">Storage</string>
-	<string name="database_item_limit">Database item limit</string>
+	<string name="database_item_limit">Database size limit</string>
 	<string name="database_item_limit_summary">Upper limit of items stored in databases for each account, set to a smaller value to save space and increase loading speed.</string>
 	<string name="clear_cache">Clear cache</string>
 	<string name="clear_cache_summary">Clear stored profile image cache.</string>
@@ -108,7 +109,6 @@
 	<string name="look_and_feel">Look and feel</string>
 	<string name="dark_theme">Use dark theme</string>
 	<string name="dark_theme_summary">Use dark theme for Tweetings.</string>
-	<string name="display_profile_image">Display profile image</string>
 	<string name="image_load_summary">Disabling this will increase list scroll speed and reduce traffic usage.</string>
 	<string name="in_reply_to">In reply to @<xliff:g id="user_name">%s</xliff:g></string>
 	<string name="retweeted_by">"@"<xliff:g id="user_name">%s</xliff:g> retweeted this</string>
@@ -118,7 +118,7 @@
 	<string name="time_source"><xliff:g id="time">%1$s</xliff:g>, via <xliff:g id="source">%2$s</xliff:g></string>
 	<string name="source">via <xliff:g id="source">%s</xliff:g></string>
 	<string name="filter">Mute Filters</string>
-	<string name="filter_summary">Hide tweets from unwanted users, apps or tweets containing specified keywords</string>
+	<string name="filter_summary">Hide tweets from unwanted users, apps, tweets or hashtags containing specified keywords</string>
 	<string name="users">Users</string>
 	<string name="keywords">Keywords</string>
 	<string name="sources">App Source</string>
@@ -130,17 +130,17 @@
 	<string name="follow">Follow</string>
 	<string name="unfollow">Unfollow</string>
 	<string name="bottom_compose_button">Compose Button on Bottom</string>
-	<string name="bottom_compose_button_summary">Place the compose button in the bottom, you can enable this if your screen is large.</string>
+	<string name="bottom_compose_button_summary">Place the compose button at the bottom, you can enable this if your screen is large.</string>
 	<string name="leftside_compose_button">Compose Button on Left</string>
 	<string name="leftside_compose_button_summary">Place the compose button on the left.</string>
 	<string name="load_item_limit">Load item limit</string>
-	<string name="load_item_limit_summary">Set items limit per load.</string>
+	<string name="load_item_limit_summary">Set tweets to load per request.</string>
 	<string name="load_more_automatically">Load attached content automatically</string>
 	<string name="load_more_automatically_summary">Load attached content (e.g. photos, maps, statuses) automatically</string>
 	<string name="quote">Quote (RT)</string>
 	<string name="quote_reply">Quote &amp; reply</string>
 	<string name="add_rule">Add rule</string>
-	<string name="longclick_to_delete">Long-click to delete.</string>
+	<string name="longclick_to_delete">Long-press to delete.</string>
 	<string name="retweet_success">Retweeted</string>
 	<string name="who_retweeted">Retweets</string>
 	<string name="cancel_retweet_success">Retweet cancelled</string>
@@ -228,13 +228,14 @@
  	<string name="landscape">Landscape</string>
  	<string name="portrait">Portrait</string>
  	<string name="quick_send">Hit \"Enter\" to Send</string>
- 	<string name="quick_send_summary">Send tweet when hit \"Enter\".</string>
+ 	<string name="quick_send_summary">Send tweet when you hit \"Enter\".</string>
  	<string name="unsaved_tweet">Tweet not sent or saved yet.</string>
  	<string name="discard">Discard</string>
  	<string name="multi_select">Multi select</string>
  	<string name="Nitems_selected_quantity_one">1 item selected</string>
  	<string name="Nitems_selected_quantity_other"><xliff:g id="items">%d</xliff:g> items selected</string>
  	<string name="view">View</string>
+ 	<string name="upload_now">Upload now</string>
  	<string name="hardware_acceleration">Hardware acceleration</string>
  	<string name="hardware_acceleration_summary">Makes scrolling smoother on some devices when enabled, some will not (Requires Android 3.0+).</string>
 	<string name="user_muted">Added this user to filter list. You will not see tweets from this user in your home timeline/mentions list.</string>
@@ -352,7 +353,11 @@
 	<string name="pick_file">Pick file</string>
 	<string name="user_timeline">User timeline</string>
 	<string name="notification_ringtone">Ringtone</string>
-	<string name="notification_ringtone_summary">Sound to play for local notifications</string>
+	<string name="notification_ringtone_summary">Sound to play for local and push notifications</string>
+	<string name="silent_notifications">Notification sleep time</string>
+	<string name="silent_notifications_summary">Select a period when you don\'t want notifications to disturb you. Sound, vibrate and LED will all be suppressed</string>
+	<string name="default_ringtone">Default ringtone</string>
+	<string name="tweetings_ringtone">Tweet</string>
 	<string name="push_sound">Push notification sound</string>
 	<string name="push_sound_summary">Play a sound when a push notification is received</string>
 	<string name="notification_light_color">Light Color</string>
@@ -375,6 +380,7 @@
 	<string name="shorten_links">Shorten</string>
 	<string name="shortening">Compressing links...</string>
 	<string name="error_shorten">No long links were found</string>
+	<string name="url_shortener">URL shorteners</string>
 	<string name="url_shortener_tinyurl">Default (TinyURL)</string>
 	<string name="url_shortener_google">Google</string>
 	<string name="url_shortener_bitly">Bitly</string>
@@ -433,7 +439,10 @@
     <string name="streaming">Streaming</string>
     <string name="stream_enabled">Stream over WiFi</string>
     <string name="stream_enabled_summary">When enabled, tweets will automatically be delivered to your home, mentions and direct message timelines without the need for refreshing. Connections will only be made when you have a WiFi connection</string>
-
+	<string name="stream_notification">Stream notification</string>
+    <string name="stream_notification_summary">Show an on going status bar notification when a stream is connected.</string>
+    <string name="streaming_service_running">Connected to Twitter streams...</string>
+    
     <string name="schedule_tweet">Schedule Tweet</string>
     <string name="schedule_clear">Remove Schedule</string>
     <string name="schedule_tweet_summary">Pick a date and time in the future to a 15 minute interval and we\'ll send the tweet for you. Press back to remove any schedule</string>
@@ -515,10 +524,19 @@
  	<string name="sensitive_content_warning">This tweet may have sensitive content, are you sure you wish to continue?</string>
  	<string name="mark_as_sensitive">Mark as sensitive</string>
  	<string name="remove_sensitive_mark">Remove sensitive mark</string>
- 	<string name="loading">Loading…</string>
  	<string name="none">None</string>
  	<string name="small">Small</string>
  	<string name="large">Large</string>
  	<string name="large_high">Large (high quality)</string>
  	<string name="clear_search_history">Clear search history</string>
+ 	<string name="image_preload_options">Image preload types</string>
+ 	<string name="profile_images">Profile images</string>
+ 	<string name="preview_images">Preview images</string>
+ 	<string name="preload_on_wifi_only">Preload images on WiFi only</string>
+ 	<string name="preload_on_wifi_only_summary">Don\'t preload images when connected over cellular networks. To disable preloading entirely ensure both image preload types are disabled</string>
+	<string name="black_transparent">Black (transparent)</string>
+	<string name="grey">Grey</string>
+	<string name="settings_widget">Widget settings</string>
+	<string name="widget_background_color">Background color</string>
+	<string name="re_sign_in_needed">You may need to sign-in to your accounts again.</string>
 </resources>

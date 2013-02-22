@@ -15,7 +15,7 @@
 		android:title="@string/solid_color_background"/>
 	
 	<CheckBoxPreference
-        android:defaultValue="false"
+        android:defaultValue="true"
         android:enabled="@bool/hw_accel_supported"
         android:key="hardware_acceleration"
         android:summary="@string/hardware_acceleration_summary"
@@ -47,10 +47,12 @@
 		<Preference
 			android:key="settings_refresh_and_notifications"
 			android:title="@string/refresh_and_notifications"/>
-		
 		<Preference
 			android:key="settings_network"
 			android:title="@string/network"/>
+		<Preference
+			android:key="settings_widget"
+			android:title="@string/settings_widget"/>
 		<Preference
 			android:key="settings_other"
 			android:title="@string/other_settings"/>

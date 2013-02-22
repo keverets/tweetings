@@ -18,7 +18,7 @@ package com.dwdesign.gallery3d.ui;
 
 import java.util.WeakHashMap;
 
-import com.dwdesign.gallery3d.common.Utils;
+import com.dwdesign.gallery3d.util.GalleryUtils;
 
 import android.util.Log;
 
@@ -124,15 +124,6 @@ abstract class BasicTexture implements Texture {
 		freeResource();
 	}
 
-	// yield() is called when the texture will not be used temporarily,
-	// so it can free some resources.
-	// The default implementation unloads the texture from GL memory, so
-	// the subclass should make sure it can reload the texture to GL memory
-	// later, or it will have to override this method.
-	public void yield() {
-		freeResource();
-	}
-
 	@Override
 	protected void finalize() {
 		sInFinalizer.set(BasicTexture.class);
@@ -162,8 +153,8 @@ abstract class BasicTexture implements Texture {
 	protected void setSize(final int width, final int height) {
 		mWidth = width;
 		mHeight = height;
-		mTextureWidth = Utils.nextPowerOf2(width);
-		mTextureHeight = Utils.nextPowerOf2(height);
+		mTextureWidth = GalleryUtils.nextPowerOf2(width);
+		mTextureHeight = GalleryUtils.nextPowerOf2(height);
 		if (mTextureWidth > MAX_TEXTURE_SIZE || mTextureHeight > MAX_TEXTURE_SIZE) {
 			Log.w(TAG, String.format("texture is too large: %d x %d", mTextureWidth, mTextureHeight), new Exception());
 		}
@@ -176,6 +167,15 @@ abstract class BasicTexture implements Texture {
 		}
 		mState = STATE_UNLOADED;
 		setAssociatedCanvas(null);
+	}
+
+	// yield() is called when the texture will not be used temporarily,
+	// so it can free some resources.
+	// The default implementation unloads the texture from GL memory, so
+	// the subclass should make sure it can reload the texture to GL memory
+	// later, or it will have to override this method.
+	private void yield() {
+		freeResource();
 	}
 
 	// This is for deciding if we can call Bitmap's recycle().

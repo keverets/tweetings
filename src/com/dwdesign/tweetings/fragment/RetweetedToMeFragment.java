@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,9 +26,11 @@ import static com.dwdesign.tweetings.util.Utils.openUserRetweetedStatus;
 import java.util.List;
 
 import com.dwdesign.tweetings.loader.RetweetedToMeLoader;
+import com.dwdesign.tweetings.loader.UserListTimelineLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.StatusViewHolder;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -92,7 +95,7 @@ public class RetweetedToMeFragment extends ParcelableStatusesListFragment {
 	}
 	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		long account_id = -1, max_id = -1, since_id = -1;
 		boolean is_home_tab = false;
 		if (args != null) {
@@ -150,5 +153,4 @@ public class RetweetedToMeFragment extends ParcelableStatusesListFragment {
 		RetweetedToMeLoader.writeSerializableStatuses(this, getActivity(), getData(), status_id, getArguments());
 		mIsStatusesSaved = true;
 	}
-
 }

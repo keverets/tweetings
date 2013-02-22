@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -50,7 +51,7 @@ import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.PreviewImage;
 import com.dwdesign.tweetings.model.StatusCursorIndices;
 import com.dwdesign.tweetings.model.StatusViewHolder;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.NoDuplicatesLinkedList;
 import com.dwdesign.tweetings.util.OnLinkClickHandler;
 import com.dwdesign.tweetings.util.StatusesAdapterInterface;
@@ -84,7 +85,7 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 
 	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth, mShowAccountColor, mShowAbsoluteTime,
 		mGapDisallowed, mMultiSelectEnabled, mFastProcessingEnabled, mMentionsHighlightDisabled, mShowLinks, mDisplaySensitiveContents;
-	private final LazyImageLoader mProfileImageLoader, mPreviewImageLoader;
+	private final ImageLoaderWrapper mLazyImageLoader;
 	private float mTextSize;
 	private final Context mContext;
 	private StatusCursorIndices mIndices;
@@ -92,13 +93,15 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 	private final boolean mDisplayHiResProfileImage;
 	private int mInlineImagePreviewDisplayOption;
 	
+	private final float mDensity;
+	
 	public CursorStatusesAdapter(final Context context) {
 		super(context, R.layout.status_list_item, null, new String[0], new int[0], 0);
 		mContext = context;
 		final TweetingsApplication application = TweetingsApplication.getInstance(context);
 		mSelectedStatusIds = application.getSelectedStatusIds();
-		mProfileImageLoader = application.getProfileImageLoader();
-		mPreviewImageLoader = application.getPreviewImageLoader();
+		mLazyImageLoader = application.getImageLoaderWrapper();
+	 	mDensity = context.getResources().getDisplayMetrics().density;
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 	}
 
@@ -107,6 +110,10 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 		final int position = cursor.getPosition();
 		StatusViewHolder holder = (StatusViewHolder) view.getTag();
 
+		// Clear images in prder to prevent images in recycled view shown.
+	 	holder.profile_image.setImageDrawable(null);
+	 	holder.image_preview.setImageDrawable(null);
+		
 		final boolean is_gap = cursor.getShort(mIndices.is_gap) == 1;
 
 		final boolean show_gap = is_gap && !mGapDisallowed;
@@ -235,10 +242,9 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 			if (mDisplayProfileImage) {
 				final String profile_image_url_string = cursor.getString(mIndices.profile_image_url);
 				if (mDisplayHiResProfileImage) {
-					mProfileImageLoader.displayImage(parseURL(getBiggerTwitterProfileImage(profile_image_url_string)),
-							holder.profile_image);
+					mLazyImageLoader.displayProfileImage(holder.profile_image, getBiggerTwitterProfileImage(profile_image_url_string));
 				} else {
-					mProfileImageLoader.displayImage(parseURL(profile_image_url_string), holder.profile_image);
+					mLazyImageLoader.displayProfileImage(holder.profile_image, profile_image_url_string);
 				}
 				holder.profile_image.setTag(position);
 			}
@@ -254,7 +260,7 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 			 	} else if (mInlineImagePreviewDisplayOption == INLINE_IMAGE_PREVIEW_DISPLAY_OPTION_CODE_SMALL) {
 			 		final Resources res = mContext.getResources();
 			 		lp.width = res.getDimensionPixelSize(R.dimen.image_preview_width);
-			 		lp.leftMargin = (int) (res.getDisplayMetrics().density * 16);
+			 		lp.leftMargin = (int) (mDensity * 16);
 			 		holder.image_preview_frame.setLayoutParams(lp);
 			 	}
 				
@@ -262,7 +268,7 @@ public class CursorStatusesAdapter extends SimpleCursorAdapter implements Consta
 				if (is_possibly_sensitive && !mDisplaySensitiveContents) {
 					holder.image_preview.setImageResource(R.drawable.image_preview_nsfw);
 				} else {
-					mPreviewImageLoader.displayImage(parseURL(preview.matched_url), holder.image_preview);	
+					mLazyImageLoader.displayPreviewImage(holder.image_preview, preview.matched_url);
 				}
 				holder.image_preview_frame.setTag(position);
 			}

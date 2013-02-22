@@ -31,15 +31,12 @@
 		android:key="leftside_compose_button"
 		android:summary="@string/leftside_compose_button_summary"
 		android:title="@string/leftside_compose_button"/>
-
 	
 	<CheckBoxPreference
 		android:defaultValue="false"
 		android:key="quick_send"
 		android:summary="@string/quick_send_summary"
 		android:title="@string/quick_send"/>
-
-    
 		
 		<PreferenceCategory
 		android:key="category_external_services"
@@ -51,6 +48,9 @@
 				android:action="android.intent.action.VIEW"
 				android:data="https://bufferapp.com/oauth2/authorize?client_id=50622ce249bbd8716000001b&amp;redirect_uri=tweetings%3A%2F%2Fbufferapp&amp;response_type=code"/>
 		</Preference>
+		<com.dwdesign.tweetings.preference.LinkShortenerPickerPreference
+			android:key="url_shortener"
+			android:title="@string/url_shortener"/>
 		</PreferenceCategory>
 		
 		<PreferenceCategory
@@ -71,6 +71,5 @@
 			android:summary="@string/share_format_summary"
 			android:title="@string/share_format"/>
 		</PreferenceCategory>
-    
 
 </PreferenceScreen>

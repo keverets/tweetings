@@ -35,7 +35,7 @@
 			android:title="@string/home_refresh"/>
 
 		<CheckBoxPreference
-			android:defaultValue="false"
+			android:defaultValue="true"
 			android:key="refresh_on_start"
 			android:summary="@string/refresh_on_start_summary"
 			android:title="@string/refresh_on_start"/>
@@ -98,16 +98,9 @@
 			android:summary="@string/group_notifications_summary"
 			android:title="@string/group_notifications"/>
 		
-		<CheckBoxPreference
-			android:defaultValue="true"
-			android:key="notification_push_sound"
-			android:summary="@string/push_sound_summary"
-			android:title="@string/push_sound"/>
-		
-		<RingtonePreference
-			android:key="notification_ringtone"
-			android:ringtoneType="notification"
-			android:showDefault="true"
+		<com.dwdesign.tweetings.preference.RingtonePreference
+		    android:key="notification_ringtone"
+			android:defaultValue=""
 			android:summary="@string/notification_ringtone_summary"
 			android:title="@string/notification_ringtone"/>
 
@@ -115,6 +108,11 @@
 			android:defaultValue="@color/holo_blue_dark"
 			android:key="notification_light_color"
 			android:title="@string/notification_light_color"/>
+		
+		<com.dwdesign.tweetings.preference.SilentNotificationsPreference
+			android:key="silent_notifications"
+			android:summary="@string/silent_notifications_summary"
+			android:title="@string/silent_notifications"/>
 	</PreferenceCategory>
 
 </PreferenceScreen>

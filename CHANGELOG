@@ -1,3 +1,83 @@
+Version 2.15.2
+
+[+] New Feature: Notification sleep time, turn off the notification sound during selected time periods
+[+] New Feature: Choose your push notification sound
+[-] Feature Change: Push and local notification sounds are now the same
+[-] Bug Fix: Fixed some memory leaks
+
+Version 2.15.1
+
+[+] New Feature: Select the last taken photo from the compose screen
+[-] Feature Change: Hardware acceleration enabled by default
+
+Version 2.15.0
+
+[+] New Feature: Widget can now be configured from settings to auto-refresh itself
+[+] New Feature: In-active accounts from the accounts tab can now be viewed
+[-] Bug Fix: Changes to timeline performance
+[-] Bug Fix: Changing activated accounts will now keep the accounts tab selected
+[-] Bug Fix: Accessing your own user profile in dual pane mode wouldn't work correctly
+
+Version 2.14.12
+
+[+] New Feature: Reply to tweet text is shown on compose view when replying to a tweet
+[-] Bug Fix: Changes to lazy image loader
+
+Version 2.14.11
+
+[+] New Feature: Twitlonger now expands when tapping tl.gd links on timelines as well as status view
+[-] Bug Fix: Twitlonger expansions for tweets from tweet view for tweets delivered into home timeline or mentions will now be remembered
+
+Version 2.14.10
+
+[+] New Feature: Widget background color can be changed between transparent black and the previous grey style from Settings
+[-] Feature Change: Changed default widget background colors and made it transparent
+[-] Feature Change: Mute filters will no longer apply to Mentions timeline
+
+Version 2.14.9.1
+
+[-] Feature Change: Changed some of the internal HTTP connections to use a different logic
+[-] Feature Change: Image preload over WiFi is now enabled by default
+[-] Feature Change: Refresh on resuming app to foreground is now enabled by default
+
+Version 2.14.9
+
+[-] Bug Fix: Improvements to timeline lazy image loading
+[-] Bug Fix: Refresh on resume from background improved
+
+Version 2.14.8
+
+[-] Feature Change: Tweet translation is now a dialog rather than a toast message
+[-] Bug Fix: Too many stream connections might try to be connected when resuming from background
+[-] Bug Fix: URL shortener options missing from compose settings
+
+Version 2.14.7
+
+[-] Bug Fix: Streaming disconnected when main screen lost focus i.e. going to compose or viewing a profile
+
+Version 2.14.6
+
+[-] Feature Change: Photo editor is back as an extension available from Google Play
+
+Version 2.14.5
+
+[-] Feature Change: Change status loader code
+[-] Feature Change: Filters now apply to non-cached timelines including search too
+
+Version 2.14.4.1
+
+[-] Feature Change: Temporarily removed Aviary SDK
+
+Version 2.14.4
+
+[+] New Feature: Option to pre-load preview images and avatars when updating main timelines. Limited by default to preload over WiFi only
+[-] Bug Fix: Workaround to get Instagr.am previews working again
+
+Version 2.14.3
+
+[+] New Feature: Manually upload an attached image before posting, even with auto-upload turned off. Tap the attached image at the bottom left of compose screen and 'Upload now'
+[-] Bug Fix: Better handling of BitmapDecoding in image viewer causing memory errors
+
 Version 2.14.2
 
 [+] New Feature: Media uploads will now show an upload progress bar

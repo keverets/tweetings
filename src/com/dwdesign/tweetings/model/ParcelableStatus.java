@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -59,12 +60,34 @@ public class ParcelableStatus implements Constants, Parcelable, Comparable<Parce
 
 	public final boolean is_gap, is_retweet, is_favorite, is_protected, is_verified, has_media, is_possibly_sensitive;
 
-	public final String retweeted_by_name, retweeted_by_screen_name, text_html, text_plain, name, screen_name,
-			in_reply_to_screen_name, source, profile_image_url_string, image_preview_url_string, image_orig_url_string,
-			location_string, text_unescaped, play_package;
+	public final String retweeted_by_name, retweeted_by_screen_name;
+
+	public String text_html;
+
+	public String text_plain;
+
+	public final String name;
+
+	public final String screen_name;
+
+	public final String in_reply_to_screen_name;
+
+	public final String source;
+
+	public final String profile_image_url_string;
+
+	public final String image_preview_url_string;
+
+	public final String image_orig_url_string;
+
+	public final String location_string;
+
+	public String text_unescaped;
+
+	public final String play_package;
 	public final ParcelableLocation location;
 
-	public final Spanned text;
+	public Spanned text;
 
 	public final URL profile_image_url, image_preview_url;
 

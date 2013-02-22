@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:key="settings_widget"
+	android:title="@string/settings_widget">
+	
+    <com.dwdesign.tweetings.preference.WidgetBackgroundPickerPreference
+			android:key="widget_background"
+			android:title="@string/widget_background_color"/>
+	
+    <PreferenceCategory
+		android:key="category_refresh"
+		android:title="@string/refresh">
+		<CheckBoxPreference
+			android:defaultValue="false"
+			android:key="widget_auto_refresh"
+			android:title="@string/auto_refresh"/>
+
+		<ListPreference
+			android:dependency="widget_auto_refresh"
+			android:entries="@array/entries_refresh_interval"
+			android:entryValues="@array/values_refresh_interval"
+			android:key="widget_refresh_interval"
+			android:summary="@string/refresh_interval_summary"
+			android:title="@string/refresh_interval"/>
+	</PreferenceCategory>
+
+</PreferenceScreen>

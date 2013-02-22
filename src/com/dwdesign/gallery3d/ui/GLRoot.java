@@ -16,8 +16,6 @@
 
 package com.dwdesign.gallery3d.ui;
 
-import com.dwdesign.gallery3d.anim.CanvasAnimation;
-
 import android.content.Context;
 import android.graphics.Matrix;
 
@@ -37,15 +35,11 @@ public interface GLRoot {
 
 	public void lockRenderThread();
 
-	public void registerLaunchedAnimation(CanvasAnimation animation);
-
 	public void requestLayoutContentPane();
 
 	public void requestRender();
 
 	public void setContentPane(GLView content);
-
-	public void setOrientationSource(OrientationSource source);
 
 	public void unfreeze();
 

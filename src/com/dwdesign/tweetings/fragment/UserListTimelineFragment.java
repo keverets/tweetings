@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,6 +25,7 @@ import java.util.List;
 import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.loader.UserListTimelineLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -98,9 +100,9 @@ public class UserListTimelineFragment extends ParcelableStatusesListFragment {
 	public void scrollToStatusId(long statusId) {
 		
 	}
-
+	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		int list_id = -1;
 		long account_id = -1, max_id = -1, since_id = -1, user_id = -1;
 		String screen_name = null, list_name = null;
@@ -115,8 +117,8 @@ public class UserListTimelineFragment extends ParcelableStatusesListFragment {
 			list_name = args.getString(INTENT_KEY_LIST_NAME);
 			is_home_tab = args.getBoolean(INTENT_KEY_IS_HOME_TAB);
 		}
-		return new UserListTimelineLoader(getActivity(), account_id, list_id, user_id, screen_name, list_name, max_id, since_id, 
-				getData(), getClass().getSimpleName(), is_home_tab);
+		return new UserListTimelineLoader(getActivity(), account_id, list_id, user_id, screen_name, list_name, max_id,
+				since_id, getData(), getClass().getSimpleName(), is_home_tab);
 	}
 	
 	/*@Override

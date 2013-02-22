@@ -3,7 +3,7 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
 
-	<FrameLayout
+    <FrameLayout
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
 		android:layout_above="@+id/menu_bar"
@@ -33,6 +33,17 @@
 			android:layout_height="wrap_content"
 			android:layout_gravity="bottom"
 			android:layout_margin="16dp">
+			
+		    <TextView android:layerType="software"
+				android:id="@+id/reply_text"
+				android:layout_margin="16dp"
+				android:visibility="gone"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:alpha="0.7"
+				android:textAppearance="?android:attr/textAppearanceSmall"
+				android:textColor="?android:attr/textColorSecondary"/>
+		    
 
 			<com.dwdesign.tweetings.view.RoundCorneredImageView
 				android:id="@+id/image_thumbnail_preview"
@@ -55,9 +66,12 @@
 				android:singleLine="true"
 				android:textAppearance="?android:attr/textAppearanceMedium"
 				android:textColor="#80808080"/>
-		</FrameLayout>
+			
+			</FrameLayout>
+		
+		
 	</FrameLayout>
-
+	
 	<com.dwdesign.menubar.MenuBar
 		android:id="@+id/menu_bar"
 		android:layout_width="match_parent"

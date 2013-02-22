@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,7 +30,7 @@ import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.model.ParcelableUserList;
 import com.dwdesign.tweetings.model.UserListViewHolder;
 import com.dwdesign.tweetings.util.BaseAdapterInterface;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 
 import android.content.Context;
 import android.view.View;
@@ -38,7 +39,7 @@ import android.widget.ArrayAdapter;
 
 public class UserListsAdapter extends ArrayAdapter<ParcelableUserList> implements BaseAdapterInterface {
 
-	private final LazyImageLoader mProfileImageLoader;
+	private final ImageLoaderWrapper mProfileImageLoader;
 	private boolean mDisplayProfileImage, mDisplayName, mDisplayNameBoth;
 	private final boolean mDisplayHiResProfileImage;
 	private float mTextSize;
@@ -46,7 +47,7 @@ public class UserListsAdapter extends ArrayAdapter<ParcelableUserList> implement
 	public UserListsAdapter(final Context context) {
 		super(context, R.layout.user_list_list_item, R.id.description);
 		final TweetingsApplication application = TweetingsApplication.getInstance(context);
-		mProfileImageLoader = application.getProfileImageLoader();
+		mProfileImageLoader = application.getImageLoaderWrapper();
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
 		application.getServiceInterface();
 	}
@@ -86,12 +87,9 @@ public class UserListsAdapter extends ArrayAdapter<ParcelableUserList> implement
 		holder.profile_image.setVisibility(mDisplayProfileImage ? View.VISIBLE : View.GONE);
 		if (mDisplayProfileImage) {
 			if (mDisplayHiResProfileImage) {
-				mProfileImageLoader.displayImage(
-						parseURL(getBiggerTwitterProfileImage(user_list.user_profile_image_url_string)),
-						holder.profile_image);
+				mProfileImageLoader.displayProfileImage(holder.profile_image, getBiggerTwitterProfileImage(user_list.user_profile_image_url_string));
 			} else {
-				mProfileImageLoader.displayImage(parseURL(user_list.user_profile_image_url_string),
-						holder.profile_image);
+				mProfileImageLoader.displayProfileImage(holder.profile_image, user_list.user_profile_image_url_string);
 			}
 		}
 		return view;

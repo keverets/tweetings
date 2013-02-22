@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,7 +33,7 @@ import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.provider.TweetStore.CachedUsers;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.twitter.Regex;
 
 import android.content.ContentResolver;
@@ -51,7 +52,7 @@ public class UserAutoCompleteAdapter extends SimpleCursorAdapter implements Cons
 	private Cursor mCursor;
 
 	private final ContentResolver mResolver;
-	private final LazyImageLoader mProfileImageLoader;
+	private final ImageLoaderWrapper mProfileImageLoader;
 	private final SharedPreferences mPreferences;
 	private static final String[] FROM = new String[] { CachedUsers.NAME, CachedUsers.SCREEN_NAME };
 	private static final int[] TO = new int[] { android.R.id.text1, android.R.id.text2 };
@@ -71,7 +72,7 @@ public class UserAutoCompleteAdapter extends SimpleCursorAdapter implements Cons
 		mResolver = context.getContentResolver();
 		final Context app_context = context.getApplicationContext();
 		mProfileImageLoader = app_context instanceof TweetingsApplication ? ((TweetingsApplication) app_context)
-				.getProfileImageLoader() : null;
+				.getImageLoaderWrapper() : null;
 		mDisplayProfileImage = mPreferences != null ? mPreferences.getBoolean(PREFERENCE_KEY_DISPLAY_PROFILE_IMAGE,
 				true) : true;
 		mDisplayHiResProfileImage = context.getResources().getBoolean(R.bool.hires_profile_image);
@@ -109,12 +110,11 @@ public class UserAutoCompleteAdapter extends SimpleCursorAdapter implements Cons
 			image_view.setVisibility(mDisplayProfileImage ? View.VISIBLE : View.GONE);
 			if (mDisplayProfileImage && mProfileImageLoader != null) {
 				final String profile_image_url_string = cursor.getString(mProfileImageUrlIdx);
-				mProfileImageLoader.displayImage(parseURL(cursor.getString(mProfileImageUrlIdx)), image_view);
+				mProfileImageLoader.displayProfileImage(image_view, cursor.getString(mProfileImageUrlIdx));
 				if (mDisplayHiResProfileImage) {
-					mProfileImageLoader.displayImage(parseURL(getBiggerTwitterProfileImage(profile_image_url_string)),
-							image_view);
+					mProfileImageLoader.displayProfileImage(image_view, getBiggerTwitterProfileImage(profile_image_url_string));
 				} else {
-					mProfileImageLoader.displayImage(parseURL(profile_image_url_string), image_view);
+					mProfileImageLoader.displayProfileImage(image_view, profile_image_url_string);
 				}
 			}
 			TextView text_view1 = (TextView) view.findViewById(android.R.id.text1);

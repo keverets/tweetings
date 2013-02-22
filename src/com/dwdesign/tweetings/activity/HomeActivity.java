@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -61,7 +62,9 @@ import com.dwdesign.tweetings.view.TabPageIndicator;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
+import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.backup.BackupManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -134,6 +137,9 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	protected TwitterStream twitterStream;
 	protected static long[] friendsList;
 	
+	protected boolean hasStreamLoaded = false;
+	private boolean mStreaming = false;
+	
 	private boolean mShowHomeTab, mShowMentionsTab, mShowMessagesTab, mShowSearchTab, mShowAccountsTab, mShowListsTab;
 
 	public static String BROADCAST_STATUS_RECEIVED = "com.dwdesign.tweetings.broadcast.STATUS_RECEIVED";
@@ -160,8 +166,8 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 					checkAndSendFailedTweets();
 				}
 			} else if (BROADCAST_ACCOUNT_LIST_DATABASE_UPDATED.equals(action)) {
+				mPreferences.edit().putInt(PREFERENCE_KEY_SAVED_TAB_POSITION, mViewPager.getCurrentItem()).commit();
 				restart();
-				
 			} else if (BROADCAST_TABS_NEW_TWEETS.equals(action)) {
 				int tab = intent.getIntExtra(INTENT_KEY_UPDATE_TAB, -1);
 				final int activated_color = getResources().getColor(R.color.holo_blue_light);
@@ -215,6 +221,28 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 					mAdapter.setIcon(tabPosition, icon);
 				}
 				mAdapter.notifyDataSetChanged();
+			}
+		}
+
+	};
+	
+	private final BroadcastReceiver mStateReceiver2 = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(final Context context, final Intent intent) {
+			
+			final String action = intent.getAction();
+			if (BROADCAST_BACKGROUND_CHANGED.equals(action)) {
+				boolean isBackground = intent.getBooleanExtra(INTENT_KEY_BACKGROUND, false);
+				if (isBackground) {
+					closeStream();
+				}
+				else {
+					if (refresh_on_start) {
+						refreshOnResume();
+					}
+					connectToStream();
+				}
 			}
 		}
 
@@ -335,7 +363,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 			finish();
 			return;
 		}
-		refresh_on_start = mPreferences.getBoolean(PREFERENCE_KEY_REFRESH_ON_START, false);
+		refresh_on_start = mPreferences.getBoolean(PREFERENCE_KEY_REFRESH_ON_START, true);
 		bundle = getIntent().getExtras();
 		initial_tab = -1;
 		mActionBar = getSupportActionBar();
@@ -421,8 +449,11 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 			alert.show();
 		}
 		
+		mStreaming = mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_ENABLED, false);
 		mPushNotifications = mPreferences.getBoolean(PREFERENCE_KEY_PUSH_NOTIFICATIONS, false);
 		backupManager = new BackupManager(getApplicationContext());
+		final IntentFilter filter = new IntentFilter(BROADCAST_BACKGROUND_CHANGED);
+		registerReceiver(mStateReceiver2, filter);
 		
 	}
 
@@ -550,15 +581,25 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	public void onResume() {
 		super.onResume();
 		invalidateSupportOptionsMenu();
-		connectToStream();
 		
 		NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
 		notificationManager.cancelAll();
+		
+		if (!hasStreamLoaded || isStreamChanged()) {
+			hasStreamLoaded = false;
+			connectToStream();
+		}
+		
 		if (isPushChanged() && mPushNotifications) {
 			mApplication.registerPush();
 		}
 		
 		
+	}
+	
+	private boolean isStreamChanged() {
+		final boolean streaming = mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_ENABLED, false);
+		return mStreaming != streaming;
 	}
 	
 	private boolean isPushChanged() {
@@ -603,7 +644,20 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 					ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 					if (cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI) != null) {
 						if (cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnected()) {
+							hasStreamLoaded = true;
 							twitterStream.user();
+							if (mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_NOTIFICATION, false) == true) {
+								NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+								final Intent intent = new Intent(this, HomeActivity.class);
+								final Notification.Builder builder = new Notification.Builder(this);
+								builder.setOngoing(true);
+								builder.setContentIntent(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT));
+								builder.setSmallIcon(R.drawable.ic_launcher);
+								builder.setContentTitle(getString(R.string.app_name));
+								builder.setContentText(getString(R.string.streaming_service_running));
+								builder.setTicker(getString(R.string.streaming_service_running));
+								notificationManager.notify(NOTIFICATION_ID_STREAMING, builder.build());
+							}
 						}
 					}
 				} catch (final Exception e) {
@@ -618,6 +672,10 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 			if (mService != null && twitterStream != null) {
 				try {
 			        twitterStream.shutdown();
+			        if (mPreferences.getBoolean(PREFERENCE_KEY_STREAMING_NOTIFICATION, false) == true) {
+						NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+						notificationManager.cancel(NOTIFICATION_ID_STREAMING);
+					}
 				} catch (final Exception e) {
 					e.printStackTrace();
 				}
@@ -628,7 +686,6 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	@Override
 	public void onPause() {
 		super.onPause();
-		closeStream();
 	}
 	
 	public boolean isStreamActive() {
@@ -693,6 +750,13 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	@Override
 	protected void onDestroy() {
 		// Delete unused items in databases.
+		try {
+			unregisterReceiver(mStateReceiver2);	
+		} catch (IllegalArgumentException e) {
+			
+		}
+		closeStream();
+		
 		cleanDatabasesByItemLimit(this);
 		sendBroadcast(new Intent(BROADCAST_APPLICATION_QUITTED));
 		super.onDestroy();
@@ -742,7 +806,7 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 	}
 
 	@Override
-	protected void onStart() {
+	public void onStart() {
 		super.onStart();
 		setSupportProgressBarIndeterminateVisibility(mProgressBarIndeterminateVisible);
 		final IntentFilter filter = new IntentFilter(BROADCAST_REFRESHSTATE_CHANGED);
@@ -777,13 +841,10 @@ public class HomeActivity extends MultiSelectActivity implements OnClickListener
 				}
 			}
 		}
-		if (refresh_on_start) {
-			refreshOnResume();
-		}
 	}
 
 	@Override
-	protected void onStop() {
+	public void onStop() {
 		unregisterReceiver(mStateReceiver);
 		mPreferences.edit().putInt(PREFERENCE_KEY_SAVED_TAB_POSITION, mViewPager.getCurrentItem()).commit();
 		super.onStop();

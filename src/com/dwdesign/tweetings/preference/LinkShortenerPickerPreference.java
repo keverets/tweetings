@@ -76,7 +76,7 @@ public class LinkShortenerPickerPreference extends DialogPreference implements C
 		mAvailableShorteners = specs.toArray(new ShortenerSpec[specs.size()]);
 		builder.setSingleChoiceItems(mAvailableShorteners, getIndex(component),
 				LinkShortenerPickerPreference.this);
-		builder.setNegativeButton(android.R.string.cancel, null);
+		builder.setNegativeButton(android.R.string.ok, null);
 	}
 
 	private int getIndex(final String cls) {

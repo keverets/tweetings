@@ -56,13 +56,17 @@ public class TwitlongerAsyncTask implements Constants {
 		  			
 		  			XPathFactory factory = XPathFactory.newInstance();
 		  			XPath xpath = factory.newXPath();
-		  			XPathExpression expr;
+		  			XPathExpression expr, expr2;
 		  			expr = xpath.compile("//twitlonger/post/content/text()");
+		  			expr2 = xpath.compile("//twitlonger/post/user/text()");
 		  			
 		  			Object result = expr.evaluate(doc, XPathConstants.STRING);
+		  			Object result2 = expr2.evaluate(doc, XPathConstants.STRING);
 		  			
 		  			final Intent intent = new Intent(BROADCAST_TWITLONGER_EXPANDED);
 		        	intent.putExtra(INTENT_KEY_TWITLONGER_EXPANDED_TEXT, result.toString());
+		        	intent.putExtra(INTENT_KEY_TWITLONGER_ORIGINAL_URL, url);
+		        	intent.putExtra(INTENT_KEY_TWITLONGER_USER, result2.toString());
 		    		mContext.sendBroadcast(intent);
 		    	  }
 		    	  catch (Exception e) {

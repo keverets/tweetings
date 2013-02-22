@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,6 +20,7 @@
 
 package com.dwdesign.tweetings.fragment;
 
+import static com.dwdesign.tweetings.util.HtmlEscapeHelper.unescape;
 import static com.dwdesign.tweetings.util.Utils.buildActivatedStatsWhereClause;
 import static com.dwdesign.tweetings.util.Utils.buildFilterWhereClause;
 import static com.dwdesign.tweetings.util.Utils.getActivatedAccountIds;
@@ -28,10 +30,15 @@ import static com.dwdesign.tweetings.util.Utils.getTableNameForContentUri;
 
 import com.dwdesign.tweetings.activity.HomeActivity;
 import com.dwdesign.tweetings.adapter.CursorStatusesAdapter;
+import com.dwdesign.tweetings.provider.TweetStore.Mentions;
 import com.dwdesign.tweetings.provider.TweetStore.Statuses;
 import com.dwdesign.tweetings.util.AsyncTask;
+import com.dwdesign.tweetings.util.OnLinkClickHandler;
+import com.dwdesign.tweetings.util.TwidereLinkify;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -41,6 +48,8 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
+import android.text.Html;
+import android.text.Spanned;
 
 public abstract class CursorStatusesListFragment extends BaseStatusesListFragment<Cursor> {
 
@@ -53,6 +62,20 @@ public abstract class CursorStatusesListFragment extends BaseStatusesListFragmen
 			final String action = intent.getAction();
 			if (BROADCAST_ACCOUNT_LIST_DATABASE_UPDATED.equals(action) || BROADCAST_FILTERS_UPDATED.equals(action)) {
 				if (isAdded() && !isDetached()) {
+					getLoaderManager().restartLoader(0, null, CursorStatusesListFragment.this);
+				}
+			} else if (BROADCAST_TWITLONGER_EXPANDED.equals(action)) {
+				final String expanded_status_text = intent.getStringExtra(INTENT_KEY_TWITLONGER_EXPANDED_TEXT);
+				final String original_url = intent.getStringExtra(INTENT_KEY_TWITLONGER_ORIGINAL_URL);
+				final String user = intent.getStringExtra(INTENT_KEY_TWITLONGER_USER);
+				
+				final ContentResolver resolver = context.getContentResolver();
+				final ContentValues values = new ContentValues();
+				values.put(Statuses.TEXT, expanded_status_text);
+			 	values.put(Statuses.TEXT_PLAIN, unescape(expanded_status_text));
+				String where = Statuses.TEXT + " LIKE '%" + original_url.replace("http://", "") + "%' AND " + Statuses.SCREEN_NAME + " = '" + user + "'"; 
+				int updated = resolver.update(getContentUri(), values, where, null);
+				if (updated > 0) {
 					getLoaderManager().restartLoader(0, null, CursorStatusesListFragment.this);
 				}
 			}
@@ -167,6 +190,7 @@ public abstract class CursorStatusesListFragment extends BaseStatusesListFragmen
 		super.onStart();
 		final IntentFilter filter = new IntentFilter(BROADCAST_ACCOUNT_LIST_DATABASE_UPDATED);
 		filter.addAction(BROADCAST_FILTERS_UPDATED);
+		filter.addAction(BROADCAST_TWITLONGER_EXPANDED);
 		registerReceiver(mStatusReceiver, filter);
 	}
 

@@ -11,7 +11,7 @@ import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 import com.dwdesign.tweetings.model.ImageSpec;
 import com.dwdesign.tweetings.model.ParcelableStatus;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -171,11 +171,11 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 	static class ImagesAdapter extends BaseAdapter {
 
 		private final List<ImageSpec> mImages = new ArrayList<ImageSpec>();
-		private final LazyImageLoader mImageLoader;
+		private final ImageLoaderWrapper mImageLoader;
 		private final LayoutInflater mInflater;
 
 		public ImagesAdapter(final Context context) {
-			mImageLoader = TweetingsApplication.getInstance(context).getPreviewImageLoader();
+			mImageLoader = TweetingsApplication.getInstance(context).getImageLoaderWrapper();
 			mInflater = LayoutInflater.from(context);
 		}
 
@@ -215,7 +215,7 @@ public class ImagesPreviewFragment extends BaseFragment implements OnItemClickLi
 				if (isSensitive && !mDisplaySensitiveContents) {
 					image.setImageResource(R.drawable.image_preview_nsfw);
 				} else {
-					mImageLoader.displayImage(spec != null ? parseURL(spec.preview_image_link) : null, image);
+					mImageLoader.displayPreviewImage(image, spec != null ? spec.preview_image_link : null);
 				}
 			}
 			else {

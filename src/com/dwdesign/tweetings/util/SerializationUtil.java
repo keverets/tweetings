@@ -1,6 +1,7 @@
 /*
- *				Twidere - Twitter client for Android
+ *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,8 +20,7 @@
 
 package com.dwdesign.tweetings.util;
 
-import static android.os.Environment.getExternalStorageDirectory;
-import static android.os.Environment.getExternalStorageState;
+import static com.dwdesign.tweetings.util.Utils.getBestCacheDir;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,8 +33,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import android.content.Context;
-import android.os.Build;
-import android.os.Environment;
 
 public class SerializationUtil {
 
@@ -44,29 +42,22 @@ public class SerializationUtil {
 
 	public static String getSerializationFilePath(final Context context, final Object... args) {
 		if (context == null || args == null || args.length == 0) return null;
-		final File cache_dir;
-		if (getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-			cache_dir = new File(
-					Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO ? GetExternalCacheDirAccessor.getExternalCacheDir(context)
-							: new File(getExternalStorageDirectory().getPath() + "/Android/data/"
-									+ context.getPackageName() + "/cache/"), SERIALIZATION_CACHE_DIR);
-		} else {
-			cache_dir = new File(context.getCacheDir(), SERIALIZATION_CACHE_DIR);
-		}
+		final File cache_dir = getBestCacheDir(context, SERIALIZATION_CACHE_DIR);
 		if (!cache_dir.exists()) {
 			cache_dir.mkdirs();
 		}
 		String filename = null;
 		try {
 			filename = URLEncoder.encode(ArrayUtils.toString(args, '.', false), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
+		} catch (final UnsupportedEncodingException e) {
 			return null;
 		}
 		final File cache_file = new File(cache_dir, filename);
 		return cache_file.getPath();
 	}
 
-	public static Object read(final String path) throws IOException, ClassNotFoundException {
+	@SuppressWarnings("unchecked")
+	public static <T> T read(final String path) throws IOException, ClassNotFoundException {
 		if (path == null) return null;
 		ObjectInputStream is = null;
 		try {
@@ -74,7 +65,11 @@ public class SerializationUtil {
 			// FILE_MODE_RW);
 			final FileInputStream fis = new FileInputStream(new File(path));
 			is = new ObjectInputStream(fis);
-			return is.readObject();
+			return (T) is.readObject();
+		} catch (IOException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IOException(e);
 		} finally {
 			if (is != null) {
 				is.close();

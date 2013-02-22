@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -55,6 +56,7 @@ public class SettingsActivity extends DualPaneActivity implements OnSharedPrefer
 	private static final String KEY_SETTINGS_NETWORK = "settings_network";
 	private static final String KEY_SETTINGS_COMPOSE = "settings_compose";
 	private static final String KEY_SETTINGS_REFRESH_AND_NOTIFICATIONS = "settings_refresh_and_notifications";
+	private static final String KEY_SETTINGS_WIDGET = "settings_widget";
 	private static final String KEY_SETTINGS_OTHER = "settings_other";
 
 	@Override
@@ -94,6 +96,7 @@ public class SettingsActivity extends DualPaneActivity implements OnSharedPrefer
 			activity.findPreference(KEY_SETTINGS_NETWORK).setOnPreferenceClickListener(this);
 			activity.findPreference(KEY_SETTINGS_COMPOSE).setOnPreferenceClickListener(this);
 			activity.findPreference(KEY_SETTINGS_REFRESH_AND_NOTIFICATIONS).setOnPreferenceClickListener(this);
+			activity.findPreference(KEY_SETTINGS_WIDGET).setOnPreferenceClickListener(this);
 			activity.findPreference(KEY_SETTINGS_OTHER).setOnPreferenceClickListener(this);
 		}
 	}
@@ -142,7 +145,9 @@ public class SettingsActivity extends DualPaneActivity implements OnSharedPrefer
 			res_id = R.xml.settings_compose;
 		} else if (KEY_SETTINGS_REFRESH_AND_NOTIFICATIONS.equals(key)) {
 			res_id = R.xml.settings_refresh_and_notifications;
-		} else if (KEY_SETTINGS_OTHER.equals(key)) {
+		} else if (KEY_SETTINGS_WIDGET.equals(key)) {
+			res_id = R.xml.settings_widget;
+		}else if (KEY_SETTINGS_OTHER.equals(key)) {
 			res_id = R.xml.settings_other;
 		} else {
 			res_id = -1;
@@ -174,6 +179,12 @@ public class SettingsActivity extends DualPaneActivity implements OnSharedPrefer
 				e.printStackTrace();
 			}
 			restartActivity(this, show_anim);
+		} else if (PREFERENCE_KEY_WIDGET_BACKGROUND.equals(key)) {
+			sendBroadcast(new Intent(BROADCAST_WIDGET_CHANGED));
+		} else if (PREFERENCE_KEY_WIDGET_AUTO_REFRESH.equals(key)) {
+			sendBroadcast(new Intent(BROADCAST_WIDGET_CHANGED));
+		} else if (PREFERENCE_KEY_WIDGET_REFRESH_INTERVAL.equals(key)) {
+			sendBroadcast(new Intent(BROADCAST_WIDGET_CHANGED));
 		}
 	}
 }

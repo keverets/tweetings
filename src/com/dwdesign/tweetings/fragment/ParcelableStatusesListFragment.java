@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,6 +20,8 @@
 
 package com.dwdesign.tweetings.fragment;
 
+import static com.dwdesign.tweetings.util.HtmlEscapeHelper.unescape;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,9 +32,13 @@ import java.util.List;
 import com.dwdesign.tweetings.adapter.ParcelableStatusesAdapter;
 import com.dwdesign.tweetings.loader.ParcelableStatusesLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
-import com.dwdesign.tweetings.model.SerializableStatus;
+import com.dwdesign.tweetings.provider.TweetStore.Statuses;
+import com.dwdesign.tweetings.util.NoDuplicatesArrayList;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -39,13 +46,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.content.Loader;
+import android.text.Html;
+import android.text.Spanned;
 import android.widget.ListView;
 
-public abstract class ParcelableStatusesListFragment extends BaseStatusesListFragment<List<ParcelableStatus>> {
+public abstract class ParcelableStatusesListFragment extends BaseStatusesListFragment<SynchronizedStateSavedList<ParcelableStatus, Long>> {
 
 	private SharedPreferences mPreferences;
-	
-	private List<ParcelableStatus> mData;
 	
 	private ParcelableStatusesAdapter mAdapter;
 	private ListView mListView;
@@ -67,6 +74,23 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 				if (status_id > 0 && !retweeted) {
 					deleteStatus(status_id);
 				}
+			} else if (BROADCAST_TWITLONGER_EXPANDED.equals(action)) {
+				final String expanded_status_text = intent.getStringExtra(INTENT_KEY_TWITLONGER_EXPANDED_TEXT);
+				final String original_url = intent.getStringExtra(INTENT_KEY_TWITLONGER_ORIGINAL_URL);
+				final String user = intent.getStringExtra(INTENT_KEY_TWITLONGER_USER);
+				
+				NoDuplicatesArrayList<ParcelableStatus> statuses = mAdapter.getStatuses();
+	    		
+	            for (ParcelableStatus status : statuses) {
+	            	if (status.text_html.contains(original_url) && status.screen_name.equals(user)) {
+	            		status.text_html = expanded_status_text;
+	            		status.text_plain = unescape(expanded_status_text);
+	            		Spanned expanded_text = Html.fromHtml(expanded_status_text);
+	    				status.text = expanded_text;
+	    				getLoaderManager().restartLoader(0, null, ParcelableStatusesListFragment.this);
+	    				break;
+	            	}
+	            }
 			}
 
 		}
@@ -118,14 +142,15 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 		return true;
 	}
 
-	public abstract Loader<List<ParcelableStatus>> newLoaderInstance(Bundle args);
+	public abstract Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(Bundle args);
 
 	@Override
 	public void onActivityCreated(final Bundle savedInstanceState) {
-		mData = getData();
 		if (savedInstanceState != null) {
-			savedInstanceState.setClassLoader(ParcelableStatus.class.getClassLoader());
-			mData = savedInstanceState.getParcelableArrayList(INTENT_KEY_DATA);
+			final List<ParcelableStatus> saved = savedInstanceState.getParcelableArrayList(INTENT_KEY_DATA);
+			if (saved != null) {
+				mData = new SynchronizedStateSavedList<ParcelableStatus, Long>(saved);
+			}
 		}
 		mAdapter = new ParcelableStatusesAdapter(getActivity());
 		mAdapter.setData(mData);
@@ -135,14 +160,16 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 	}
 
 	@Override
-	public final Loader<List<ParcelableStatus>> onCreateLoader(final int id, final Bundle args) {
+	public final Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> onCreateLoader(final int id,
+			final Bundle args) {
 		if (isLoaderUsed()) {
 			setProgressBarIndeterminateVisibility(true);
 		}
 		return newLoaderInstance(args);
 	}
 
-	public void onDataLoaded(final Loader<List<ParcelableStatus>> loader, final ParcelableStatusesAdapter adapter) {
+	public void onDataLoaded(final Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> loader,
+			final ParcelableStatusesAdapter adapter) {
 		if (loader instanceof ParcelableStatusesLoader) {
 			final Long last_viewed_id = ((ParcelableStatusesLoader) loader).getLastViewedId();
 			if (last_viewed_id != null && mPreferences.getBoolean(PREFERENCE_KEY_REMEMBER_POSITION, true)) {
@@ -153,14 +180,14 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 			}
 		}
 	}
-	
+
 	@Override
 	public void onDestroyView() {
 		super.onDestroyView();
 	}
 
 	@Override
-	public final void onLoaderReset(final Loader<List<ParcelableStatus>> loader) {
+	public final void onLoaderReset(final Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> loader) {
 		super.onLoaderReset(loader);
 		if (!isLoaderUsed()) return;
 		onRefreshComplete();
@@ -168,11 +195,11 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 	}
 
 	@Override
-	public final void onLoadFinished(final Loader<List<ParcelableStatus>> loader, final List<ParcelableStatus> data) {
+	public final void onLoadFinished(final Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> loader,
+			final SynchronizedStateSavedList<ParcelableStatus, Long> data) {
 		super.onLoadFinished(loader, data);
 		if (!isLoaderUsed()) return;
-		mData = data;
-		mAdapter.setData(mData);
+		mAdapter.setData(data);
 		onDataLoaded(loader, mAdapter);
 		onRefreshComplete();
 		setProgressBarIndeterminateVisibility(false);
@@ -205,8 +232,8 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 
 	@Override
 	public void onSaveInstanceState(final Bundle outState) {
-		if (mData instanceof ArrayList) {
-			outState.putParcelableArrayList(INTENT_KEY_DATA, (ArrayList<? extends Parcelable>) mData);
+		if (mData != null) {
+			outState.putParcelableArrayList(INTENT_KEY_DATA, new ArrayList<ParcelableStatus>(mData));
 		}
 		super.onSaveInstanceState(outState);
 	}
@@ -216,6 +243,7 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 		super.onStart();
 		final IntentFilter filter = new IntentFilter(BROADCAST_STATUS_DESTROYED);
 		filter.addAction(BROADCAST_RETWEET_CHANGED);
+		filter.addAction(BROADCAST_TWITLONGER_EXPANDED);
 		registerReceiver(mStateReceiver, filter);
 	}
 
@@ -223,32 +251,6 @@ public abstract class ParcelableStatusesListFragment extends BaseStatusesListFra
 	public void onStop() {
 		unregisterReceiver(mStateReceiver);
 		super.onStop();
-	}
-	
-	public void writeSerializableStatuses(final long account_id) {
-		final Context context = getActivity();
-		if (context == null) return;
-		new Thread() {
-
-			@Override
-			public synchronized void start() {
-				try {
-					final ArrayList<SerializableStatus> statuses = new ArrayList<SerializableStatus>();
-					for (final ParcelableStatus status : mData) {
-						statuses.add(new SerializableStatus(status));
-					}
-					final FileOutputStream fos = new FileOutputStream(new File(context.getCacheDir(), getClass()
-							.getSimpleName() + "." + account_id));
-					final ObjectOutputStream os = new ObjectOutputStream(fos);
-					os.writeObject(statuses);
-					os.close();
-					fos.close();
-				} catch (final IOException e) {
-					e.printStackTrace();
-				}
-			}
-
-		}.start();
 	}
 	
 }

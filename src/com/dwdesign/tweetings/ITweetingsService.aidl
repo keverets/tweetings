@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -74,6 +75,8 @@ interface ITweetingsService {
 	void stopAutoRefresh();
 	void shutdownService();
 	void cancelShutdown();
+	void incrementActivityCount();
+	void decrementActivityCount();
 	void clearNotification(int id);
 	int insertStreamToHomeTimeline(long account_id, in Intent intent);
 	int insertStreamToMentions(long account_id, in Intent intent);

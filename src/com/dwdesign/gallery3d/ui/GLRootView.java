@@ -26,8 +26,8 @@ import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
 
 import com.dwdesign.gallery3d.anim.CanvasAnimation;
-import com.dwdesign.gallery3d.common.ApiHelper;
-import com.dwdesign.gallery3d.common.Utils;
+import com.dwdesign.gallery3d.util.ApiHelper;
+import com.dwdesign.gallery3d.util.GalleryUtils;
 import com.dwdesign.gallery3d.util.MotionEventHelper;
 import com.dwdesign.tweetings.R;
 
@@ -72,7 +72,6 @@ public class GLRootView extends GLSurfaceView implements GLSurfaceView.Renderer,
 	private GLCanvas mCanvas;
 	private GLView mContentView;
 
-	private OrientationSource mOrientationSource;
 	// mCompensation is the difference between the UI orientation on GLCanvas
 	// and the framework orientation. See OrientationManager for details.
 	private int mCompensation;
@@ -244,7 +243,7 @@ public class GLRootView extends GLSurfaceView implements GLSurfaceView.Renderer,
 		Log.i(TAG, "onSurfaceChanged: " + width + "x" + height + ", gl10: " + gl1.toString());
 		Process.setThreadPriority(Process.THREAD_PRIORITY_DISPLAY);
 		final GL11 gl = (GL11) gl1;
-		Utils.assertTrue(mGL == gl);
+		GalleryUtils.assertTrue(mGL == gl);
 
 		mCanvas.setSize(width, height);
 	}
@@ -274,15 +273,6 @@ public class GLRootView extends GLSurfaceView implements GLSurfaceView.Renderer,
 		} else {
 			setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 		}
-	}
-
-	@Override
-	public void registerLaunchedAnimation(final CanvasAnimation animation) {
-		// Register the newly launched animation so that we can set the start
-		// time more precisely. (Usually, it takes much longer for first
-		// rendering, so we set the animation start time as the time we
-		// complete rendering)
-		mAnimations.add(animation);
 	}
 
 	@Override
@@ -334,11 +324,6 @@ public class GLRootView extends GLSurfaceView implements GLSurfaceView.Renderer,
 			content.attachToRoot(this);
 			requestLayoutContentPane();
 		}
-	}
-
-	@Override
-	public void setOrientationSource(final OrientationSource source) {
-		mOrientationSource = source;
 	}
 
 	// We need to unfreeze in the following methods and in onPause().
@@ -403,17 +388,8 @@ public class GLRootView extends GLSurfaceView implements GLSurfaceView.Renderer,
 
 		int w = getWidth();
 		int h = getHeight();
-		int displayRotation = 0;
-		int compensation = 0;
-
-		// Get the new orientation values
-		if (mOrientationSource != null) {
-			displayRotation = mOrientationSource.getDisplayRotation();
-			compensation = mOrientationSource.getCompensation();
-		} else {
-			displayRotation = 0;
-			compensation = 0;
-		}
+		final int displayRotation = 0;
+		final int compensation = 0;
 
 		if (mCompensation != compensation) {
 			mCompensation = compensation;

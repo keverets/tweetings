@@ -34,6 +34,4 @@ public interface Future<T> {
 	public boolean isCancelled();
 
 	public boolean isDone();
-
-	public void waitDone();
 }

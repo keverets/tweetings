@@ -88,6 +88,7 @@ public final class Utils implements Constants {
 
 	public static String buildFilterWhereClause(final String table, final String selection) {
 		if (table == null) return null;
+		if (table.equals("mentions")) return null;
 		final StringBuilder builder = new StringBuilder();
 		if (selection != null) {
 			builder.append(selection);

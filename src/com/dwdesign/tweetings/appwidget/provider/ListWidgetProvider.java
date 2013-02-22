@@ -1,5 +1,7 @@
 package com.dwdesign.tweetings.appwidget.provider;
 
+import static com.dwdesign.tweetings.util.Utils.parseInt;
+
 import com.dwdesign.tweetings.activity.LinkHandlerActivity;
 import com.dwdesign.tweetings.appwidget.Constants;
 import com.dwdesign.tweetings.appwidget.ExtensionApplication;
@@ -11,6 +13,7 @@ import com.dwdesign.tweetings.appwidget.util.SetRemoteAdapterAccessor;
 import com.dwdesign.tweetings.app.TweetingsApplication;
 
 import android.annotation.TargetApi;
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -20,6 +23,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -27,7 +31,8 @@ import android.widget.RemoteViews;
 public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 
 	public static final String BROADCAST_REFRESH_ALL = "com.dwdesign.tweetings.appwidget.REFRESH_ALL";
-
+	protected PendingIntent refresh_intent;
+	
 	@Override
 	public void onDeleted(final Context context, final int[] appWidgetIds) {
 		final SharedPreferences.Editor editor = context.getSharedPreferences(WIDGETS_PREFERENCES_NAME,
@@ -36,6 +41,14 @@ public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 			editor.remove(String.valueOf(id));
 		}
 		editor.apply();
+		
+		final SharedPreferences preferencesShared = context.getSharedPreferences(com.dwdesign.tweetings.Constants.SHARED_PREFERENCES_NAME,
+				Context.MODE_PRIVATE);
+		
+		if (preferencesShared.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_WIDGET_AUTO_REFRESH, false)) {	
+			final AlarmManager m = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);  
+			m.cancel(refresh_intent); 
+		}
 		super.onDeleted(context, appWidgetIds);
 	}
 
@@ -69,6 +82,8 @@ public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 			manager.notifyAppWidgetViewDataChanged(ids, R.id.list_view);
 		} else if (com.dwdesign.tweetings.Constants.BROADCAST_REFRESHSTATE_CHANGED.equals(action)) {
 			onUpdate(context, manager, ids);
+		} else if (com.dwdesign.tweetings.Constants.BROADCAST_WIDGET_CHANGED.equals(action)) {
+			onUpdate(context, manager, ids);
 		} else if (BROADCAST_REFRESH_ALL.equals(action)) {
 			final ServiceInterface service = ((TweetingsApplication) context.getApplicationContext())
 					.getServiceInterface();
@@ -88,6 +103,9 @@ public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 	public void onUpdate(final Context context, final AppWidgetManager manager, final int[] ids) {
 		final SharedPreferences preferences = context.getSharedPreferences(WIDGETS_PREFERENCES_NAME,
 				Context.MODE_PRIVATE);
+		final SharedPreferences preferencesShared = context.getSharedPreferences(com.dwdesign.tweetings.Constants.SHARED_PREFERENCES_NAME,
+				Context.MODE_PRIVATE);
+		
 		//final ServiceInterface service = ((TweetingsApplication) context.getApplicationContext()).getServiceInterface();
 		final ServiceInterface service = TweetingsApplication.getInstance(context).getServiceInterface();
 		service.waitForService();
@@ -95,12 +113,20 @@ public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 		final boolean is_home_timeline_refreshing = service.isHomeTimelineRefreshing();
 		for (final int id : ids) {
 			final RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.list_widget);
+			if (preferencesShared.getString(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_WIDGET_BACKGROUND, null) != null) {
+				views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.stack_item_background);
+			}
+			else {
+				views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.stack_item_background_black);
+			}
 			final PendingIntent compose_intent = PendingIntent.getActivity(context, 0, new Intent(
 					com.dwdesign.tweetings.Constants.INTENT_ACTION_COMPOSE), 0);
 			final PendingIntent home_intent = PendingIntent.getActivity(context, 0, new Intent(
 					com.dwdesign.tweetings.Constants.INTENT_ACTION_HOME), Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
-			final PendingIntent refresh_intent = PendingIntent.getBroadcast(context, 0, new Intent(
+			if (refresh_intent == null) {
+				refresh_intent = PendingIntent.getBroadcast(context, 0, new Intent(
 					BROADCAST_REFRESH_ALL), 0);
+			}
 			views.setOnClickPendingIntent(R.id.compose, compose_intent);
 			views.setOnClickPendingIntent(R.id.refresh, refresh_intent);
 			views.setOnClickPendingIntent(R.id.top_bar, home_intent);
@@ -142,6 +168,17 @@ public class ListWidgetProvider extends AppWidgetProvider implements Constants {
 				views.setRemoteAdapter(id, R.id.list_view, adapter_intent);
 			}
 			manager.updateAppWidget(id, views);
+			
+			if (preferencesShared.getBoolean(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_WIDGET_AUTO_REFRESH, false)) {	
+				long interval = 1000*60;
+				interval = parseInt(preferencesShared.getString(com.dwdesign.tweetings.Constants.PREFERENCE_KEY_WIDGET_REFRESH_INTERVAL, "30")) * 60 * 1000;
+				final AlarmManager alarm = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+				alarm.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + interval, interval, refresh_intent);
+			}
+			else {
+				final AlarmManager m = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);  
+				m.cancel(refresh_intent); 
+			}
 		}
 	}
 

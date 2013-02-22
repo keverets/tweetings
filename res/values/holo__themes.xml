@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
 	<style name="Theme.Holo" parent="Theme.ActionBar">
 
@@ -24,6 +24,8 @@
 		<item name="android:scrollbarThumbVertical">@drawable/scrollbar_handle_holo_dark</item>
 
 		<!-- Widget styles -->
+		<item name="android:fastScrollThumbDrawable">@drawable/fastscroll_thumb_holo</item>
+ 		<item name="android:fastScrollTrackDrawable">@drawable/fastscroll_track_holo_dark</item>
 		<item name="android:autoCompleteTextViewStyle">@style/Widget.Holo.AutoCompleteTextView</item>
 		<item name="android:checkboxStyle">@style/Widget.Holo.CompoundButton.CheckBox</item>
 		<item name="android:gridViewStyle">@style/Widget.Holo.GridView</item>
@@ -63,6 +65,8 @@
 		<item name="android:scrollbarThumbHorizontal">@drawable/scrollbar_handle_holo_light</item>
 		<item name="android:scrollbarThumbVertical">@drawable/scrollbar_handle_holo_light</item>
 		<!-- Widget styles -->
+		<item name="android:fastScrollThumbDrawable">@drawable/fastscroll_thumb_holo</item>
+ 	 	<item name="android:fastScrollTrackDrawable">@drawable/fastscroll_track_holo_light</item>
 		<item name="android:autoCompleteTextViewStyle">@style/Widget.Holo.Light.AutoCompleteTextView</item>
 		<item name="android:checkboxStyle">@style/Widget.Holo.Light.CompoundButton.CheckBox</item>
 		<item name="android:gridViewStyle">@style/Widget.Holo.GridView</item>
@@ -99,6 +103,8 @@
 		<item name="android:scrollbarThumbHorizontal">@drawable/scrollbar_handle_holo_dark</item>
 		<item name="android:scrollbarThumbVertical">@drawable/scrollbar_handle_holo_dark</item>
 		<!-- Widget styles -->
+		<item name="android:fastScrollThumbDrawable">@drawable/fastscroll_thumb_holo</item>
+ 	 	<item name="android:fastScrollTrackDrawable">@drawable/fastscroll_track_holo_dark</item>
 		<item name="android:autoCompleteTextViewStyle">@style/Widget.Holo.AutoCompleteTextView</item>
 		<item name="android:checkboxStyle">@style/Widget.Holo.CompoundButton.CheckBox</item>
 		<item name="android:editTextStyle">@style/Widget.Holo.EditText</item>
@@ -136,6 +142,8 @@
 		<item name="android:scrollbarThumbHorizontal">@drawable/scrollbar_handle_holo_light</item>
 		<item name="android:scrollbarThumbVertical">@drawable/scrollbar_handle_holo_light</item>
 		<!-- Widget styles -->
+		<item name="android:fastScrollThumbDrawable">@drawable/fastscroll_thumb_holo</item>
+ 	 	<item name="android:fastScrollTrackDrawable">@drawable/fastscroll_track_holo_light</item>
 		<item name="android:autoCompleteTextViewStyle">@style/Widget.Holo.Light.AutoCompleteTextView</item>
 		<item name="android:checkboxStyle">@style/Widget.Holo.Light.CompoundButton.CheckBox</item>
 		<item name="android:editTextStyle">@style/Widget.Holo.Light.EditText</item>

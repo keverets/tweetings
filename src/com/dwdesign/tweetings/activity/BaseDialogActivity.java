@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -120,7 +121,7 @@ class BaseDialogActivity extends FragmentActivity implements Constants, Activity
 	public void setHardwareAcceleration() {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 			final SharedPreferences preferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-			final boolean hardware_acceleration = mHardwareAccelerated = preferences.getBoolean(PREFERENCE_KEY_HARDWARE_ACCELERATION, false);
+			final boolean hardware_acceleration = mHardwareAccelerated = preferences.getBoolean(PREFERENCE_KEY_HARDWARE_ACCELERATION, true);
 			final Window w = getWindow();
 			if (hardware_acceleration) {
 				w.setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
@@ -132,7 +133,7 @@ class BaseDialogActivity extends FragmentActivity implements Constants, Activity
 	public boolean isHardwareAccelerationChanged() {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) return false;
 		final SharedPreferences preferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-		final boolean hardware_acceleration = preferences.getBoolean(PREFERENCE_KEY_HARDWARE_ACCELERATION, false);
+		final boolean hardware_acceleration = preferences.getBoolean(PREFERENCE_KEY_HARDWARE_ACCELERATION, true);
 		return mHardwareAccelerated != hardware_acceleration;
 	}
 }

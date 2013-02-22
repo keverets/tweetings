@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -49,10 +50,12 @@ import com.dwdesign.tweetings.R;
 import com.dwdesign.tweetings.activity.ComposeActivity;
 import com.dwdesign.tweetings.adapter.ParcelableStatusesAdapter;
 import com.dwdesign.tweetings.loader.DummyParcelableStatusesLoader;
+import com.dwdesign.tweetings.loader.UserListTimelineLoader;
 import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.service.TweetingsService;
 import com.dwdesign.tweetings.util.NoDuplicatesArrayList;
 import com.dwdesign.tweetings.util.ServiceInterface;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -124,9 +127,9 @@ public class ConversationFragment extends ParcelableStatusesListFragment impleme
 		inflater.inflate(R.menu.menu_conversation, menu);
 		super.onCreateOptionsMenu(menu, inflater);
 	}
-
+	
 	@Override
-	public Loader<List<ParcelableStatus>> newLoaderInstance(final Bundle args) {
+	public Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> newLoaderInstance(final Bundle args) {
 		final long account_id = args != null ? args.getLong(INTENT_KEY_ACCOUNT_ID, -1) : -1;
 		return new DummyParcelableStatusesLoader(getActivity(), account_id, getData());
 	}
@@ -157,7 +160,8 @@ public class ConversationFragment extends ParcelableStatusesListFragment impleme
 	}
 
 	@Override
-	public void onDataLoaded(final Loader<List<ParcelableStatus>> loader, final ParcelableStatusesAdapter adapter) {
+	public void onDataLoaded(final Loader<SynchronizedStateSavedList<ParcelableStatus, Long>> loader,
+			final ParcelableStatusesAdapter adapter) {
 
 	}
 

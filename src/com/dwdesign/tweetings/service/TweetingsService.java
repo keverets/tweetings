@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -47,6 +48,7 @@ import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -142,6 +144,9 @@ public class TweetingsService extends Service implements Constants {
 	private NotificationManager mNotificationManager;
 	private AlarmManager mAlarmManager;
 	private ContentResolver mResolver;
+	private MediaPlayer mPlayer;
+	
+	private int activityCount = 1;
 
 	private int mGetHomeTimelineTaskId, mGetMentionsTaskId;
 	private int mStoreStatusesTaskId, mStoreMentionsTaskId;
@@ -530,6 +535,24 @@ public class TweetingsService extends Service implements Constants {
 		super.onDestroy();
 	}
 	
+	public void incrementActivityCount() {
+		if (this.activityCount == 0) {
+			final Intent intent = new Intent(BROADCAST_BACKGROUND_CHANGED);
+			intent.putExtra(INTENT_KEY_BACKGROUND, false);
+			sendBroadcast(intent);
+		}
+		this.activityCount++;
+	}
+	
+	public void decrementActivityCount() {
+		this.activityCount--;
+		if (this.activityCount == 0) {
+			final Intent intent = new Intent(BROADCAST_BACKGROUND_CHANGED);
+			intent.putExtra(INTENT_KEY_BACKGROUND, true);
+			sendBroadcast(intent);
+		}
+	}
+	
 	public int refreshAll() {
 		final long[] account_ids = getActivatedAccountIds(this);
 		final long[] since_ids = getNewestStatusIdsFromDatabase(this, Mentions.CONTENT_URI);
@@ -663,14 +686,16 @@ public class TweetingsService extends Service implements Constants {
 			builder.setContentIntent(PendingIntent.getActivity(this, 0, content_intent, PendingIntent.FLAG_UPDATE_CURRENT));
 		}
 		int defaults = 0;
-		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_SOUND, true)) {
-			builder.setSound(Uri.parse(mPreferences.getString(PREFERENCE_KEY_NOTIFICATION_RINGTONE,
-					Settings.System.DEFAULT_RINGTONE_URI.getPath())), Notification.STREAM_DEFAULT);
+		final Calendar now = Calendar.getInstance();
+		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_SOUND, true) && !mPreferences.getBoolean("silent_notifications_at_" + now.get(Calendar.HOUR_OF_DAY), false)) {
+			Uri soundUri = Uri.parse(mPreferences.getString(PREFERENCE_KEY_NOTIFICATION_RINGTONE,
+					"android.resource://" + getPackageName() + "/" + R.raw.notify));
+			builder.setSound(soundUri, Notification.STREAM_DEFAULT);
 		}
-		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_VIBRATION, true)) {
+		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_VIBRATION, true) && !mPreferences.getBoolean("silent_notifications_at_" + now.get(Calendar.HOUR_OF_DAY), false)) {
 			defaults |= Notification.DEFAULT_VIBRATE;
 		}
-		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_LIGHTS, true)) {
+		if (mPreferences.getBoolean(PREFERENCE_KEY_NOTIFICATION_HAVE_LIGHTS, true) && !mPreferences.getBoolean("silent_notifications_at_" + now.get(Calendar.HOUR_OF_DAY), false)) {
 			final int color_def = getResources().getColor(R.color.holo_blue_dark);
 			final int color = mPreferences.getInt(PREFERENCE_KEY_NOTIFICATION_LIGHT_COLOR, color_def);
 			builder.setLights(color, 1000, 2000);
@@ -1673,7 +1698,7 @@ public class TweetingsService extends Service implements Constants {
 
 		@Override
 		public Twitter getTwitter(final long account_id) {
-			return getTwitterInstance(TweetingsService.this, account_id, true, true);
+			return getTwitterInstance(TweetingsService.this, account_id, true, true, true);
 		}
 
 		@Override
@@ -1746,7 +1771,7 @@ public class TweetingsService extends Service implements Constants {
 
 		@Override
 		public Twitter getTwitter(final long account_id) {
-			return getTwitterInstance(TweetingsService.this, account_id, true, false);
+			return getTwitterInstance(TweetingsService.this, account_id, true, false, true);
 		}
 
 		@Override
@@ -2131,7 +2156,13 @@ public class TweetingsService extends Service implements Constants {
 				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
-					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+					if (mPlayer != null) {
+						if (mPlayer.isPlaying()) {
+							mPlayer.stop();
+						}
+						mPlayer.release();
+					}
+					mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 					if (isMuted == true) {
 						mPlayer.setVolume(0,0);
 					}
@@ -2162,7 +2193,7 @@ public class TweetingsService extends Service implements Constants {
 
 		public SendDirectMessageTask(final long account_id, final String screen_name, final long user_id, final String message) {
 			super(TweetingsService.this, mAsyncTaskManager);
-			twitter = getTwitterInstance(TweetingsService.this, account_id, false);
+			twitter = getTwitterInstance(TweetingsService.this, account_id, true);
 			this.account_id = account_id;
 			this.user_id = user_id;
 			this.screen_name = screen_name;
@@ -2207,7 +2238,13 @@ public class TweetingsService extends Service implements Constants {
 				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
-					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+					if (mPlayer != null) {
+						if (mPlayer.isPlaying()) {
+							mPlayer.stop();
+						}
+						mPlayer.release();
+					}
+					mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 					if (isMuted == true) {
 						mPlayer.setVolume(0,0);
 					}
@@ -2448,6 +2485,16 @@ public class TweetingsService extends Service implements Constants {
 		@Override
 		public int refreshAll() {
 			return mService.get().refreshAll();
+		}
+		
+		@Override
+		public void incrementActivityCount() {
+			mService.get().incrementActivityCount();
+		}
+		
+		@Override
+		public void decrementActivityCount() {
+			mService.get().decrementActivityCount();
 		}
 		
 		@Override
@@ -3295,7 +3342,13 @@ public class TweetingsService extends Service implements Constants {
 			    	break;
 			}
 			if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
-				MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+				if (mPlayer != null) {
+					if (mPlayer.isPlaying()) {
+						mPlayer.stop();
+					}
+					mPlayer.release();
+				}
+				mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 				if (isMuted == true) {
 					mPlayer.setVolume(0,0);
 				}
@@ -3439,7 +3492,13 @@ public class TweetingsService extends Service implements Constants {
 				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
-					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+					if (mPlayer != null) {
+						if (mPlayer.isPlaying()) {
+							mPlayer.stop();
+						}
+						mPlayer.release();
+					}
+					mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 					if (isMuted == true) {
 						mPlayer.setVolume(0,0);
 					}
@@ -3470,7 +3529,13 @@ public class TweetingsService extends Service implements Constants {
 				    	isMuted = true;
 				    	break;
 				}
-				MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+				if (mPlayer != null) {
+					if (mPlayer.isPlaying()) {
+						mPlayer.stop();
+					}
+					mPlayer.release();
+				}
+				mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 				if (isMuted == true) {
 					mPlayer.setVolume(0,0);
 				}
@@ -3553,7 +3618,7 @@ public class TweetingsService extends Service implements Constants {
 					final Twitter twitter = getTwitterInstance(TweetingsService.this, account_id, false);
 					
 					if (!use_uploader && image_file != null && image_file.exists()) {
-						CreateNotification();
+						/*CreateNotification();
 						uploadTimer = new Timer();
 			    		uploadTimer.schedule(new TimerTask() {			
 			    			@Override
@@ -3561,7 +3626,7 @@ public class TweetingsService extends Service implements Constants {
 			    				UploadProgressMethod(twitter);
 			    			}
 			    			
-			    		}, 0, 50);
+			    		}, 0, 50);*/
 					}
 					
 					if (twitter != null) {
@@ -3620,12 +3685,12 @@ public class TweetingsService extends Service implements Constants {
 		@Override
 		protected void onPostExecute(final List<SingleResponse<twitter4j.Status>> result) {
 
-			if (uploadTimer != null) {
+			/*if (uploadTimer != null) {
 				uploadTimer.cancel();
 			}
 			NotificationManager notificationManager = (NotificationManager) getApplicationContext()
 					.getSystemService(Context.NOTIFICATION_SERVICE);
-			notificationManager.cancelAll();
+			notificationManager.cancelAll();*/
 			
 			boolean succeed = true;
 			Exception exception = null;
@@ -3654,7 +3719,13 @@ public class TweetingsService extends Service implements Constants {
 				    	break;
 				}
 				if (mPreferences.getBoolean(PREFERENCE_KEY_SOUND_SEND, true)) {
-					MediaPlayer mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
+					if (mPlayer != null) {
+						if (mPlayer.isPlaying()) {
+							mPlayer.stop();
+						}
+						mPlayer.release();
+					}
+					mPlayer = MediaPlayer.create(TweetingsService.this, R.raw.whoosh);
 					if (isMuted == true) {
 						mPlayer.setVolume(0,0);
 					}

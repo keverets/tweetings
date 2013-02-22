@@ -20,7 +20,6 @@
 	<string name="loading_image">Loading image\u2026</string>
 
 	<!-- Displayed in the title of those albums that are being loaded -->
-	<string name="loading">Loading\u2026</string>
 
 	<!--
          Displayed in the title of those pictures that fails to be loaded
@@ -102,7 +101,6 @@
 	</plurals>
 
 	<string name="confirm">Confirm</string>
-	<string name="cancel">Cancel</string>
 	<string name="share_panorama">Share panorama</string>
 	<string name="share_as_photo">Share as photo</string>
 
@@ -403,10 +401,7 @@
 	<string name="widget_type_shuffle">Shuffle all images</string>
 	<!-- The label on the radio button for the widget type that shows only one image. [CHAR LIMIT=30] -->
 	<string name="widget_type_photo">Choose an image</string>
-
-	<!-- The title of the dialog for choosing the type of widget. [CHAR LIMIT=20] -->
-	<string name="widget_type">Choose images</string>
-
+	
 	<!-- Title of the Android Dreams slideshow screensaver. [CHAR LIMIT=20] -->
 	<string name="slideshow_dream_name">Slideshow</string>
 

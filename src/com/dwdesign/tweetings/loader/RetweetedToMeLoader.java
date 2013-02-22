@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -33,6 +34,8 @@ import com.dwdesign.tweetings.model.ParcelableStatus;
 import com.dwdesign.tweetings.model.SerializableStatus;
 
 import com.dwdesign.tweetings.util.NoDuplicatesStateSavedList;
+import com.dwdesign.tweetings.util.SerializationUtil;
+import com.dwdesign.tweetings.util.SynchronizedStateSavedList;
 
 import twitter4j.Paging;
 import twitter4j.ResponseList;
@@ -51,36 +54,30 @@ public class RetweetedToMeLoader extends Twitter4JStatusLoader {
 
 	@Override
 	public ResponseList<Status> getStatuses(final Paging paging) throws TwitterException {
-		final Twitter twitter = getTwitter();
-		if (twitter == null) return null;
-		return twitter.getRetweetsOfMe(paging);
+		if (mTwitter == null) return null;
+		return mTwitter.getRetweetsOfMe(paging);
 	}
 	
 	@Override
-	public synchronized List<ParcelableStatus> loadInBackground() {
+	public SynchronizedStateSavedList<ParcelableStatus, Long> loadInBackground() {
 		if (isFirstLoad() && isHomeTab() && getClassName() != null) {
 			try {
-				final File f = new File(getContext().getCacheDir(), getClassName() + "." + getAccountId());
-				final FileInputStream fis = new FileInputStream(f);
-				final ObjectInputStream in = new ObjectInputStream(fis);
-				@SuppressWarnings("unchecked")
-				final NoDuplicatesStateSavedList<SerializableStatus, Long> statuses = (NoDuplicatesStateSavedList<SerializableStatus, Long>) in
-						.readObject();
+				final String path = SerializationUtil.getSerializationFilePath(getContext(), getClassName(),
+						mAccountId);
+				final SynchronizedStateSavedList<ParcelableStatus, Long> statuses = SerializationUtil.read(path);
 				setLastViewedId(statuses.getState());
-				in.close();
-				fis.close();
-				final ArrayList<ParcelableStatus> result = new ArrayList<ParcelableStatus>();
-				for (final SerializableStatus status : statuses) {
-					result.add(new ParcelableStatus(status));
+				final SynchronizedStateSavedList<ParcelableStatus, Long> data = getData();
+				if (data != null && statuses != null) {
+					data.addAll(statuses);
+					Collections.sort(data);
 				}
-				final List<ParcelableStatus> data = getData();
-				if (data != null) {
-					data.addAll(result);
-				}
-				Collections.sort(data);
 				return data;
 			} catch (final IOException e) {
+				e.printStackTrace();
 			} catch (final ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (final ClassCastException e) {
+				e.printStackTrace();
 			}
 		}
 		return super.loadInBackground();

@@ -16,7 +16,7 @@
 
 package com.dwdesign.gallery3d.anim;
 
-import com.dwdesign.gallery3d.common.Utils;
+import com.dwdesign.gallery3d.util.GalleryUtils;
 
 import android.view.animation.Interpolator;
 
@@ -59,7 +59,7 @@ abstract public class Animation {
 			mStartTime = currentTimeMillis;
 		}
 		final int elapse = (int) (currentTimeMillis - mStartTime);
-		final float x = Utils.clamp((float) elapse / mDuration, 0f, 1f);
+		final float x = GalleryUtils.clamp((float) elapse / mDuration, 0f, 1f);
 		final Interpolator i = mInterpolator;
 		onCalculate(i != null ? i.getInterpolation(x) : x);
 		if (elapse >= mDuration) {
@@ -82,10 +82,6 @@ abstract public class Animation {
 
 	public void setStartTime(final long time) {
 		mStartTime = time;
-	}
-
-	public void start() {
-		mStartTime = ANIMATION_START;
 	}
 
 	abstract protected void onCalculate(float progress);

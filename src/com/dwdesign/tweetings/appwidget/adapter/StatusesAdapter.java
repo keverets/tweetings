@@ -8,6 +8,7 @@ import static com.dwdesign.tweetings.appwidget.util.Utils.getFilename;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getRoundedCornerBitmap;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getTableNameForContentUri;
 import static com.dwdesign.tweetings.appwidget.util.Utils.getTweetingsCacheDir;
+import static com.dwdesign.tweetings.util.Utils.getBestCacheDir;
 import static com.dwdesign.tweetings.util.Utils.getBiggerTwitterProfileImage;
 import static com.dwdesign.tweetings.util.Utils.parseURL;
 
@@ -125,24 +126,15 @@ public abstract class StatusesAdapter implements RemoteViewsFactory, Constants {
 			views.setViewVisibility(R.id.profile_image, View.VISIBLE);
 			
 			try {
-				final String profile_image_url = cursor.getString(indices.profile_image_url);
-				URL final_url = parseURL(getBiggerTwitterProfileImage(profile_image_url));
-				
-				File profile_image_file = mApplication.mProfileImageLoader.getCachedImageFile(String.valueOf(final_url));
-				final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
-						.decodeFile(profile_image_file.getPath()) : null;
-						
-				
-				/*
-				
-				final File cache_dir = getTweetingsCacheDir();
+				final File cache_dir = getBestCacheDir(context, DIR_NAME_IMAGE_CACHE);
+		 		
 				final String profile_image_url = cursor.getString(indices.profile_image_url);
 				final String file_name = getFilename(resources.getBoolean(R.bool.hires_profile_image) ? getBiggerTwitterProfileImage(profile_image_url)
 						: profile_image_url);
 				final File profile_image_file = cache_dir != null && cache_dir.isDirectory() && file_name != null ? new File(
 						cache_dir, file_name) : null;
 				final Bitmap profile_image = profile_image_file != null && profile_image_file.isFile() ? BitmapFactory
-						.decodeFile(profile_image_file.getPath()) : null;*/
+						.decodeFile(profile_image_file.getPath()) : null;
 				if (profile_image != null) {
 					views.setImageViewBitmap(R.id.profile_image, getRoundedCornerBitmap(resources, profile_image));
 				} else {

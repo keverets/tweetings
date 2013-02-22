@@ -1,6 +1,7 @@
 /*
  *				Tweetings - Twitter client for Android
  * 
+ * Copyright (C) 2012-2013 RBD Solutions Limited <apps@tweetings.net>
  * Copyright (C) 2012 Mariotaku Lee <mariotaku.lee@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -84,7 +85,7 @@ import com.dwdesign.tweetings.provider.TweetStore.Accounts;
 import com.dwdesign.tweetings.provider.TweetStore.CachedUsers;
 import com.dwdesign.tweetings.provider.TweetStore.Filters;
 import com.dwdesign.tweetings.util.GetExternalCacheDirAccessor;
-import com.dwdesign.tweetings.util.LazyImageLoader;
+import com.dwdesign.tweetings.util.ImageLoaderWrapper;
 import com.dwdesign.tweetings.util.ServiceInterface;
 import com.dwdesign.tweetings.util.TwidereLinkify;
 import com.dwdesign.tweetings.util.TwidereLinkify.OnLinkClickListener;
@@ -152,7 +153,7 @@ import android.widget.Toast;
 public class UserProfileFragment extends BaseListFragment implements OnClickListener, OnLongClickListener,
 		OnItemClickListener, OnItemLongClickListener, OnMenuItemClickListener, OnLinkClickListener, Panes.Right {
 
-	private LazyImageLoader mProfileImageLoader, mImageLoader;
+	private ImageLoaderWrapper mLazyImageLoader;
 
 	private ImageView mProfileImageView, mProfileBackgroundView;
 	private GetFriendshipTask mGetFriendshipTask;
@@ -291,9 +292,9 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 		// if (display_profile_image) {
 		final String profile_image_url_string = parseString(user.getProfileImageURL());
 		final boolean hires_profile_image = getResources().getBoolean(R.bool.hires_profile_image);
-		mProfileImageLoader.displayImage(
-				parseURL(hires_profile_image ? getBiggerTwitterProfileImage(profile_image_url_string)
-						: profile_image_url_string), mProfileImageView);
+		mLazyImageLoader.displayProfileImage(mProfileImageView, 
+				hires_profile_image ? getBiggerTwitterProfileImage(profile_image_url_string)
+						: profile_image_url_string);
 		// }
 		
 		String profile_banner_url_string = parseString(user.getProfileBannerImageUrl());
@@ -305,8 +306,8 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 		if (mProfileBackgroundView != null) {
 			mProfileBackgroundView.setScaleType(ImageView.ScaleType.CENTER_CROP);
 			if (banner_url != null) {
-				mImageLoader.displayImage(
-						parseURL(banner_url), mProfileBackgroundView);
+				mLazyImageLoader.displayPreviewImage(mProfileBackgroundView, 
+						banner_url);
 			}
 			else {
 				final Drawable d = getResources().getDrawable(R.drawable.linen);
@@ -324,7 +325,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 				values.put(Accounts.PROFILE_IMAGE_URL, profile_image_url.toString());
 			}
 			values.put(Accounts.USERNAME, user.getScreenName());
-			final String where = Accounts.USER_ID + " = " + user.getId();
+			final String where = Accounts.USER_ID + " = " + user.getId() + " AND 1 = 1";
 			resolver.update(Accounts.CONTENT_URI, values, where, null);
 		}
 		mAdapter.add(new UserRecentPhotosAction());
@@ -509,8 +510,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 			user_id = args.getLong(INTENT_KEY_USER_ID, -1);
 			screen_name = args.getString(INTENT_KEY_SCREEN_NAME);
 		}
-		mProfileImageLoader = getApplication().getProfileImageLoader();
-		mImageLoader = getApplication().getPreviewImageLoader();
+		mLazyImageLoader = getApplication().getImageLoaderWrapper();
 		mAdapter = new ListActionAdapter(getActivity());
 		mProfileImageContainer.setOnClickListener(this);
 		mProfileImageContainer.setOnLongClickListener(this);
@@ -1664,7 +1664,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 						values.put(Accounts.PROFILE_IMAGE_URL, profile_image_url.toString());
 					}
 					values.put(Accounts.USERNAME, user.getScreenName());
-					final String where = Accounts.USER_ID + " = " + user.getId();
+					final String where = Accounts.USER_ID + " = " + user.getId() + " AND 1 = 1";
 					resolver.update(Accounts.CONTENT_URI, values, where, null);
 				}
 			} else {
@@ -1714,7 +1714,7 @@ public class UserProfileFragment extends BaseListFragment implements OnClickList
 		
 		@Override
 		public long getId() {
-			return 8;
+			return 9;
 		}
 		
 		@Override
